@@ -2,18 +2,22 @@
 use strict;
 use warnings;
 
-use PList::Email::MIME;
-
 binmode STDOUT, ':utf8';
 
-open my $file, $ARGV[0] or die;
+use PList::Email::MIME;
 
-my $str = join '', <$file>;
+if ( @ARGV > 1 ) {
+	print "To many arguments\n";
+	exit 1;
+}
+
+my $str = join '', <>;
 $str =~ s/^From .*\n//;
 
 my $email = PList::Email::MIME::new_from_str($str);
 if ( not defined $email ) {
-	print "Error\n";
-	exit;
+	print "Parsing error\n";
+	exit 1;
 }
+
 print $email->to_binary();
