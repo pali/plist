@@ -12,6 +12,8 @@ use HTML::Strip;
 
 use Time::Piece;
 
+my $first_prefix = 0;
+
 # new_from_str(str, class)
 # str - string or string ref
 # class
@@ -73,7 +75,7 @@ sub subject($) {
 		return "";
 	}
 
-};
+}
 
 # date(email)
 # email - Email::MIME
@@ -85,11 +87,55 @@ sub date($) {
 	if ( defined $timepiece ) {
 		return $timepiece->strftime();
 	} else {
-#		return "Thu, 01 Jan 1970 00:00:00 +0000";
 		return "";
 	}
 
-};
+}
+
+sub ids(@) {
+
+	my @ret;
+
+	foreach (@_) {
+		foreach (split(" ", $_)) {
+			my $id = $_;
+			$id =~ s/^\s*<(.*)>\s*$/$1/;
+			push(@ret, $id);
+		}
+	}
+
+	return @ret;
+
+}
+
+sub reply($) {
+
+	my ($email) = @_;
+
+	return ids($email->header("In-Reply-To"))
+
+}
+
+sub references($) {
+
+	my ($email) = @_;
+
+	return ids($email->header("References"));
+
+}
+
+sub messageid($) {
+
+	my ($email) = @_;
+	my $id = $email->header("Message-Id");
+	if ( $id ) {
+		$id =~ s/^\s*<(.*)>\s*$/$1/;
+		return $id;
+	} else {
+		return "";
+	}
+
+}
 
 # address(email_address)
 # email_address - Email::Address
@@ -128,6 +174,8 @@ sub addresses($$) {
 sub html_strip($) {
 
 	my ($html) = @_;
+
+	# TODO: this does not working for non ascii chars!!!
 	return HTML::Strip->new()->parse($html);
 
 }
@@ -167,9 +215,9 @@ sub parse_multipart($$$$$) {
 
 	my ($prefix, $email, $parts, $headers, $datarefs) = @_;
 
-	my $partid = 1;
+	my $partid = $first_prefix;
 
-	foreach my $subpart ($email->subparts()) {
+	foreach my $subpart ($email->parts()) {
 
 		my $discrete;
 		my $composite;
@@ -186,8 +234,9 @@ sub parse_multipart($$$$$) {
 
 		# TODO: do some content type correction
 
-		my $partstr = sprintf("%s-%.4d", $prefix, $partid);
+		my $partstr = "$prefix/$partid";
 		my $filename = $subpart->filename();
+		my $description = $subpart->header("Content-Description");
 		my $body = subpart_get_body($subpart, $discrete, $composite, $charset);
 		my $size = 0;
 
@@ -232,6 +281,7 @@ sub parse_multipart($$$$$) {
 			type => $type,
 			mimetype => "$discrete/$composite",
 			filename => $filename,
+			description => $description,
 		};
 
 		push(@{$parts}, $part);
@@ -248,8 +298,9 @@ sub parse_multipart($$$$$) {
 
 			# For every text/html part create multipart/alternative and add text/html and new text/plain (converted from html)
 
-			my $partstr_html = sprintf("%s-%.4d", $partstr, 1);
-			my $partstr_plain = sprintf("%s-%.4d", $partstr, 2);
+			my $partstr_html = "$partstr/$first_prefix";
+			my $partstr_plain = $first_prefix+1;
+			$partstr_plain = "$partstr/$partstr_plain";
 
 			my $data_html = $subpart->body_str();
 			my $data_plain = html_strip($data_html);
@@ -310,17 +361,57 @@ sub parse_email($$$$$) {
 	my @from = addresses($email, "From");
 	my @to = addresses($email, "To");
 	my @cc = addresses($email, "Cc");
+	my @reply = reply($email);
+	my @references = references($email);
 
 	my $header = {
 		part => $prefix,
 		from => \@from,
 		to => \@to,
 		cc => \@cc,
+		reply => \@reply,
+		references => \@references,
+		id => messageid($email),
 		date => date($email),
 		subject => subject($email),
 	};
 
 	push(@{$headers}, $header);
+
+	my $discrete;
+	my $composite;
+
+	{
+		local $Email::MIME::ContentType::STRICT_PARAMS = 0;
+		my $content_type = parse_content_type($email->content_type);
+		$discrete = $content_type->{discrete};
+		$composite = $content_type->{composite};
+	}
+
+	if ( $discrete eq "multipart" ) {
+
+		$prefix .= "/$first_prefix";
+
+		my $type;
+
+		if ( $composite eq "alternative" ) {
+			$type = "alternative";
+		} else {
+			$type = "multipart";
+		}
+
+		my $part = {
+			part => $prefix,
+			size => 0,
+			type => $type,
+			mimetype => "$discrete/$composite",
+			filename => "",
+			description => "",
+		};
+
+		push(@{$parts}, $part);
+
+	}
 
 	parse_multipart($prefix, $email, $parts, $headers, $datarefs);
 
@@ -342,7 +433,20 @@ sub to_binary($) {
 	my @headers;
 	my @datarefs;
 
-	parse_email("0000", $self->{email}, \@parts, \@headers, \@datarefs);
+	my $prefix = "$first_prefix";
+
+	my $part = {
+		part => $prefix,
+		size => 0,
+		type => "message",
+		mimetype => "message/rfc822",
+		filename => "",
+		description => "",
+	};
+
+	push(@parts, $part);
+
+	parse_email($prefix, $self->{email}, \@parts, \@headers, \@datarefs);
 
 	$bin .= "Parts:\n";
 	foreach (@parts) {
@@ -362,6 +466,7 @@ sub to_binary($) {
 			$bin .= " ";
 			$bin .= $_->{filename};
 		}
+		# TODO: add description
 		$bin .= "\n";
 	}
 
@@ -379,6 +484,18 @@ sub to_binary($) {
 		if ( @{$_->{cc}} ) {
 			$bin .= "Cc:\n";
 			$bin .= " $_\n" foreach (@{$_->{cc}});
+		}
+		if ( @{$_->{reply}} ) {
+			$bin .= "Reply:\n";
+			$bin .= " $_\n" foreach (@{$_->{reply}});
+		}
+		if ( @{$_->{references}} ) {
+			$bin .= "References:\n";
+			$bin .= " $_\n" foreach (@{$_->{references}});
+		}
+		if ( $_->{id} ) {
+			$bin .= "Id:\n";
+			$bin .= " $_->{id}\n";
 		}
 		if ( $_->{date} ) {
 			$bin .= "Date:\n";
