@@ -14,6 +14,14 @@ use Time::Piece;
 
 my $first_prefix = 0;
 
+sub lengthbytes($) {
+
+	use bytes;
+	my ($str) = @_;
+	return length($str);
+
+}
+
 # new_from_str(str, class)
 # str - string or string ref
 # class
@@ -29,9 +37,9 @@ sub new_from_str($;$) {
 
 	my $length;
 	if ( not ref($str) ) {
-		$length = length($str);
+		$length = lengthbytes($str);
 	} else {
-		$length = length(${$str});
+		$length = lengthbytes(${$str});
 	}
 
 	my $self = {
@@ -272,7 +280,7 @@ sub parse_multipart($$$$$) {
 		# TODO: invent some name if type is attachment
 
 		if ( $type eq "attachment" or $type eq "view" or $type eq "ignore" ) {
-			$size = length($body);
+			$size = lengthbytes($body);
 		}
 
 		my $part = {
@@ -307,14 +315,14 @@ sub parse_multipart($$$$$) {
 
 			my $part_html = {
 				part => $partstr_html,
-				size => length($data_html),
+				size => lengthbytes($data_html),
 				type => "view",
 				mimetype => "text/html",
 			};
 
 			my $part_plain = {
 				part => $partstr_plain,
-				size => length($data_plain),
+				size => lengthbytes($data_plain),
 				type => "view",
 				mimetype => "text/plain",
 			};
@@ -510,11 +518,11 @@ sub to_binary($) {
 	$bin .= "Data:\n";
 	foreach (@datarefs) {
 		# NOTE: for offset we have allocated 20 digits at position $offsets{$part}
-		my $offset = length($bin);
+		my $offset = lengthbytes($bin);
 		if ( $offset >= 10**20 ) {
 			return undef;
 		}
-		substr($bin, $offsets{$_->{part}}, 20) = sprintf("%.20d", length($bin));
+		substr($bin, $offsets{$_->{part}}, 20) = sprintf("%.20d", $offset);
 		$bin .= ${$_->{dataref}};
 	}
 
