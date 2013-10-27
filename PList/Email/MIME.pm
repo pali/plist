@@ -452,7 +452,7 @@ sub to_binary($) {
 	}
 
 	my $bin = "";
-	my %offsets;
+	my $offset = 0;
 
 	my @parts;
 	my @headers;
@@ -478,9 +478,11 @@ sub to_binary($) {
 		$bin .= " ";
 		$bin .= $_->{part};
 		$bin .= " ";
-		$offsets{$_->{part}} = length($bin);
-		# NOTE: offset is calculated when adding data, allocate 20 digits for offset
-		$bin .= sprintf("%.20d", 0);
+		if ( $_->{size} == 0 ) {
+			$bin .= "0";
+		} else {
+			$bin .= $offset;
+		}
 		$bin .= " ";
 		$bin .= $_->{size};
 		$bin .= " ";
@@ -493,6 +495,7 @@ sub to_binary($) {
 		}
 		# TODO: add description
 		$bin .= "\n";
+		$offset += $_->{size};
 	}
 
 	foreach (@headers) {
@@ -534,12 +537,6 @@ sub to_binary($) {
 
 	$bin .= "Data:\n";
 	foreach (@datarefs) {
-		# NOTE: for offset we have allocated 20 digits at position $offsets{$part}
-		my $offset = lengthbytes($bin);
-		if ( $offset >= 10**20 ) {
-			return undef;
-		}
-		substr($bin, $offsets{$_->{part}}, 20) = sprintf("%.20d", $offset);
 		$bin .= ${$_->{dataref}};
 	}
 
