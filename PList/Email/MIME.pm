@@ -78,7 +78,11 @@ sub subject($) {
 
 	my ($email) = @_;
 	if ( defined $email->header("Subject") ) {
-		return $email->header("Subject");
+		my $str = $email->header("Subject");
+		$str =~ s/\s/ /g;
+		$str =~ s/^\s+//;
+		$str =~ s/\s+$//;
+		return $str;
 	} else {
 		return "";
 	}
@@ -125,6 +129,7 @@ sub ids(@) {
 		foreach (split(" ", $_)) {
 			my $id = $_;
 			$id =~ s/^\s*<(.*)>\s*$/$1/;
+			$id =~ s/\s/_/g;
 			push(@ret, $id);
 		}
 	}
@@ -155,6 +160,7 @@ sub messageid($) {
 	my $id = $email->header("Message-Id");
 	if ( $id ) {
 		$id =~ s/^\s*<(.*)>\s*$/$1/;
+		$id =~ s/\s/_/g;
 		return $id;
 	} else {
 		return "";
@@ -173,10 +179,15 @@ sub address($) {
 
 	if ( $email_address->address ) {
 		$address = $email_address->address;
+		$address =~ s/\s//g;
 	}
 
 	if ( $email_address->name ) {
-		return $address . " " . $email_address->name;
+		my $name = $email_address->name;
+		$name =~ s/\s/ /g;
+		$name =~ s/^\s+//;
+		$name =~ s/\s+$//;
+		return $address . " " . $name;
 	} else {
 		return $address;
 	}
