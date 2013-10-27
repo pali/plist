@@ -476,11 +476,6 @@ sub to_binary($) {
 
 	my ($self) = @_;
 
-	# 2^60 has less then 20 digits
-	if ( $self->{length} > 2**60 ) {
-		return undef;
-	}
-
 	my $bin = "";
 	my $offset = 0;
 
