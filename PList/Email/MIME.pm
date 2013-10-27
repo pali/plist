@@ -228,17 +228,18 @@ sub subpart_get_body($$$$) {
 }
 
 # Fixing: parse_multipart() called too early to check prototype
-sub parse_multipart($$$$$);
+sub parse_multipart($$$$$$);
 
-# parse_email(prefix, email, parts, headers, datarefs)
+# parse_multipart(prefix, email, mimetype, parts, headers, datarefs)
 # prefix - string
 # email - Email::MIME
+# mimetype - string (discrete/composite)
 # parts - ref to array (modify)
 # headers - ref to array (modify)
 # datarefs - ref to array (modify)
-sub parse_multipart($$$$$) {
+sub parse_multipart($$$$$$) {
 
-	my ($prefix, $email, $parts, $headers, $datarefs) = @_;
+	my ($prefix, $email, $mimetype, $parts, $headers, $datarefs) = @_;
 
 	my $partid = $first_prefix;
 
@@ -275,7 +276,7 @@ sub parse_multipart($$$$$) {
 			} else {
 				$type = "multipart";
 			}
-		} elsif ( $discrete eq "text" and $composite eq "html" ) {
+		} elsif ( $mimetype ne "multipart/alternative" and $discrete eq "text" and $composite eq "html" ) {
 			$type = "alternative";
 		} else {
 			my $disposition = $subpart->header("Content-Disposition");
@@ -319,23 +320,46 @@ sub parse_multipart($$$$$) {
 			push(@{$datarefs}, $dataref);
 		}
 
-		if ( $type eq "alternative" and $discrete eq "text" and $composite eq "html" ) {
+		if ( $discrete eq "text" and $composite eq "html" ) {
 
 			# For every text/html part create multipart/alternative and add text/html and new text/plain (converted from html)
 
-			my $partstr_html = "$partstr/$first_prefix";
-			my $partstr_plain = $first_prefix+1;
-			$partstr_plain = "$partstr/$partstr_plain";
+			my $partstr_plain;
+			my $data_html;
 
-			my $data_html = $subpart->body_str();
+			if ( $type eq "alternative" ) {
+
+				$partstr_plain = $first_prefix+1;
+				$partstr_plain = "$partstr/$partstr_plain";
+
+				$data_html = $subpart->body_str();
+
+				my $partstr_html = "$partstr/$first_prefix";
+
+				my $part_html = {
+					part => $partstr_html,
+					size => lengthbytes($data_html),
+					type => "view",
+					mimetype => "text/html",
+				};
+
+				my $dataref_html = {
+					part => $partstr_html,
+					dataref => \$data_html,
+				};
+
+				push(@{$parts}, $part_html);
+				push(@{$datarefs}, $dataref_html);
+
+			} else {
+
+				$partid++;
+				$partstr_plain = "$prefix/$partid";
+				$data_html = $body;
+
+			}
+
 			my $data_plain = html_strip($data_html);
-
-			my $part_html = {
-				part => $partstr_html,
-				size => lengthbytes($data_html),
-				type => "view",
-				mimetype => "text/html",
-			};
 
 			my $part_plain = {
 				part => $partstr_plain,
@@ -344,22 +368,17 @@ sub parse_multipart($$$$$) {
 				mimetype => "text/plain",
 			};
 
-			my $dataref_html = {
-				part => $partstr_html,
-				dataref => \$data_html,
-			};
-
 			my $dataref_plain = {
 				part => $partstr_plain,
 				dataref => \$data_plain,
 			};
 
-			push(@{$parts}, ($part_html, $part_plain));
-			push(@{$datarefs}, ($dataref_html, $dataref_plain));
+			push(@{$parts}, $part_plain);
+			push(@{$datarefs}, $dataref_plain);
 
 		} elsif ( $type eq "alternative" ) {
 
-			parse_multipart($partstr, $subpart, $parts, $headers, $datarefs);
+			parse_multipart($partstr, $subpart, "$discrete/$composite", $parts, $headers, $datarefs);
 
 		} elsif ( $type eq "message" ) {
 
@@ -438,7 +457,7 @@ sub parse_email($$$$$) {
 
 	}
 
-	parse_multipart($prefix, $email, $parts, $headers, $datarefs);
+	parse_multipart($prefix, $email, "$discrete/$composite", $parts, $headers, $datarefs);
 
 }
 
