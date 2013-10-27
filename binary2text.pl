@@ -10,12 +10,15 @@ if ( @ARGV > 1 ) {
 	exit 1;
 }
 
+my $dataoffset = 0;
+
 my $line;
 my $email;
 
 mmap($email, 0, PROT_READ, MAP_SHARED, STDIN) or die "mmap: $!";
 
 $line = <>;
+$dataoffset += length($line);
 
 if ( $line ne "Parts:\n" ) {
 	die "Parsing error";
@@ -24,6 +27,8 @@ if ( $line ne "Parts:\n" ) {
 my %parts;
 
 while ( $line = <> ) {
+
+	$dataoffset += length($line);
 
 	$line =~ s/\n//;
 
@@ -71,6 +76,8 @@ my %attrs = qw(Part: part From: from To: to Cc: cc Id: id Reply: reply Reference
 my %scalars = qw(part 1 id 1 date 1 subject 1);
 
 while ( $line = <> ) {
+
+	$dataoffset += length($line);
 
 	$line =~ s/\n//;
 
@@ -189,7 +196,7 @@ sub printnode {
 
 		if ( $part->{mimetype} eq "text/plain" ) {
 			print("\n");
-			print(substr($email, $part->{offset}, $part->{size}));
+			print(substr($email, $dataoffset + $part->{offset}, $part->{size}));
 			print("\n");
 			$ret = 1;
 		} else {
