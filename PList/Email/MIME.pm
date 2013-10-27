@@ -365,7 +365,7 @@ sub parse_multipart($$$$$$) {
 				part => $partstr_plain,
 				size => lengthbytes($data_plain),
 				type => "view",
-				mimetype => "text/plain",
+				mimetype => "text/plain-from-html",
 			};
 
 			my $dataref_plain = {
