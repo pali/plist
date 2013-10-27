@@ -87,10 +87,10 @@ sub subject($) {
 
 sub find_date_received($) {
 
-    return unless defined $_[0] and length $_[0];
-    my $date = pop;
-    $date =~ s/.+;//;
-    $date;
+	return unless defined $_[0] and length $_[0];
+	my $date = pop;
+	$date =~ s/.+;//;
+	$date;
 
 }
 
