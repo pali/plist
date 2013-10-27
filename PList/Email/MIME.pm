@@ -3,14 +3,14 @@ package PList::Email::MIME;
 use strict;
 use warnings;
 
+use DateTime;
+use DateTime::Format::Mail;
+
 use Email::Address;
-use Email::Date;
 use Email::MIME;
 use Email::MIME::ContentType;
 
 use HTML::Strip;
-
-use Time::Piece;
 
 my $first_prefix = 0;
 
@@ -85,15 +85,32 @@ sub subject($) {
 
 }
 
+sub find_date_received($) {
+
+    return unless defined $_[0] and length $_[0];
+    my $date = pop;
+    $date =~ s/.+;//;
+    $date;
+
+}
+
 # date(email)
 # email - Email::MIME
 # return - string
 sub date($) {
 
 	my ($email) = @_;
-	my $timepiece = find_date($email);
-	if ( defined $timepiece ) {
-		return $timepiece->strftime();
+	my $header;
+	my $date;
+
+	$header = $email->header("Date") || find_date_received($email->header("Received")) || $email->header("Resent-Date");
+
+	if ( $header and length $header ) {
+		$date = DateTime::Format::Mail->parse_datetime($header);
+	}
+
+	if ( $date ) {
+		return $date->strftime('%Y-%m-%d %H:%M:%S %z');
 	} else {
 		return "";
 	}
