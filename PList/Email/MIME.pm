@@ -3,6 +3,8 @@ package PList::Email::MIME;
 use strict;
 use warnings;
 
+use PList::Email;
+
 use DateTime;
 use DateTime::Format::Mail;
 
@@ -19,55 +21,6 @@ sub lengthbytes($) {
 	use bytes;
 	my ($str) = @_;
 	return length($str);
-
-}
-
-# new_from_str(str, class)
-# str - string or string ref
-# class
-# return - self
-sub new_from_str($;$) {
-
-	my ($str, $class) = @_;
-
-	my $email = new Email::MIME($str);
-	if ( not defined $email ) {
-		return undef;
-	}
-
-	my $length;
-	if ( not ref($str) ) {
-		$length = lengthbytes($str);
-	} else {
-		$length = lengthbytes(${$str});
-	}
-
-	my $self = {
-		email => $email,
-		length => $length,
-	};
-
-#	return bless $self, $class;
-	return bless $self;
-
-}
-
-# new_from_file(filename, class)
-sub new_from_file($;$) {
-
-	my ($filename, $class) = @_;
-
-	my $str;
-
-	if ( open(my $file, "<:raw", $filename) ) {
-		local $/=undef;
-		$str = <$file>;
-		close($file);
-	} else {
-		return undef;
-	}
-
-	return new_from_str(\$str, $class);
 
 }
 
@@ -239,18 +192,16 @@ sub subpart_get_body($$$$) {
 }
 
 # Fixing: parse_multipart() called too early to check prototype
-sub parse_multipart($$$$$$);
+sub parse_multipart($$$$);
 
-# parse_multipart(prefix, email, mimetype, parts, headers, datarefs)
-# prefix - string
+# parse_multipart(email, pemail, prefix, mimetype)
 # email - Email::MIME
+# pemail - PList::Email
+# prefix - string
 # mimetype - string (discrete/composite)
-# parts - ref to array (modify)
-# headers - ref to array (modify)
-# datarefs - ref to array (modify)
-sub parse_multipart($$$$$$) {
+sub parse_multipart($$$$) {
 
-	my ($prefix, $email, $mimetype, $parts, $headers, $datarefs) = @_;
+	my ($email, $pemail, $prefix, $mimetype) = @_;
 
 	my $partid = $first_prefix;
 
@@ -321,14 +272,10 @@ sub parse_multipart($$$$$$) {
 			description => $description,
 		};
 
-		push(@{$parts}, $part);
+		$pemail->add_part($part);
 
 		if ( $body and $size > 0 ) {
-			my $dataref = {
-				part => $partstr,
-				dataref => \$body,
-			};
-			push(@{$datarefs}, $dataref);
+			$pemail->add_data($partstr, $body);
 		}
 
 		if ( $discrete eq "text" and $composite eq "html" ) {
@@ -354,13 +301,8 @@ sub parse_multipart($$$$$$) {
 					mimetype => "text/html",
 				};
 
-				my $dataref_html = {
-					part => $partstr_html,
-					dataref => \$data_html,
-				};
-
-				push(@{$parts}, $part_html);
-				push(@{$datarefs}, $dataref_html);
+				$pemail->add_part($part_html);
+				$pemail->add_data($partstr_html, $data_html);
 
 			} else {
 
@@ -379,21 +321,16 @@ sub parse_multipart($$$$$$) {
 				mimetype => "text/plain-from-html",
 			};
 
-			my $dataref_plain = {
-				part => $partstr_plain,
-				dataref => \$data_plain,
-			};
-
-			push(@{$parts}, $part_plain);
-			push(@{$datarefs}, $dataref_plain);
+			$pemail->add_part($part_plain);
+			$pemail->add_data($partstr_plain, $data_plain);
 
 		} elsif ( $type eq "alternative" ) {
 
-			parse_multipart($partstr, $subpart, "$discrete/$composite", $parts, $headers, $datarefs);
+			parse_multipart($subpart, $pemail, $partstr, "$discrete/$composite");
 
 		} elsif ( $type eq "message" ) {
 
-			parse_email($partstr, new Email::MIME($body), $parts, $headers, $datarefs);
+			parse_email(new Email::MIME($body), $pemail, $partstr);
 
 		}
 
@@ -403,15 +340,13 @@ sub parse_multipart($$$$$$) {
 
 }
 
-# parse_email(prefix, email, parts, headers, datarefs)
-# prefix - string
+# parse_email(email, pemail, prefix)
 # email - Email::MIME
-# parts - ref to array (modify)
-# headers - ref to array (modify)
-# datarefs - ref to array (modify)
-sub parse_email($$$$$) {
+# pemail - PList::Email
+# prefix - string
+sub parse_email($$$) {
 
-	my ($prefix, $email, $parts, $headers, $datarefs) = @_;
+	my ($email, $pemail, $prefix) = @_;
 
 	my @from = addresses($email, "From");
 	my @to = addresses($email, "To");
@@ -431,7 +366,7 @@ sub parse_email($$$$$) {
 		subject => subject($email),
 	};
 
-	push(@{$headers}, $header);
+	$pemail->add_header($header);
 
 	my $discrete;
 	my $composite;
@@ -464,29 +399,46 @@ sub parse_email($$$$$) {
 			description => "",
 		};
 
-		push(@{$parts}, $part);
+		$pemail->add_part($part);
 
 	}
 
-	parse_multipart($prefix, $email, "$discrete/$composite", $parts, $headers, $datarefs);
+	parse_multipart($email, $pemail, $prefix, "$discrete/$composite");
 
 }
 
-sub to_binary($) {
+sub data($$) {
 
-	my ($self) = @_;
+	my ($datarefs, $part) = @_;
+	return ${$datarefs}{$part};
 
-	my $bin = "";
-	my $offset = 0;
+}
 
-	my @parts;
-	my @headers;
-	my @datarefs;
+sub add_data($$$) {
 
-	my $prefix = "$first_prefix";
+	my ($datarefs, $part, $data) = @_;
+	${$datarefs}{$part} = $data;
+
+}
+
+sub new_from_str($) {
+
+	my ($str) = @_;
+
+	my %datarefs;
+
+	my $pemail = PList::Email::new();
+	$pemail->set_datafunc(\&data);
+	$pemail->set_add_datafunc(\&add_data);
+	$pemail->set_private(\%datarefs);
+
+	my $email = new Email::MIME($str);
+	if ( not defined $email ) {
+		return undef;
+	}
 
 	my $part = {
-		part => $prefix,
+		part => "$first_prefix",
 		size => 0,
 		type => "message",
 		mimetype => "message/rfc822",
@@ -494,12 +446,41 @@ sub to_binary($) {
 		description => "",
 	};
 
-	push(@parts, $part);
+	$pemail->add_part($part);
 
-	parse_email($prefix, $self->{email}, \@parts, \@headers, \@datarefs);
+	parse_email($email, $pemail, "$first_prefix");
+	return $pemail;
+
+}
+
+sub new_from_file($) {
+
+	my ($filename) = @_;
+
+	my $str;
+
+	if ( open(my $file, "<:raw", $filename) ) {
+		local $/=undef;
+		$str = <$file>;
+		close($file);
+	} else {
+		return undef;
+	}
+
+	return new_from_str(\$str);
+
+}
+
+sub to_binary($) {
+
+	my ($pemail) = @_;
+
+	my $bin = "";
+	my $offset = 0;
 
 	$bin .= "Parts:\n";
-	foreach (@parts) {
+	foreach (sort keys %{$pemail->parts()}) {
+		$_ = ${$pemail->parts()}{$_};
 		$bin .= " ";
 		$bin .= $_->{part};
 		$bin .= " ";
@@ -517,13 +498,17 @@ sub to_binary($) {
 		if ( defined $_->{filename} ) {
 			$bin .= " ";
 			$bin .= $_->{filename};
+			if ( defined $_->{description} ) {
+				$bin .= " ";
+				$bin .= $_->{description};
+			}
 		}
-		# TODO: add description
 		$bin .= "\n";
 		$offset += $_->{size};
 	}
 
-	foreach (@headers) {
+	foreach (sort keys %{$pemail->headers()}) {
+		$_ = ${$pemail->headers()}{$_};
 		$bin .= "Part:\n";
 		$bin .= " $_->{part}\n";
 		if ( @{$_->{from}} ) {
@@ -561,8 +546,11 @@ sub to_binary($) {
 	}
 
 	$bin .= "Data:\n";
-	foreach (@datarefs) {
-		$bin .= ${$_->{dataref}};
+	foreach (sort keys %{$pemail->parts()}) {
+		$_ = ${$pemail->parts()}{$_};
+		if ($_->{size} != 0) {
+			$bin .= $pemail->data($_->{part});
+		}
 	}
 
 	return $bin;
