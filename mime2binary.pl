@@ -4,6 +4,7 @@ use warnings;
 
 binmode STDOUT, ':utf8';
 
+use PList::Email;
 use PList::Email::MIME;
 
 if ( @ARGV > 1 ) {
@@ -20,4 +21,4 @@ if ( not defined $email ) {
 	exit 1;
 }
 
-print $email->to_binary();
+print PList::Email::MIME::to_binary($email);
