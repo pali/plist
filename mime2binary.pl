@@ -15,7 +15,7 @@ if ( @ARGV > 1 ) {
 my $str = join '', <>;
 $str =~ s/^From .*\n//;
 
-my $email = PList::Email::MIME::new_from_str($str);
+my $email = PList::Email::MIME::from_str($str);
 if ( not defined $email ) {
 	print "Parsing error\n";
 	exit 1;
