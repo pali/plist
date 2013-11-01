@@ -228,6 +228,9 @@ sub parse_multipart($$$$) {
 		my $body = subpart_get_body($subpart, $discrete, $composite, $charset);
 		my $size = 0;
 
+		# NOTE: Whitespaces are not allowed in filename
+		$filename =~ s/\s/_/g;
+
 		my $type;
 
 		if ( $discrete eq "message" and $composite eq "rfc822" ) {
