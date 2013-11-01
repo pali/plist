@@ -191,15 +191,15 @@ sub subpart_get_body($$$$) {
 
 }
 
-# Fixing: parse_multipart() called too early to check prototype
-sub parse_multipart($$$$);
+# Fixing: read_multipart() called too early to check prototype
+sub read_multipart($$$$);
 
-# parse_multipart(email, pemail, prefix, mimetype)
+# read_multipart(email, pemail, prefix, mimetype)
 # email - Email::MIME
 # pemail - PList::Email
 # prefix - string
 # mimetype - string (discrete/composite)
-sub parse_multipart($$$$) {
+sub read_multipart($$$$) {
 
 	my ($email, $pemail, $prefix, $mimetype) = @_;
 
@@ -329,11 +329,11 @@ sub parse_multipart($$$$) {
 
 		} elsif ( $type eq "alternative" ) {
 
-			parse_multipart($subpart, $pemail, $partstr, "$discrete/$composite");
+			read_multipart($subpart, $pemail, $partstr, "$discrete/$composite");
 
 		} elsif ( $type eq "message" ) {
 
-			parse_email(new Email::MIME($body), $pemail, $partstr);
+			read_email(new Email::MIME($body), $pemail, $partstr);
 
 		}
 
@@ -343,11 +343,11 @@ sub parse_multipart($$$$) {
 
 }
 
-# parse_email(email, pemail, prefix)
+# read_email(email, pemail, prefix)
 # email - Email::MIME
 # pemail - PList::Email
 # prefix - string
-sub parse_email($$$) {
+sub read_email($$$) {
 
 	my ($email, $pemail, $prefix) = @_;
 
@@ -406,7 +406,7 @@ sub parse_email($$$) {
 
 	}
 
-	parse_multipart($email, $pemail, $prefix, "$discrete/$composite");
+	read_multipart($email, $pemail, $prefix, "$discrete/$composite");
 
 }
 
@@ -424,21 +424,21 @@ sub add_data($$$) {
 
 }
 
-sub new_from_str($) {
+sub from_str($) {
 
 	my ($str) = @_;
 
 	my %datarefs;
 
-	my $pemail = PList::Email::new();
-	$pemail->set_datafunc(\&data);
-	$pemail->set_add_datafunc(\&add_data);
-	$pemail->set_private(\%datarefs);
-
 	my $email = new Email::MIME($str);
 	if ( not defined $email ) {
 		return undef;
 	}
+
+	my $pemail = PList::Email::new();
+	$pemail->set_datafunc(\&data);
+	$pemail->set_add_datafunc(\&add_data);
+	$pemail->set_private(\%datarefs);
 
 	my $part = {
 		part => "$first_prefix",
@@ -451,12 +451,12 @@ sub new_from_str($) {
 
 	$pemail->add_part($part);
 
-	parse_email($email, $pemail, "$first_prefix");
+	read_email($email, $pemail, "$first_prefix");
 	return $pemail;
 
 }
 
-sub new_from_file($) {
+sub from_file($) {
 
 	my ($filename) = @_;
 
@@ -470,7 +470,7 @@ sub new_from_file($) {
 		return undef;
 	}
 
-	return new_from_str(\$str);
+	return from_str(\$str);
 
 }
 
