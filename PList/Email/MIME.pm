@@ -228,6 +228,10 @@ sub read_multipart($$$$) {
 		my $body = subpart_get_body($subpart, $discrete, $composite, $charset);
 		my $size = 0;
 
+		if ( not $filename ) {
+			$filename = "";
+		}
+
 		# NOTE: Whitespaces are not allowed in filename
 		$filename =~ s/\s/_/g;
 
