@@ -241,6 +241,12 @@ sub read_multipart($$$$) {
 			$composite = $content_type->{composite};
 			my $attributes = $content_type->{attributes};
 			$charset = $attributes->{charset};
+
+			# If parsing failed, set some generic content type
+			if ( not $discrete and not $composite ) {
+				$discrete = "application";
+				$composite = "octet-stream";
+			}
 		}
 
 		my $partstr = "$prefix/$partid";
