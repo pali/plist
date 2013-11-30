@@ -280,14 +280,14 @@ sub read_multipart($$$$) {
 				if ( $discrete eq "text" ) {
 					$type = "view";
 				} else {
-					$type = "unknown";
+					$type = "attachment";
 				}
 			} elsif ( $disposition eq "attachment" ) {
 				$type = "attachment";
 			} elsif ( $disposition eq "inline" ) {
 				$type = "view";
 			} else {
-				$type = "unknown";
+				$type = "attachment";
 			}
 		}
 
@@ -313,7 +313,7 @@ sub read_multipart($$$$) {
 			$filename =~ s/\//-/g;
 		}
 
-		if ( $type eq "attachment" or $type eq "view" or $type eq "unknown" ) {
+		if ( $type eq "attachment" or $type eq "view" ) {
 			$size = lengthbytes($body);
 		}
 
