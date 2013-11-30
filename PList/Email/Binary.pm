@@ -5,6 +5,14 @@ use warnings;
 
 use PList::Email;
 
+sub lengthbytes($) {
+
+	use bytes;
+	my ($str) = @_;
+	return length($str);
+
+}
+
 sub data($$) {
 
 	my ($private, $part) = @_;
@@ -33,12 +41,15 @@ sub read_email($) {
 	my $line;
 	my $dataoffset;
 
+	# Header is utf8 encoded
+	binmode $fh, ':raw:utf8';
 	seek($fh, 0, 0);
 
 	$line = <$fh>;
-	$dataoffset += length($line);
+	$dataoffset += lengthbytes($line);
 
 	if ( $line ne "Parts:\n" ) {
+		binmode $fh, ':raw';
 		print "read_email failed\n";
 		return 0;
 	}
@@ -47,17 +58,17 @@ sub read_email($) {
 
 	while ( $line = <$fh> ) {
 
-		$dataoffset += length($line);
+		$dataoffset += lengthbytes($line);
 
 		$line =~ s/\n//;
 
-		if ( $line =~ /^ ([^\s]*) ([^\s]*) ([^\s]*) ([^\s]*) ([^\s]*)(.*)$/ ) {
+		if ( $line =~ /^ (\S*) (\S*) (\S*) (\S*) (\S*)(.*)$/ ) {
 
 			my $description;
 			my $filename = $6;
 			if ( $filename ) {
 				$filename =~ s/^ //;
-				if ( $filename =~ /^([^\s]*) (.*)$/ ) {
+				if ( $filename =~ /^(\S*) (.*)$/ ) {
 					$filename = $1;
 					$description = $2;
 				}
@@ -105,7 +116,7 @@ sub read_email($) {
 
 	while ( $line = <$fh> ) {
 
-		$dataoffset += length($line);
+		$dataoffset += lengthbytes($line);
 
 		$line =~ s/\n//;
 
@@ -133,9 +144,14 @@ sub read_email($) {
 
 	}
 
-	foreach ( keys ${$offsets} ) {
+	# Turn off utf8
+	binmode $fh, ':raw';
+
+	foreach ( sort keys %{$offsets} ) {
 		${$offsets}{$_} += $dataoffset;
 	}
+
+	return 1;
 }
 
 sub from_file($) {
@@ -143,7 +159,7 @@ sub from_file($) {
 	my ($filename) = @_;
 
 	my $file;
-	if ( not open($file, "<:raw:utf8", $filename) ) {
+	if ( not open($file, "<:raw", $filename) ) {
 		return undef;
 	}
 
@@ -157,7 +173,7 @@ sub from_file($) {
 	};
 
 	$pemail->set_datafunc(\&data);
-	$pemail->set_private(\$private);
+	$pemail->set_private($private);
 
 	if ( read_email($private) ) {
 		return $pemail;
@@ -255,6 +271,10 @@ sub to_file($$) {
 	}
 
 	print $file "Data:\n";
+
+	# Data are binary raw (no utf8)
+	binmode $file, ":raw";
+
 	foreach (sort keys %{$pemail->parts()}) {
 		$_ = ${$pemail->parts()}{$_};
 		if ($_->{size} != 0) {
