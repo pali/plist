@@ -205,6 +205,15 @@ sub subpart_get_body($$$$) {
 
 }
 
+sub content_disposition($) {
+
+	my ($subpart) = @_;
+	my $dis = $subpart->header("Content-Disposition") || "";
+	$dis =~ s/;.*//;
+	return $dis;
+
+}
+
 # Fixing: read_multipart() called too early to check prototype
 sub read_multipart($$$$);
 
@@ -260,7 +269,7 @@ sub read_multipart($$$$) {
 		} elsif ( $mimetype ne "multipart/alternative" and $discrete eq "text" and $composite eq "html" ) {
 			$type = "alternative";
 		} else {
-			my $disposition = $subpart->header("Content-Disposition");
+			my $disposition = content_disposition($subpart);
 			if ( not $disposition ) {
 				if ( $discrete eq "text" ) {
 					$type = "view";
