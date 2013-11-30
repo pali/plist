@@ -85,6 +85,12 @@ foreach (sort keys %{$pemail->parts()}) {
 
 	} elsif ( $part->{type} eq "attachment" ) {
 
+		print "Mimetype: $part->{mimetype}";
+		print "Filename: $part->{filename}";
+		if ( $part->{description} ) {
+			print "Description: $part->{description}";
+		}
+		print "";
 		print "This is attachment part.";
 
 	} elsif ( $part->{type} eq "multipart" ) {
