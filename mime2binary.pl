@@ -2,8 +2,6 @@
 use strict;
 use warnings;
 
-binmode STDOUT, ':utf8';
-
 use PList::Email;
 use PList::Email::MIME;
 use PList::Email::Binary;
