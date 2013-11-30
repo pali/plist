@@ -8,6 +8,8 @@ use PList::Email;
 use DateTime;
 use DateTime::Format::Mail;
 
+use Digest::SHA qw(sha1_hex);
+
 use Email::Address;
 use Email::MIME;
 use Email::MIME::ContentType;
@@ -116,7 +118,9 @@ sub messageid($) {
 		$id =~ s/\s/_/g;
 		return $id;
 	} else {
-		return "";
+		# Generate some stable unique message-id which is needed for indexing
+		my $hash = sha1_hex($email->as_string());
+		return "$hash\@nohost";
 	}
 
 }
