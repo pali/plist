@@ -115,9 +115,12 @@ sub messageid($) {
 
 	my ($email) = @_;
 	my $id = $email->header("Message-Id");
-	if ( $id ) {
+	# NOTE: Too short message id cannot be used ad unique identifier
+	if ( $id and length($id) > 4 ) {
 		$id =~ s/^\s*<(.*)>\s*$/$1/;
+		# NOTE: Remove whitespace and '/' chars, so message id can be filename
 		$id =~ s/\s/_/g;
+		$id =~ s/\//_/g;
 		return $id;
 	} else {
 		# Generate some stable unique message-id which is needed for indexing
