@@ -14,6 +14,8 @@ use Email::Address;
 use Email::MIME;
 use Email::MIME::ContentType;
 
+use Encode qw(encode_utf8);
+
 use HTML::Strip;
 
 my $first_prefix = 0;
@@ -184,6 +186,9 @@ sub subpart_get_body($$$$) {
 	if ( defined $charset or ( $discrete eq "text" and ( $composite eq "html" or $composite eq "plain" ) ) ) {
 		eval {
 			$body = $subpart->body_str();
+			# Convert CRLF to LF and encode to utf8
+			$body =~ s/\r\n/\n/g;
+			$body = encode_utf8($body);
 		} or do {
 			$body = $subpart->body();
 		}
