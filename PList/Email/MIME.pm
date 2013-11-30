@@ -257,20 +257,20 @@ sub read_multipart($$$$) {
 				if ( $discrete eq "text" ) {
 					$type = "view";
 				} else {
-					$type = "ignore";
+					$type = "unknown";
 				}
 			} elsif ( $disposition eq "attachment" ) {
 				$type = "attachment";
 			} elsif ( $disposition eq "inline" ) {
 				$type = "view";
 			} else {
-				$type = "ignore";
+				$type = "unknown";
 			}
 		}
 
 		# TODO: invent some name if type is attachment
 
-		if ( $type eq "attachment" or $type eq "view" or $type eq "ignore" ) {
+		if ( $type eq "attachment" or $type eq "view" or $type eq "unknown" ) {
 			$size = lengthbytes($body);
 		}
 
