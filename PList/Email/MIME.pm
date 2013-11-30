@@ -16,6 +16,8 @@ use Email::MIME::ContentType;
 
 use Encode qw(encode_utf8);
 
+use File::MimeInfo::Magic qw(mimetype extensions);
+
 use HTML::Strip;
 
 my $first_prefix = 0;
@@ -232,8 +234,6 @@ sub read_multipart($$$$) {
 			$charset = $attributes->{charset};
 		}
 
-		# TODO: do some content type correction
-
 		my $partstr = "$prefix/$partid";
 		my $filename = $subpart->filename();
 		my $description = $subpart->header("Content-Description");
@@ -276,7 +276,27 @@ sub read_multipart($$$$) {
 			}
 		}
 
-		# TODO: invent some name if type is attachment
+		# Detect and overwrite mimetype for attachments
+		if ( $type eq "attachment" ) {
+			if ( open(my $fh, "<:raw", \$body) ) {
+				my $mimetype_new = mimetype($fh);
+				if ( $mimetype_new =~ /^(.+)\/(.+)$/ ) {
+					$discrete = $1;
+					$composite = $2;
+				}
+				close($fh);
+			}
+		}
+
+		# Invent some name if type is attachment
+		if ( $type eq "attachment" and $filename eq "" ) {
+			my $ext = extensions("$discrete/$composite");
+			if ( not $ext ) {
+				$ext = "bin";
+			}
+			$filename = "File-$partstr.$ext";
+			$filename =~ s/\//-/g;
+		}
 
 		if ( $type eq "attachment" or $type eq "view" or $type eq "unknown" ) {
 			$size = lengthbytes($body);
