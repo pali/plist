@@ -138,15 +138,20 @@ sub read_email($) {
 	}
 }
 
-sub from_fh($) {
+sub from_file($) {
 
-	my ($fh) = @_;
+	my ($filename) = @_;
+
+	my $file;
+	if ( not open($file, "<:raw:utf8", $filename) ) {
+		return undef;
+	}
+
 	my %offsets;
-
 	my $pemail = PList::Email::new();
 
 	my $private = {
-		fh => $fh,
+		fh => $file,
 		pemail => $pemail,
 		offsets => \%offsets,
 	};
@@ -157,135 +162,16 @@ sub from_fh($) {
 	if ( read_email($private) ) {
 		return $pemail;
 	} else {
+		close($file);
 		return undef;
 	}
-
-}
-
-sub from_file($) {
-
-	my ($filename) = @_;
-
-	my $file;
-	if ( not open($file, "<:raw", $filename) ) {
-		return undef;
-	}
-
-	return from_fh($file);
 
 }
 
 sub from_str($) {
 
 	my ($str) = @_;
-
-	my $fh;
-	if ( not open($fh, "<:raw", \$str) ) {
-		return undef;
-	}
-
-	return from_fh($fh);
-
-}
-
-sub write_email($$) {
-
-	my ($pemail, $fh) = @_;
-
-	my $bin = "";
-	my $offset = 0;
-
-	print $fh "Parts:\n";
-	foreach (sort keys %{$pemail->parts()}) {
-		$_ = ${$pemail->parts()}{$_};
-		print $fh " ";
-		print $fh $_->{part};
-		print $fh " ";
-		if ( $_->{size} == 0 ) {
-			print $fh "0";
-		} else {
-			print $fh $offset;
-		}
-		print $fh " ";
-		print $fh $_->{size};
-		print $fh " ";
-		print $fh $_->{type};
-		print $fh " ";
-		print $fh $_->{mimetype};
-		if ( defined $_->{filename} ) {
-			print $fh " ";
-			print $fh $_->{filename};
-			if ( defined $_->{description} ) {
-				print $fh " ";
-				print $fh $_->{description};
-			}
-		}
-		print $fh "\n";
-		$offset += $_->{size};
-	}
-
-	foreach (sort keys %{$pemail->headers()}) {
-		$_ = ${$pemail->headers()}{$_};
-		print $fh "Part:\n";
-		print $fh " $_->{part}\n";
-		if ( @{$_->{from}} ) {
-			print $fh "From:\n";
-			print $fh " $_\n" foreach (@{$_->{from}});
-		}
-		if ( @{$_->{to}} ) {
-			print $fh "To:\n";
-			print $fh " $_\n" foreach (@{$_->{to}});
-		}
-		if ( @{$_->{cc}} ) {
-			print $fh "Cc:\n";
-			print $fh " $_\n" foreach (@{$_->{cc}});
-		}
-		if ( @{$_->{reply}} ) {
-			print $fh "Reply:\n";
-			print $fh " $_\n" foreach (@{$_->{reply}});
-		}
-		if ( @{$_->{references}} ) {
-			print $fh "References:\n";
-			print $fh " $_\n" foreach (@{$_->{references}});
-		}
-		if ( $_->{id} ) {
-			print $fh "Id:\n";
-			print $fh " $_->{id}\n";
-		}
-		if ( $_->{date} ) {
-			print $fh "Date:\n";
-			print $fh " $_->{date}\n";
-		}
-		if ( $_->{subject} ) {
-			print $fh "Subject:\n";
-			print $fh " $_->{subject}\n";
-		}
-	}
-
-	print $fh "Data:\n";
-	foreach (sort keys %{$pemail->parts()}) {
-		$_ = ${$pemail->parts()}{$_};
-		if ($_->{size} != 0) {
-			print $fh $pemail->data($_->{part});
-		}
-	}
-
-}
-
-sub to_str($) {
-
-	my ($pemail) = @_;
-
-	my $str;
-	my $fh;
-	if ( not open($fh, ">:raw", \$str) ) {
-		return undef;
-	}
-
-	write_email($pemail, $fh);
-	close($fh);
-
-	return $str;
+	return from_file(\$str);
 
 }
 
@@ -294,14 +180,103 @@ sub to_file($$) {
 	my ($pemail, $filename) = @_;
 
 	my $file;
-	if ( not open($file, ">:raw", $filename) ) {
+	if ( not open($file, ">:raw:utf8", $filename) ) {
 		return 0;
 	}
 
-	write_email($pemail, $file);
-	close($file);
+	my $bin = "";
+	my $offset = 0;
 
+	print $file "Parts:\n";
+	foreach (sort keys %{$pemail->parts()}) {
+		$_ = ${$pemail->parts()}{$_};
+		print $file " ";
+		print $file $_->{part};
+		print $file " ";
+		if ( $_->{size} == 0 ) {
+			print $file "0";
+		} else {
+			print $file $offset;
+		}
+		print $file " ";
+		print $file $_->{size};
+		print $file " ";
+		print $file $_->{type};
+		print $file " ";
+		print $file $_->{mimetype};
+		if ( defined $_->{filename} ) {
+			print $file " ";
+			print $file $_->{filename};
+			if ( defined $_->{description} ) {
+				print $file " ";
+				print $file $_->{description};
+			}
+		}
+		print $file "\n";
+		$offset += $_->{size};
+	}
+
+	foreach (sort keys %{$pemail->headers()}) {
+		$_ = ${$pemail->headers()}{$_};
+		print $file "Part:\n";
+		print $file " $_->{part}\n";
+		if ( @{$_->{from}} ) {
+			print $file "From:\n";
+			print $file " $_\n" foreach (@{$_->{from}});
+		}
+		if ( @{$_->{to}} ) {
+			print $file "To:\n";
+			print $file " $_\n" foreach (@{$_->{to}});
+		}
+		if ( @{$_->{cc}} ) {
+			print $file "Cc:\n";
+			print $file " $_\n" foreach (@{$_->{cc}});
+		}
+		if ( @{$_->{reply}} ) {
+			print $file "Reply:\n";
+			print $file " $_\n" foreach (@{$_->{reply}});
+		}
+		if ( @{$_->{references}} ) {
+			print $file "References:\n";
+			print $file " $_\n" foreach (@{$_->{references}});
+		}
+		if ( $_->{id} ) {
+			print $file "Id:\n";
+			print $file " $_->{id}\n";
+		}
+		if ( $_->{date} ) {
+			print $file "Date:\n";
+			print $file " $_->{date}\n";
+		}
+		if ( $_->{subject} ) {
+			print $file "Subject:\n";
+			print $file " $_->{subject}\n";
+		}
+	}
+
+	print $file "Data:\n";
+	foreach (sort keys %{$pemail->parts()}) {
+		$_ = ${$pemail->parts()}{$_};
+		if ($_->{size} != 0) {
+			print $file $pemail->data($_->{part});
+		}
+	}
+
+	close($file);
 	return 1;
+
+}
+
+sub to_str($) {
+
+	my ($pemail) = @_;
+
+	my $str;
+	if ( to_file($pemail, \$str) ) {
+		return $str;
+	} else {
+		return undef;
+	}
 
 }
 
