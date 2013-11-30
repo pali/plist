@@ -6,6 +6,7 @@ binmode STDOUT, ':utf8';
 
 use PList::Email;
 use PList::Email::MIME;
+use PList::Email::Binary;
 
 if ( @ARGV > 1 ) {
 	print "To many arguments\n";
@@ -21,4 +22,4 @@ if ( not defined $email ) {
 	exit 1;
 }
 
-print PList::Email::MIME::to_binary($email);
+print PList::Email::Binary::to_str($email);
