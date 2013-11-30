@@ -67,7 +67,7 @@ sub date($) {
 	}
 
 	if ( $date ) {
-		return $date->strftime('%Y-%m-%d %H:%M:%S %z');
+		return $date->strftime("%Y-%m-%d %H:%M:%S %z");
 	} else {
 		return "";
 	}
