@@ -42,7 +42,7 @@ my $message_template_default = <<END;
 END
 
 my $view_template_default = <<END;
-<TMPL_IF NAME=BODY><div style='margin:10px; border:1px solid'><TMPL_VAR NAME=BODY></div></TMPL_IF>
+<TMPL_IF NAME=BODY><div style='margin:5px; padding:5px; border:1px solid'><TMPL_VAR NAME=BODY></div></TMPL_IF>
 END
 
 my $multipart_template_default = <<END;
