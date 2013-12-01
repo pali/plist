@@ -8,7 +8,10 @@ use Encode qw(decode_utf8);
 use PList::Email;
 
 use HTML::Entities;
+use HTML::FromText;
 use HTML::Template;
+
+my $t2h = HTML::FromText->new({lines => 1});
 
 my @disabled_mime_types_default = qw(application/pgp-signature);
 
@@ -104,11 +107,10 @@ sub part_to_str($$$$) {
 	} elsif ( $type eq "message" or $type eq "view" or $type eq "multipart" or $type eq "attachment" ) {
 
 		my $html_policy = ${$config}{html_policy};
+		my $html_output = ${$config}{html_output};
 
 		my $template = HTML::Template->new(scalarref => ${$config}{"${type}_template"}, die_on_bad_params => 0);
 		$template->param(PART => encode_entities($part->{part}));
-
-#		my $html_output = ${$config}{html_output};
 
 		if ( $type eq "message" ) {
 			my $header = $pemail->header($part->{part});
@@ -122,7 +124,12 @@ sub part_to_str($$$$) {
 			if ( $mimetype eq "text/html" and ( $html_policy == 3 or $html_policy == 2 ) ) {
 				$template->param(BODY => decode_utf8($pemail->data($part->{part})));
 			} elsif ( $mimetype eq "text/plain" or $mimetype eq "text/plain-from-html" ) {
-				$template->param(BODY => encode_entities(decode_utf8($pemail->data($part->{part}))));
+				my $data = decode_utf8($pemail->data($part->{part}));
+				if ($html_output) {
+					# TODO: Fix converting <TAB> to html
+					$data = $t2h->parse($data);
+				}
+				$template->param(BODY => $data);
 			} else {
 				$template->param(BODY => "matrix error");
 			}
