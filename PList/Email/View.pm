@@ -206,7 +206,7 @@ sub part_to_str($$$$) {
 # html_policy always(4) allow(3) strip(2) plain(1) never(0)
 # time_zone origin
 # date_format default
-# allowed_mime_types
+# enabled_mime_types
 # disabled_mime_types application/pgp-signature
 # message_template
 # view_template
@@ -227,23 +227,30 @@ sub to_str($%) {
 	$config{multipart_template} = \$multipart_template_default unless $config{multipart_template};
 	$config{attachment_template} = \$attachment_template_default unless $config{attachment_template};
 
+	my @enabled_mime_types = $config{enabled_mime_types} ? @{$config{enabled_mime_types}} : ();
+	my @disabled_mime_types = $config{disabled_mime_types} ? @{$config{disabled_mime_types}} : ();
+
 	my %nodes;
 
 	foreach (sort keys %{$pemail->parts()}) {
+		my @array;
+		$nodes{$_} = \@array;
+	}
 
-		my $part = ${$pemail->parts()}{$_}->{part};
-		if ( $part eq "0" ) { next; }
+	foreach (sort keys %{$pemail->parts()}) {
 
-		my $prev = $part;
+		my $part = ${$pemail->parts()}{$_};
+		my $partid = $part->{part};
+		my $mimetype = $part->{mimetype};
+
+		if ( $partid eq "0" ) { next; }
+		unless ( ( scalar @enabled_mime_types > 0 and grep(/^$mimetype$/,@enabled_mime_types) ) or ( scalar @disabled_mime_types > 0 and not grep(/^$mimetype$/,@disabled_mime_types) ) ) { next; }
+
+		my $prev = $partid;
 		chop($prev);
 		chop($prev);
 
-		if (not $nodes{$prev}) {
-			my @array;
-			$nodes{$prev} = \@array;
-		}
-
-		push(@{$nodes{$prev}}, $part);
+		push(@{$nodes{$prev}}, $partid);
 
 	}
 
