@@ -16,47 +16,61 @@ my $t2h = HTML::FromText->new({lines => 1});
 my @disabled_mime_types_default = qw(application/pgp-signature);
 
 my $message_template_default = <<END;
-<TMPL_IF NAME=FROM><b>From:</b> <TMPL_VAR NAME=FROM><br></TMPL_IF>
-<TMPL_IF NAME=TO><b>To:</b> <TMPL_VAR NAME=TO><br></TMPL_IF>
-<TMPL_IF NAME=CC><b>Cc:</b> <TMPL_VAR NAME=CC><br></TMPL_IF>
-<TMPL_IF NAME=DATE><b>Date:</b> <TMPL_VAR NAME=DATE><br></TMPL_IF>
-<TMPL_IF NAME=SUBJECT><b>Subject:</b> <TMPL_VAR NAME=SUBJECT><br></TMPL_IF>
-<br>
-<TMPL_IF NAME=BODY>
-<TMPL_LOOP NAME=BODY>
-<TMPL_VAR NAME=PART><br>
-</TMPL_LOOP>
+<TMPL_IF NAME=FROM>
+	<b>From:</b>
+	<TMPL_LOOP NAME=FROM>
+		&nbsp;<a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>
+	</TMPL_LOOP>
+	<br>
 </TMPL_IF>
+<TMPL_IF NAME=TO>
+	<b>To:</b>
+	<TMPL_LOOP NAME=TO>
+		&nbsp;<a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>
+	</TMPL_LOOP>
+	<br>
+</TMPL_IF>
+<TMPL_IF NAME=CC>
+	<b>Cc:</b>
+	<TMPL_LOOP NAME=CC>
+		&nbsp;<a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>
+	</TMPL_LOOP>
+	<br>
+</TMPL_IF>
+<TMPL_IF NAME=DATE><b>Date:</b> <TMPL_VAR ESCAPE=HTML NAME=DATE><br></TMPL_IF>
+<TMPL_IF NAME=SUBJECT><b>Subject:</b> <TMPL_VAR ESCAPE=HTML NAME=SUBJECT></TMPL_IF>
 END
 
 my $view_template_default = <<END;
-<TMPL_IF NAME=BODY><TMPL_VAR NAME=BODY></TMPL_IF>
+<TMPL_IF NAME=BODY><div style='margin:10px; border:1px solid'><TMPL_VAR NAME=BODY></div></TMPL_IF>
 END
 
 my $multipart_template_default = <<END;
 <TMPL_IF NAME=BODY>
 <TMPL_LOOP NAME=BODY>
-<TMPL_VAR NAME=PART><br>
+<TMPL_VAR NAME=PART>
 </TMPL_LOOP>
 </TMPL_IF>
 END
 
 my $attachment_template_default = <<END;
-<b>Filename:</b> <TMPL_VAR NAME=FILENAME><br>
-<TMPL_IF NAME=DESCRIPTION><b>Description:</b> <TMPL_VAR NAME=DESCRIPTION><br></TMPL_IF>
-<TMPL_IF NAME=MIMETYPE><b>Mimetype:</b> <TMPL_VAR NAME=MIMETYPE><br></TMPL_IF>
+<b>Filename:</b> <TMPL_VAR ESCAPE=HTML NAME=FILENAME>
+<TMPL_IF NAME=DESCRIPTION><br><b>Description:</b> <TMPL_VAR ESCAPE=HTML NAME=DESCRIPTION></TMPL_IF>
+<TMPL_IF NAME=MIMETYPE><br><b>Mimetype:</b> <TMPL_VAR ESCAPE=HTML NAME=MIMETYPE></TMPL_IF>
 END
 
-sub addressess_str($) {
+sub addressees_data($) {
 
 	my ($ref) = @_;
-	return unless $ref;
-	my $str;
-	foreach(@{$ref}) {
-		$_ =~ /^(\S*) (.*)$/;
-		$str .= " $2 <$1>";
+	my @data = ();
+	if ($ref) {
+		foreach (@{$ref}) {
+			$_ =~ /^(\S*) (.*)$/;
+			my %hash = (EMAIL => $1, NAME => $2);
+			push(@data, \%hash);
+		}
 	}
-	return $str;
+	return \@data;
 
 }
 
@@ -104,48 +118,80 @@ sub part_to_str($$$$) {
 			return $template->output();
 		}
 
-	} elsif ( $type eq "message" or $type eq "view" or $type eq "multipart" or $type eq "attachment" ) {
+	} else {
 
-		my $html_policy = ${$config}{html_policy};
-		my $html_output = ${$config}{html_output};
+		my $template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0);
+		$template->param(PART => $partid);
 
-		my $template = HTML::Template->new(scalarref => ${$config}{"${type}_template"}, die_on_bad_params => 0);
-		$template->param(PART => encode_entities($part->{part}));
+		if ( $type eq "message" or $type eq "multipart" ) {
 
-		if ( $type eq "message" ) {
-			my $header = $pemail->header($part->{part});
-			$template->param(FROM => encode_entities(addressess_str($header->{from})));
-			$template->param(TO => encode_entities(addressess_str($header->{to})));
-			$template->param(CC => encode_entities(addressess_str($header->{cc})));
-			$template->param(DATE => encode_entities($header->{date}));
-			$template->param(SUBJECT => encode_entities($header->{subject}));
+			my @data = ();
+			my $multipart_template = HTML::Template->new(scalarref => ${$config}{multipart_template}, die_on_bad_params => 0);
+
+			if ( $type eq "message" ) {
+				my $view_template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0);
+				my $message_template = HTML::Template->new(scalarref => ${$config}{message_template}, die_on_bad_params => 0);
+				my $header = $pemail->header($partid);
+				$message_template->param(FROM => addressees_data($header->{from}));
+				$message_template->param(TO => addressees_data($header->{to}));
+				$message_template->param(CC => addressees_data($header->{cc}));
+				$message_template->param(DATE => $header->{date});
+				$message_template->param(SUBJECT => $header->{subject});
+				$view_template->param(BODY => $message_template->output());
+				my %hash = (PART => $view_template->output());
+				push(@data, \%hash);
+			}
+
+			# If this (multipart or message) contains only one multipart, unpack it
+			my $firstpart = scalar @{${$nodes}{$partid}} == 1 ? $pemail->part(${${$nodes}{$partid}}[0]) : 0;
+			my $firstpart_type = $firstpart ? $firstpart->{type} : "";
+			my @next_parts;
+
+			if ( $firstpart_type eq "multipart" ) {
+				@next_parts = @{${$nodes}{$firstpart->{part}}};
+			} else {
+				@next_parts = @{${$nodes}{$partid}};
+			}
+
+			foreach (@next_parts) {
+				my %hash = (PART => part_to_str($pemail, $_, $nodes, $config));
+				push(@data, \%hash);
+			}
+
+			$multipart_template->param(BODY => \@data);
+			$template->param(BODY => $multipart_template->output());
+
 		} elsif ( $type eq "view" ) {
+
+			my $html_policy = ${$config}{html_policy};
+			my $html_output = ${$config}{html_output};
+
 			my $mimetype = $part->{mimetype};
 			if ( $mimetype eq "text/html" and ( $html_policy == 3 or $html_policy == 2 ) ) {
-				$template->param(BODY => decode_utf8($pemail->data($part->{part})));
+				$template->param(BODY => decode_utf8($pemail->data($partid)));
 			} elsif ( $mimetype eq "text/plain" or $mimetype eq "text/plain-from-html" ) {
-				my $data = decode_utf8($pemail->data($part->{part}));
+				my $data = decode_utf8($pemail->data($partid));
 				if ($html_output) {
 					# TODO: Fix converting <TAB> to html
 					$data = $t2h->parse($data);
 				}
 				$template->param(BODY => $data);
 			} else {
-				$template->param(BODY => "matrix error");
+				$template->param(BODY => "Error: This part cannot be shown");
 			}
-		} elsif ( $type eq "attachment" ) {
-			$template->param(MIMETYPE => encode_entities($part->{mimetype}));
-			$template->param(FILENAME => encode_entities($part->{filename}));
-			$template->param(DESCRIPTION => encode_entities($part->{description}));
-		}
 
-		if ( $type eq "message" or $type eq "multipart" ) {
-			my @data = ();
-			foreach (@{${$nodes}{$partid}}) {
-				my %hash = (PART => part_to_str($pemail, $_, $nodes, $config));
-				push(@data, \%hash);
-			}
-			$template->param(BODY => \@data);
+		} elsif ( $type eq "attachment" ) {
+
+			my $attachment_template = HTML::Template->new(scalarref => ${$config}{attachment_template}, die_on_bad_params => 0);
+			$attachment_template->param(MIMETYPE => $part->{mimetype});
+			$attachment_template->param(FILENAME => $part->{filename});
+			$attachment_template->param(DESCRIPTION => $part->{description});
+			$template->param(BODY => $attachment_template->output());
+
+		} else {
+
+			$template->param(BODY => "Error: This part cannot be shown");
+
 		}
 
 		return $template->output();
