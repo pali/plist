@@ -15,47 +15,28 @@ my $t2h = HTML::FromText->new();
 my @disabled_mime_types_default = qw(application/pgp-signature);
 
 my $message_template_default = <<END;
-<TMPL_IF NAME=FROM>
-	<b>From:</b>
-	<TMPL_LOOP NAME=FROM>
-		&nbsp;<a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>
-	</TMPL_LOOP>
-	<br>
+<TMPL_IF NAME=FROM><b>From:</b><TMPL_LOOP NAME=FROM> <a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a></TMPL_LOOP><br>
+</TMPL_IF><TMPL_IF NAME=TO><b>To:</b><TMPL_LOOP NAME=TO> <a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a></TMPL_LOOP><br>
+</TMPL_IF><TMPL_IF NAME=CC><b>Cc:</b><TMPL_LOOP NAME=CC> <a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a></TMPL_LOOP><br>
+</TMPL_IF><TMPL_IF NAME=DATE><b>Date:</b> <TMPL_VAR ESCAPE=HTML NAME=DATE><br>
+</TMPL_IF><TMPL_IF NAME=SUBJECT><b>Subject:</b> <TMPL_VAR ESCAPE=HTML NAME=SUBJECT>
 </TMPL_IF>
-<TMPL_IF NAME=TO>
-	<b>To:</b>
-	<TMPL_LOOP NAME=TO>
-		&nbsp;<a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>
-	</TMPL_LOOP>
-	<br>
-</TMPL_IF>
-<TMPL_IF NAME=CC>
-	<b>Cc:</b>
-	<TMPL_LOOP NAME=CC>
-		&nbsp;<a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>
-	</TMPL_LOOP>
-	<br>
-</TMPL_IF>
-<TMPL_IF NAME=DATE><b>Date:</b> <TMPL_VAR ESCAPE=HTML NAME=DATE><br></TMPL_IF>
-<TMPL_IF NAME=SUBJECT><b>Subject:</b> <TMPL_VAR ESCAPE=HTML NAME=SUBJECT></TMPL_IF>
 END
 
 my $view_template_default = <<END;
-<TMPL_IF NAME=BODY><div style='margin:5px; padding:5px; border:1px solid'><TMPL_VAR NAME=BODY></div></TMPL_IF>
+<TMPL_IF NAME=BODY><div style='margin:5px; padding:5px; border:1px solid'>
+<TMPL_VAR NAME=BODY></div></TMPL_IF>
 END
 
 my $multipart_template_default = <<END;
-<TMPL_IF NAME=BODY>
-<TMPL_LOOP NAME=BODY>
-<TMPL_VAR NAME=PART>
-</TMPL_LOOP>
-</TMPL_IF>
+<TMPL_IF NAME=BODY><TMPL_LOOP NAME=BODY><TMPL_VAR NAME=PART></TMPL_LOOP></TMPL_IF>
 END
 
 my $attachment_template_default = <<END;
 <b>Filename:</b> <TMPL_VAR ESCAPE=HTML NAME=FILENAME>
-<TMPL_IF NAME=DESCRIPTION><br><b>Description:</b> <TMPL_VAR ESCAPE=HTML NAME=DESCRIPTION></TMPL_IF>
-<TMPL_IF NAME=MIMETYPE><br><b>Mimetype:</b> <TMPL_VAR ESCAPE=HTML NAME=MIMETYPE></TMPL_IF>
+<TMPL_IF NAME=DESCRIPTION><br><b>Description:</b> <TMPL_VAR ESCAPE=HTML NAME=DESCRIPTION>
+</TMPL_IF><TMPL_IF NAME=MIMETYPE><br><b>Mimetype:</b> <TMPL_VAR ESCAPE=HTML NAME=MIMETYPE>
+</TMPL_IF>
 END
 
 sub addressees_data($) {
