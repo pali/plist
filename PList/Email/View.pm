@@ -10,7 +10,7 @@ use PList::Email;
 use HTML::FromText;
 use HTML::Template;
 
-my $t2h = HTML::FromText->new({lines => 1});
+my $t2h = HTML::FromText->new();
 
 my @disabled_mime_types_default = qw(application/pgp-signature);
 
@@ -171,8 +171,8 @@ sub part_to_str($$$$) {
 			} elsif ( $mimetype eq "text/plain" or $mimetype eq "text/plain-from-html" ) {
 				my $data = decode_utf8($pemail->data($partid));
 				if ($html_output) {
-					# TODO: Fix converting <TAB> to html
-					$data = $t2h->parse($data);
+					# NOTE: pre-wrap is needed for correct line breaking and showing spaces
+					$data = "<span style='white-space: pre-wrap'>" . $t2h->parse($data) . "</span>";
 				}
 				$template->param(BODY => $data);
 			} else {
