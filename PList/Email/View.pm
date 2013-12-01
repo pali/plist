@@ -7,7 +7,6 @@ use Encode qw(decode_utf8);
 
 use PList::Email;
 
-use HTML::Entities;
 use HTML::FromText;
 use HTML::Template;
 
