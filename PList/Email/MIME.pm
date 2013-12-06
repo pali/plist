@@ -344,7 +344,7 @@ sub read_multipart($$$$) {
 				$partstr_plain = $first_prefix+1;
 				$partstr_plain = "$partstr/$partstr_plain";
 
-				$data_html = $subpart->body_str();
+				$data_html = $body;
 
 				my $partstr_html = "$partstr/$first_prefix";
 
