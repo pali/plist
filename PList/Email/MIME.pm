@@ -381,7 +381,14 @@ sub read_part($$$$$) {
 
 	} elsif ( $type eq "message" ) {
 
-		read_email(new Email::MIME($body), $pemail, $partstr);
+		my $new_email;
+		{
+			# Method Email::MIME::new calling Email::MIME::ContentType::parse_content_type()
+			# so make sure that strict parsing is turned off
+			local $Email::MIME::ContentType::STRICT_PARAMS = 0;
+			$new_email = new Email::MIME($body);
+		}
+		read_email($new_email, $pemail, $partstr);
 
 	}
 
@@ -468,7 +475,13 @@ sub from_str($) {
 
 	my %datarefs;
 
-	my $email = new Email::MIME($str);
+	my $email;
+	{
+		# Method Email::MIME::new calling Email::MIME::ContentType::parse_content_type()
+		# so make sure that strict parsing is turned off
+		local $Email::MIME::ContentType::STRICT_PARAMS = 0;
+		$email = new Email::MIME($str);
+	}
 	if ( not defined $email ) {
 		return undef;
 	}
