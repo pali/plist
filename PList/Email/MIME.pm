@@ -69,7 +69,7 @@ sub date($) {
 	$header = $email->header("Date") || find_date_received($email->header("Received")) || $email->header("Resent-Date");
 
 	if ( $header and length $header ) {
-		$date = DateTime::Format::Mail->parse_datetime($header);
+		eval { $date = DateTime::Format::Mail->parse_datetime($header); };
 	}
 
 	if ( $date ) {
