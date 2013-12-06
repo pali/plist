@@ -39,7 +39,7 @@ sub read_email($) {
 	my $offsets = $private->{offsets};
 
 	my $line;
-	my $dataoffset;
+	my $dataoffset = 0;
 
 	# Header is utf8 encoded
 	binmode $fh, ':raw:utf8';
@@ -236,23 +236,23 @@ sub to_file($$) {
 		$_ = ${$pemail->headers()}{$_};
 		print $file "Part:\n";
 		print $file " $_->{part}\n";
-		if ( @{$_->{from}} ) {
+		if ( $_->{from} and @{$_->{from}} ) {
 			print $file "From:\n";
 			print $file " $_\n" foreach (@{$_->{from}});
 		}
-		if ( @{$_->{to}} ) {
+		if ( $_->{to} and @{$_->{to}} ) {
 			print $file "To:\n";
 			print $file " $_\n" foreach (@{$_->{to}});
 		}
-		if ( @{$_->{cc}} ) {
+		if ( $_->{cc} and @{$_->{cc}} ) {
 			print $file "Cc:\n";
 			print $file " $_\n" foreach (@{$_->{cc}});
 		}
-		if ( @{$_->{reply}} ) {
+		if ( $_->{reply} and @{$_->{reply}} ) {
 			print $file "Reply:\n";
 			print $file " $_\n" foreach (@{$_->{reply}});
 		}
-		if ( @{$_->{references}} ) {
+		if ( $_->{references} and @{$_->{references}} ) {
 			print $file "References:\n";
 			print $file " $_\n" foreach (@{$_->{references}});
 		}
@@ -274,6 +274,8 @@ sub to_file($$) {
 
 	# Data are binary raw (no utf8)
 	binmode $file, ":raw";
+
+	no warnings 'utf8';
 
 	foreach (sort keys %{$pemail->parts()}) {
 		$_ = ${$pemail->parts()}{$_};
