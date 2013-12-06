@@ -188,15 +188,15 @@ sub subpart_get_body($$$$) {
 	# body_str() will decode Content-Transfer-Encoding and charset encoding
 	# it working only when charset is defined or content-type is text/html or text/plain
 	# otherwise do not encode charset
-	if ( defined $charset or ( $discrete eq "text" and ( $composite eq "html" or $composite eq "plain" ) ) ) {
+	if ( $discrete eq "text" ) {
 		eval {
 			$body = $subpart->body_str();
-			# Convert CRLF to LF and encode to utf8
-			$body =~ s/\r\n/\n/g;
-			$body = encode_utf8($body);
 		} or do {
 			$body = $subpart->body();
-		}
+		};
+		# Convert CRLF to LF and encode to utf8
+		$body =~ s/\r\n/\n/g;
+		$body = encode_utf8($body);
 	} else {
 		$body = $subpart->body();
 	}
