@@ -103,4 +103,11 @@ sub set_private($$) {
 
 }
 
+sub private($) {
+
+	my ($self) = @_;
+	return $self->{private};
+
+}
+
 1;

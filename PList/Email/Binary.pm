@@ -154,6 +154,15 @@ sub read_email($) {
 	return 1;
 }
 
+sub done($) {
+
+	my ($pemail) = @_;
+	my $private = $pemail->private();
+	my $fh = $private->{fh};
+	close($fh);
+
+}
+
 sub from_file($) {
 
 	my ($filename) = @_;

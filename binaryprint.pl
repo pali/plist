@@ -112,4 +112,6 @@ foreach (sort keys %{$pemail->parts()}) {
 
 }
 
+PList::Email::Binary::done($pemail);
+
 print "\n";
