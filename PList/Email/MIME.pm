@@ -217,6 +217,176 @@ sub content_disposition($) {
 # Fixing: read_multipart() called too early to check prototype
 sub read_multipart($$$$);
 
+# read_part(subpart, pemail, prefix, mimetype)
+# subpart - Email::MIME
+# pemail - PList::Email
+# prefix - string
+# mimetype - string (discrete/composite)
+# partid - ref int
+sub read_part($$$$$) {
+
+	my ($subpart, $pemail, $prefix, $mimetype, $partid) = @_;
+
+	my $discrete;
+	my $composite;
+	my $charset;
+
+	{
+		local $Email::MIME::ContentType::STRICT_PARAMS = 0;
+		my $content_type = parse_content_type($subpart->content_type);
+		$discrete = $content_type->{discrete};
+		$composite = $content_type->{composite};
+		my $attributes = $content_type->{attributes};
+		$charset = $attributes->{charset};
+
+		# If parsing failed, set some generic content type
+		if ( not $discrete and not $composite ) {
+			$discrete = "application";
+			$composite = "octet-stream";
+		}
+	}
+
+	my $partstr = "$prefix/${$partid}";
+	my $filename = $subpart->filename();
+	my $description = $subpart->header("Content-Description");
+	my $body = subpart_get_body($subpart, $discrete, $composite, $charset);
+	my $size = 0;
+
+	if ( not $filename ) {
+		$filename = "";
+	}
+
+	# NOTE: Whitespaces are not allowed in filename
+	$filename =~ s/\s/_/g;
+
+	my $type;
+
+	if ( $discrete eq "message" and $composite eq "rfc822" ) {
+		$type = "message";
+	} elsif ( $discrete eq "multipart" or $subpart->subparts ) {
+		if ( $composite eq "alternative" ) {
+			$type = "alternative";
+		} else {
+			$type = "multipart";
+		}
+	} elsif ( $mimetype ne "multipart/alternative" and $discrete eq "text" and $composite eq "html" ) {
+		$type = "alternative";
+	} else {
+		my $disposition = content_disposition($subpart);
+		if ( not $disposition ) {
+			if ( $discrete eq "text" ) {
+				$type = "view";
+			} else {
+				$type = "attachment";
+			}
+		} elsif ( $disposition eq "attachment" ) {
+			$type = "attachment";
+		} elsif ( $disposition eq "inline" ) {
+			$type = "view";
+		} else {
+			$type = "attachment";
+		}
+	}
+
+	# Detect and overwrite mimetype for attachments
+	if ( $type eq "attachment" ) {
+		if ( open(my $fh, "<:raw", \$body) ) {
+			my $mimetype_new = mimetype($fh);
+			if ( $mimetype_new =~ /^(.+)\/(.+)$/ ) {
+				$discrete = $1;
+				$composite = $2;
+			}
+			close($fh);
+		}
+	}
+
+	# Invent some name if type is attachment
+	if ( $type eq "attachment" and $filename eq "" ) {
+		my $ext = extensions("$discrete/$composite");
+		if ( not $ext ) {
+			$ext = "bin";
+		}
+		$filename = "File-$partstr.$ext";
+		$filename =~ s/\//-/g;
+	}
+
+	if ( $type eq "attachment" or $type eq "view" ) {
+		$size = lengthbytes($body);
+	}
+
+	my $part = {
+		part => $partstr,
+		size => $size,
+		type => $type,
+		mimetype => "$discrete/$composite",
+		filename => $filename,
+		description => $description,
+	};
+
+	$pemail->add_part($part);
+
+	if ( $body and $size > 0 ) {
+		$pemail->add_data($partstr, $body);
+	}
+
+	if ( $discrete eq "text" and $composite eq "html" ) {
+
+		# For every text/html part create multipart/alternative and add text/html and new text/plain (converted from html)
+
+		my $partstr_plain;
+		my $data_html;
+
+		if ( $type eq "alternative" ) {
+
+			$partstr_plain = $first_prefix+1;
+			$partstr_plain = "$partstr/$partstr_plain";
+
+			$data_html = $body;
+
+			my $partstr_html = "$partstr/$first_prefix";
+
+			my $part_html = {
+				part => $partstr_html,
+				size => lengthbytes($data_html),
+				type => "view",
+				mimetype => "text/html",
+			};
+
+			$pemail->add_part($part_html);
+			$pemail->add_data($partstr_html, $data_html);
+
+		} else {
+
+			${$partid}++;
+			$partstr_plain = "$prefix/${$partid}";
+			$data_html = $body;
+
+		}
+
+		my $data_plain = html_strip($data_html);
+
+		my $part_plain = {
+			part => $partstr_plain,
+			size => lengthbytes($data_plain),
+			type => "view",
+			mimetype => "text/plain-from-html",
+		};
+
+		$pemail->add_part($part_plain);
+		$pemail->add_data($partstr_plain, $data_plain);
+
+	} elsif ( $type eq "alternative" or $type eq "multipart" ) {
+
+		read_multipart($subpart, $pemail, $partstr, "$discrete/$composite");
+
+	} elsif ( $type eq "message" ) {
+
+		read_email(new Email::MIME($body), $pemail, $partstr);
+
+	}
+
+}
+
 # read_multipart(email, pemail, prefix, mimetype)
 # email - Email::MIME
 # pemail - PList::Email
@@ -228,168 +398,9 @@ sub read_multipart($$$$) {
 
 	my $partid = $first_prefix;
 
-	foreach my $subpart ($email->parts()) {
-
-		my $discrete;
-		my $composite;
-		my $charset;
-
-		{
-			local $Email::MIME::ContentType::STRICT_PARAMS = 0;
-			my $content_type = parse_content_type($subpart->content_type);
-			$discrete = $content_type->{discrete};
-			$composite = $content_type->{composite};
-			my $attributes = $content_type->{attributes};
-			$charset = $attributes->{charset};
-
-			# If parsing failed, set some generic content type
-			if ( not $discrete and not $composite ) {
-				$discrete = "application";
-				$composite = "octet-stream";
-			}
-		}
-
-		my $partstr = "$prefix/$partid";
-		my $filename = $subpart->filename();
-		my $description = $subpart->header("Content-Description");
-		my $body = subpart_get_body($subpart, $discrete, $composite, $charset);
-		my $size = 0;
-
-		if ( not $filename ) {
-			$filename = "";
-		}
-
-		# NOTE: Whitespaces are not allowed in filename
-		$filename =~ s/\s/_/g;
-
-		my $type;
-
-		if ( $discrete eq "message" and $composite eq "rfc822" ) {
-			$type = "message";
-		} elsif ( $discrete eq "multipart" or $subpart->subparts ) {
-			if ( $composite eq "alternative" ) {
-				$type = "alternative";
-			} else {
-				$type = "multipart";
-			}
-		} elsif ( $mimetype ne "multipart/alternative" and $discrete eq "text" and $composite eq "html" ) {
-			$type = "alternative";
-		} else {
-			my $disposition = content_disposition($subpart);
-			if ( not $disposition ) {
-				if ( $discrete eq "text" ) {
-					$type = "view";
-				} else {
-					$type = "attachment";
-				}
-			} elsif ( $disposition eq "attachment" ) {
-				$type = "attachment";
-			} elsif ( $disposition eq "inline" ) {
-				$type = "view";
-			} else {
-				$type = "attachment";
-			}
-		}
-
-		# Detect and overwrite mimetype for attachments
-		if ( $type eq "attachment" ) {
-			if ( open(my $fh, "<:raw", \$body) ) {
-				my $mimetype_new = mimetype($fh);
-				if ( $mimetype_new =~ /^(.+)\/(.+)$/ ) {
-					$discrete = $1;
-					$composite = $2;
-				}
-				close($fh);
-			}
-		}
-
-		# Invent some name if type is attachment
-		if ( $type eq "attachment" and $filename eq "" ) {
-			my $ext = extensions("$discrete/$composite");
-			if ( not $ext ) {
-				$ext = "bin";
-			}
-			$filename = "File-$partstr.$ext";
-			$filename =~ s/\//-/g;
-		}
-
-		if ( $type eq "attachment" or $type eq "view" ) {
-			$size = lengthbytes($body);
-		}
-
-		my $part = {
-			part => $partstr,
-			size => $size,
-			type => $type,
-			mimetype => "$discrete/$composite",
-			filename => $filename,
-			description => $description,
-		};
-
-		$pemail->add_part($part);
-
-		if ( $body and $size > 0 ) {
-			$pemail->add_data($partstr, $body);
-		}
-
-		if ( $discrete eq "text" and $composite eq "html" ) {
-
-			# For every text/html part create multipart/alternative and add text/html and new text/plain (converted from html)
-
-			my $partstr_plain;
-			my $data_html;
-
-			if ( $type eq "alternative" ) {
-
-				$partstr_plain = $first_prefix+1;
-				$partstr_plain = "$partstr/$partstr_plain";
-
-				$data_html = $body;
-
-				my $partstr_html = "$partstr/$first_prefix";
-
-				my $part_html = {
-					part => $partstr_html,
-					size => lengthbytes($data_html),
-					type => "view",
-					mimetype => "text/html",
-				};
-
-				$pemail->add_part($part_html);
-				$pemail->add_data($partstr_html, $data_html);
-
-			} else {
-
-				$partid++;
-				$partstr_plain = "$prefix/$partid";
-				$data_html = $body;
-
-			}
-
-			my $data_plain = html_strip($data_html);
-
-			my $part_plain = {
-				part => $partstr_plain,
-				size => lengthbytes($data_plain),
-				type => "view",
-				mimetype => "text/plain-from-html",
-			};
-
-			$pemail->add_part($part_plain);
-			$pemail->add_data($partstr_plain, $data_plain);
-
-		} elsif ( $type eq "alternative" ) {
-
-			read_multipart($subpart, $pemail, $partstr, "$discrete/$composite");
-
-		} elsif ( $type eq "message" ) {
-
-			read_email(new Email::MIME($body), $pemail, $partstr);
-
-		}
-
+	foreach my $subpart ($email->subparts()) {
+		read_part($subpart, $pemail, $prefix, $mimetype, \$partid);
 		$partid++;
-
 	}
 
 }
@@ -432,32 +443,8 @@ sub read_email($$$) {
 		$composite = $content_type->{composite};
 	}
 
-	if ( $discrete eq "multipart" ) {
-
-		$prefix .= "/$first_prefix";
-
-		my $type;
-
-		if ( $composite eq "alternative" ) {
-			$type = "alternative";
-		} else {
-			$type = "multipart";
-		}
-
-		my $part = {
-			part => $prefix,
-			size => 0,
-			type => $type,
-			mimetype => "$discrete/$composite",
-			filename => "",
-			description => "",
-		};
-
-		$pemail->add_part($part);
-
-	}
-
-	read_multipart($email, $pemail, $prefix, "$discrete/$composite");
+	my $partid = $first_prefix;
+	read_part($email, $pemail, $prefix, "$discrete/$composite", \$partid);
 
 }
 
