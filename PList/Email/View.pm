@@ -28,6 +28,11 @@ my $view_template_default = <<END;
 <TMPL_VAR NAME=BODY></div></TMPL_IF>
 END
 
+my $plaintext_template_default = <<END;
+<TMPL_IF NAME=BODY><span style='white-space:pre-wrap; font-family:monospace'>
+<TMPL_VAR NAME=BODY></span></TMPL_IF>
+END
+
 my $multipart_template_default = <<END;
 <TMPL_IF NAME=BODY><TMPL_LOOP NAME=BODY><TMPL_VAR NAME=PART></TMPL_LOOP></TMPL_IF>
 END
@@ -144,19 +149,15 @@ sub part_to_str($$$$) {
 		} elsif ( $type eq "view" ) {
 
 			my $html_policy = ${$config}{html_policy};
-			my $html_output = ${$config}{html_output};
 
 			my $mimetype = $part->{mimetype};
 			if ( $mimetype eq "text/html" and ( $html_policy == 3 or $html_policy == 2 ) ) {
 				$template->param(BODY => decode_utf8($pemail->data($partid)));
 			} elsif ( $mimetype eq "text/plain" or $mimetype eq "text/plain-from-html" ) {
 				my $data = decode_utf8($pemail->data($partid));
-				if ($html_output) {
-					# NOTE: pre-wrap is needed for correct line breaking and showing spaces
-					# NOTE: monospace (fixed width font) is needed for showing diff stats
-					$data = "<span style='white-space: pre-wrap; font-family: monospace'>" . $t2h->parse($data) . "</span>";
-				}
-				$template->param(BODY => $data);
+				my $plaintext_template = HTML::Template->new(scalarref => ${$config}{plaintext_template}, die_on_bad_params => 0);
+				$plaintext_template->param(BODY => $data);
+				$template->param(BODY => $plaintext_template->output());
 			} else {
 				$template->param(BODY => "Error: This part cannot be shown");
 			}
@@ -202,9 +203,12 @@ sub to_str($%) {
 	$config{html_output} = 1 unless $config{html_output};
 	$config{html_policy} = 1 unless $config{html_policy};
 	$config{html_policy} = 1 if ( $config{html_policy} < 0 || $config{html_policy} > 4 );
+
+	# TODO: Set default templates based on $html_output
 	$config{disabled_mime_types} = \@disabled_mime_types_default unless $config{disabled_mime_types};
 	$config{message_template} = \$message_template_default unless $config{message_template};
 	$config{view_template} = \$view_template_default unless $config{view_template};
+	$config{plaintext_template} = \$plaintext_template_default unless $config{plaintext_template};
 	$config{multipart_template} = \$multipart_template_default unless $config{multipart_template};
 	$config{attachment_template} = \$attachment_template_default unless $config{attachment_template};
 
