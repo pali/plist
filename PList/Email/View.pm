@@ -153,7 +153,8 @@ sub part_to_str($$$$) {
 				my $data = decode_utf8($pemail->data($partid));
 				if ($html_output) {
 					# NOTE: pre-wrap is needed for correct line breaking and showing spaces
-					$data = "<span style='white-space: pre-wrap'>" . $t2h->parse($data) . "</span>";
+					# NOTE: monospace (fixed width font) is needed for showing diff stats
+					$data = "<span style='white-space: pre-wrap; font-family: monospace'>" . $t2h->parse($data) . "</span>";
 				}
 				$template->param(BODY => $data);
 			} else {
