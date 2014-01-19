@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Encode qw(decode_utf8);
+use Number::Bytes::Human qw(format_bytes);
 
 use PList::Email;
 
@@ -39,8 +40,8 @@ END
 my $attachment_template_default = <<END;
 <b>Filename:</b> <TMPL_VAR ESCAPE=HTML NAME=FILENAME>
 <TMPL_IF NAME=DESCRIPTION><br><b>Description:</b> <TMPL_VAR ESCAPE=HTML NAME=DESCRIPTION>
-</TMPL_IF><TMPL_IF NAME=MIMETYPE><br><b>Mimetype:</b> <TMPL_VAR ESCAPE=HTML NAME=MIMETYPE>
-</TMPL_IF>
+</TMPL_IF><br><b>Mimetype:</b> <TMPL_VAR ESCAPE=HTML NAME=MIMETYPE>
+<br><b>Size:</b> <TMPL_VAR ESCAPE=HTML NAME=SIZE>
 END
 
 sub addressees_data($) {
@@ -164,6 +165,7 @@ sub part_to_str($$$$) {
 		} elsif ( $type eq "attachment" ) {
 
 			my $attachment_template = HTML::Template->new(scalarref => ${$config}{attachment_template}, die_on_bad_params => 0);
+			$attachment_template->param(SIZE => format_bytes($part->{size}));
 			$attachment_template->param(MIMETYPE => $part->{mimetype});
 			$attachment_template->param(FILENAME => $part->{filename});
 			$attachment_template->param(DESCRIPTION => $part->{description});
