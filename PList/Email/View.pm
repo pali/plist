@@ -29,8 +29,7 @@ my $view_template_default = <<END;
 END
 
 my $plaintext_template_default = <<END;
-<TMPL_IF NAME=BODY><span style='white-space:pre-wrap; font-family:monospace'>
-<TMPL_VAR NAME=BODY></span></TMPL_IF>
+<TMPL_IF NAME=BODY><span style='white-space:pre-wrap; font-family:monospace'><TMPL_VAR ESCAPE=HTML NAME=BODY></span></TMPL_IF>
 END
 
 my $multipart_template_default = <<END;
