@@ -15,6 +15,18 @@ my $t2h = HTML::FromText->new();
 
 my @disabled_mime_types_default = qw(application/pgp-signature);
 
+my $base_template_default = <<END;
+<html>
+<head>
+<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
+<TMPL_IF NAME=TITLE><title><TMPL_VAR ESCAPE=HTML NAME=TITLE></title>
+</TMPL_IF></head>
+<body>
+<TMPL_IF NAME=BODY><TMPL_VAR NAME=BODY>
+</TMPL_IF></body>
+</html>
+END
+
 my $message_template_default = <<END;
 <TMPL_IF NAME=FROM><b>From:</b><TMPL_LOOP NAME=FROM> <a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a></TMPL_LOOP><br>
 </TMPL_IF><TMPL_IF NAME=TO><b>To:</b><TMPL_LOOP NAME=TO> <a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a></TMPL_LOOP><br>
@@ -207,6 +219,7 @@ sub to_str($%) {
 
 	# TODO: Set default templates based on $html_output
 	$config{disabled_mime_types} = \@disabled_mime_types_default unless $config{disabled_mime_types};
+	$config{base_template} = \$base_template_default unless $config{base_template};
 	$config{message_template} = \$message_template_default unless $config{message_template};
 	$config{view_template} = \$view_template_default unless $config{view_template};
 	$config{plaintext_template} = \$plaintext_template_default unless $config{plaintext_template};
@@ -240,7 +253,13 @@ sub to_str($%) {
 
 	}
 
-	return part_to_str($pemail, "0", \%nodes, \%config);
+	my $title = $pemail->header("0")->{subject};
+	my $body = part_to_str($pemail, "0", \%nodes, \%config);
+
+	my $base_template = HTML::Template->new(scalarref => $config{base_template}, die_on_bad_params => 0);
+	$base_template->param(TITLE => $title);
+	$base_template->param(BODY => $body);
+	return $base_template->output();
 
 }
 
