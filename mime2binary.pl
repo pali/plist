@@ -21,4 +21,3 @@ if ( not defined $email ) {
 }
 
 print PList::Email::Binary::to_str($email);
-PList::Email::Binary::done($email);
