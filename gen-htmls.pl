@@ -14,7 +14,7 @@ if ( @ARGV != 2 ) {
 }
 
 my $fh;
-if ( not open($fh, "<:raw", $ARGV[0]) ) {
+if ( not open($fh, "<:mmap:raw", $ARGV[0]) ) {
 	print "Cannot open list file $ARGV[0]\n";
 	exit 1;
 }

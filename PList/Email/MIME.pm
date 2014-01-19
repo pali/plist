@@ -290,7 +290,8 @@ sub read_part($$$$$) {
 
 	# Detect and overwrite mimetype for attachments
 	if ( $type eq "attachment" ) {
-		if ( open(my $fh, "<:raw", \$body) ) {
+		if ( open(my $fh, "<", \$body) ) {
+			binmode($fh, ":raw");
 			my $mimetype_new = mimetype($fh);
 			if ( $mimetype_new =~ /^(.+)\/(.+)$/ ) {
 				$discrete = $1;
@@ -513,7 +514,8 @@ sub from_file($) {
 
 	my $str;
 
-	if ( open(my $file, "<:raw", $filename) ) {
+	if ( open(my $file, "<", $filename) ) {
+		binmode($file, ":raw");
 		local $/=undef;
 		$str = <$file>;
 		close($file);

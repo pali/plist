@@ -168,7 +168,7 @@ sub from_file($) {
 	my ($filename) = @_;
 
 	my $file;
-	if ( not open($file, "<:raw", $filename) ) {
+	if ( not open($file, "<:mmap", $filename) ) {
 		return undef;
 	}
 
@@ -205,12 +205,15 @@ sub to_file($$) {
 	my ($pemail, $filename) = @_;
 
 	my $file;
-	if ( not open($file, ">:raw:utf8", $filename) ) {
+	if ( not open($file, ">", $filename) ) {
 		return 0;
 	}
 
 	my $bin = "";
 	my $offset = 0;
+
+	# Header is utf8 encoded
+	binmode $file, ':raw:utf8';
 
 	print $file "Parts:\n";
 	foreach (sort keys %{$pemail->parts()}) {
