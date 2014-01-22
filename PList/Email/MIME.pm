@@ -22,6 +22,8 @@ use HTML::Strip;
 
 my $first_prefix = 0;
 
+my @generic_mimetypes = qw(application/octet-stream);
+
 sub lengthbytes($) {
 
 	use bytes;
@@ -294,12 +296,12 @@ sub read_part($$$$$) {
 		$description = undef;
 	}
 
-	# Detect and overwrite mimetype for attachments
-	if ( $type eq "attachment" ) {
+	# Detect and overwrite mimetype for attachments which has unknown/generic mimetype
+	if ( $type eq "attachment" and grep(/^$discrete\/$composite$/, @generic_mimetypes) ) {
 		if ( open(my $fh, "<", \$body) ) {
 			binmode($fh, ":raw");
-			my $mimetype_new = mimetype($fh);
-			if ( $mimetype_new =~ /^(.+)\/(.+)$/ ) {
+			my $mimetype = mimetype($fh);
+			if ( $mimetype and $mimetype =~ /^(.+)\/(.+)$/ ) {
 				$discrete = $1;
 				$composite = $2;
 			}
