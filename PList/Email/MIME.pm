@@ -288,6 +288,12 @@ sub read_part($$$$$) {
 		}
 	}
 
+	# Filename and description are used only for attachments
+	if ( $type ne "attachment" ) {
+		$filename = undef;
+		$description = undef;
+	}
+
 	# Detect and overwrite mimetype for attachments
 	if ( $type eq "attachment" ) {
 		if ( open(my $fh, "<", \$body) ) {
@@ -302,7 +308,7 @@ sub read_part($$$$$) {
 	}
 
 	# Invent some name if type is attachment
-	if ( $type eq "attachment" and $filename eq "" ) {
+	if ( $type eq "attachment" and not $filename ) {
 		my $ext = extensions("$discrete/$composite");
 		if ( not $ext ) {
 			$ext = "bin";
@@ -497,8 +503,6 @@ sub from_str($) {
 		size => 0,
 		type => "message",
 		mimetype => "message/rfc822",
-		filename => "",
-		description => "",
 	};
 
 	$pemail->add_part($part);
