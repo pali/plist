@@ -232,10 +232,10 @@ sub to_file($$) {
 		print $file $_->{type};
 		print $file " ";
 		print $file $_->{mimetype};
-		if ( defined $_->{filename} ) {
+		if ( $_->{filename} ) {
 			print $file " ";
 			print $file $_->{filename};
-			if ( defined $_->{description} ) {
+			if ( $_->{description} ) {
 				print $file " ";
 				print $file $_->{description};
 			}
