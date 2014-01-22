@@ -219,15 +219,15 @@ sub content_disposition($) {
 # Fixing: read_multipart() called too early to check prototype
 sub read_multipart($$$$);
 
-# read_part(subpart, pemail, prefix, mimetype)
+# read_part(subpart, pemail, prefix, parentalt, partid)
 # subpart - Email::MIME
 # pemail - PList::Email
 # prefix - string
-# mimetype - string (discrete/composite)
+# parentalt - int (parent part is alternative)
 # partid - ref int
 sub read_part($$$$$) {
 
-	my ($subpart, $pemail, $prefix, $mimetype, $partid) = @_;
+	my ($subpart, $pemail, $prefix, $parentalt, $partid) = @_;
 
 	my $discrete;
 	my $composite;
@@ -262,6 +262,11 @@ sub read_part($$$$$) {
 	$filename =~ s/\s/_/g;
 
 	my $type;
+	my $unpack_html = 0;
+
+	if ( $discrete eq "text" and $composite eq "html" ) {
+		$unpack_html = 1;
+	}
 
 	if ( $discrete eq "message" and $composite eq "rfc822" ) {
 		$type = "message";
@@ -271,8 +276,13 @@ sub read_part($$$$$) {
 		} else {
 			$type = "multipart";
 		}
-	} elsif ( $mimetype ne "multipart/alternative" and $discrete eq "text" and $composite eq "html" ) {
+	} elsif ( not $parentalt and $discrete eq "text" and $composite eq "html" ) {
+		# Every text/html part is converted into alternative part with two subparts (html and plain)
+		# If parent part is already alternative, creating new alternative part is not needed
 		$type = "alternative";
+		$discrete = "multipart";
+		$composite = "alternative";
+		$unpack_html = 1;
 	} else {
 		my $disposition = content_disposition($subpart);
 		if ( not $disposition ) {
@@ -338,14 +348,15 @@ sub read_part($$$$$) {
 		$pemail->add_data($partstr, $body);
 	}
 
-	if ( $discrete eq "text" and $composite eq "html" ) {
+	if ( $unpack_html ) {
 
-		# For every text/html part create multipart/alternative and add text/html and new text/plain (converted from html)
+		# For every text/html part create multipart/alternative (if needed) and add text/html and new text/plain (converted from html)
 
 		my $partstr_plain;
 		my $data_html;
 
-		if ( $type eq "alternative" ) {
+		# New alternative part is created only if parent part is not alternative
+		if ( not $parentalt ) {
 
 			$partstr_plain = $first_prefix+1;
 			$partstr_plain = "$partstr/$partstr_plain";
@@ -384,9 +395,13 @@ sub read_part($$$$$) {
 		$pemail->add_part($part_plain);
 		$pemail->add_data($partstr_plain, $data_plain);
 
-	} elsif ( $type eq "alternative" or $type eq "multipart" ) {
+	} elsif ( $type eq "alternative" ) {
 
-		read_multipart($subpart, $pemail, $partstr, "$discrete/$composite");
+		read_multipart($subpart, $pemail, $partstr, 1);
+
+	} elsif ( $type eq "multipart" ) {
+
+		read_multipart($subpart, $pemail, $partstr, 0);
 
 	} elsif ( $type eq "message" ) {
 
@@ -403,19 +418,19 @@ sub read_part($$$$$) {
 
 }
 
-# read_multipart(email, pemail, prefix, mimetype)
-# email - Email::MIME
+# read_multipart(part, pemail, prefix, alternative)
+# part - Email::MIME
 # pemail - PList::Email
 # prefix - string
-# mimetype - string (discrete/composite)
+# alternative - int (part is alternative)
 sub read_multipart($$$$) {
 
-	my ($email, $pemail, $prefix, $mimetype) = @_;
+	my ($part, $pemail, $prefix, $alternative) = @_;
 
 	my $partid = $first_prefix;
 
-	foreach my $subpart ($email->subparts()) {
-		read_part($subpart, $pemail, $prefix, $mimetype, \$partid);
+	foreach my $subpart ($part->subparts()) {
+		read_part($subpart, $pemail, $prefix, $alternative, \$partid);
 		$partid++;
 	}
 
@@ -449,18 +464,8 @@ sub read_email($$$) {
 
 	$pemail->add_header($header);
 
-	my $discrete;
-	my $composite;
-
-	{
-		local $Email::MIME::ContentType::STRICT_PARAMS = 0;
-		my $content_type = parse_content_type($email->content_type);
-		$discrete = $content_type->{discrete};
-		$composite = $content_type->{composite};
-	}
-
 	my $partid = $first_prefix;
-	read_part($email, $pemail, $prefix, "$discrete/$composite", \$partid);
+	read_part($email, $pemail, $prefix, 0, \$partid);
 
 }
 
