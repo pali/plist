@@ -4,12 +4,22 @@ use strict;
 use warnings;
 
 use Encode qw(decode_utf8);
-use Number::Bytes::Human qw(format_bytes);
 
 use PList::Email;
 
 use HTML::FromText;
 use HTML::Template;
+
+BEGIN {
+	# Package Number::Bytes::Human is sometimes not available
+	# Than do not fail but simply return original number
+	eval {
+		require Number::Bytes::Human;
+		import Number::Bytes::Human qw(format_bytes);
+	} or do {
+		sub format_bytes { return "@_"; }
+	}
+}
 
 my $t2h = HTML::FromText->new();
 
