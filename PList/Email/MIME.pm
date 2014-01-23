@@ -19,6 +19,7 @@ use Encode qw(encode_utf8);
 use File::MimeInfo::Magic qw(mimetype extensions);
 
 use HTML::Strip;
+use HTML::Entities;
 
 my $first_prefix = 0;
 
@@ -177,7 +178,16 @@ sub html_strip($) {
 
 	my ($html) = @_;
 
-	# TODO: this does not working for non ascii chars!!!
+	# Replace &nbsp; by normal space
+	$html =~ s/&nbsp;/ /g;
+
+	# Add newlines before <br> and <div>
+	$html =~ s/(?<=[^\n])(?=<br[^>]*>[^\n])/\n/g;
+	$html =~ s/(?=<div[^>]*>)/\n/g;
+
+	# TODO: read charset from html head and decode it to utf8
+	# NOTE: now $html is expected in utf8
+
 	return HTML::Strip->new()->parse($html);
 
 }
