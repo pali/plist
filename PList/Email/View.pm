@@ -213,8 +213,10 @@ sub part_to_str($$$$) {
 # date_format default
 # enabled_mime_types
 # disabled_mime_types application/pgp-signature
+# base_template
 # message_template
 # view_template
+# plaintext_template
 # multipart_template
 # attachment_template
 
@@ -226,6 +228,8 @@ sub to_str($%) {
 	$config{html_output} = 1 unless $config{html_output};
 	$config{html_policy} = 1 unless $config{html_policy};
 	$config{html_policy} = 1 if ( $config{html_policy} < 0 || $config{html_policy} > 4 );
+
+	# TODO: Time zone & Date format
 
 	# TODO: Set default templates based on $html_output
 	$config{disabled_mime_types} = \@disabled_mime_types_default unless $config{disabled_mime_types};

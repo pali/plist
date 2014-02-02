@@ -75,6 +75,8 @@ sub date($) {
 		eval { $date = DateTime::Format::Mail->parse_datetime($header); };
 	}
 
+	# TODO: Check if date is not in future
+
 	if ( $date ) {
 		return $date->strftime("%Y-%m-%d %H:%M:%S %z");
 	} else {
@@ -185,9 +187,6 @@ sub html_strip($) {
 	$html =~ s/(?<=[^\n])(?=<br[^>]*>[^\n])/\n/g;
 	$html =~ s/(?=<div[^>]*>)/\n/g;
 
-	# TODO: read charset from html head and decode it to utf8
-	# NOTE: now $html is expected in utf8
-
 	return HTML::Strip->new()->parse($html);
 
 }
@@ -206,6 +205,8 @@ sub subpart_get_body($$$$) {
 		} or do {
 			$body = $subpart->body();
 		};
+		# NOTE: if part is html, charset can be specified also in <head>, but this is now ignored
+		# TODO: read charset from html <head> <meta> and change it to utf8
 		# Convert CRLF to LF and encode to utf8
 		$body =~ s/\r\n/\n/g;
 		$body = encode_utf8($body);
