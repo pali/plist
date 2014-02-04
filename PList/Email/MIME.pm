@@ -253,7 +253,7 @@ sub read_part($$$$$) {
 		$charset = $attributes->{charset};
 
 		# If parsing failed, set some generic content type
-		if ( not $discrete and not $composite ) {
+		if ( not $discrete or not $composite ) {
 			$discrete = "application";
 			$composite = "octet-stream";
 		}
