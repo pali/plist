@@ -265,6 +265,19 @@ sub read_part($$$$$) {
 	my $body = subpart_get_body($subpart, $discrete, $composite, $charset);
 	my $size = 0;
 
+	# Detect and overwrite mimetype for parts which have unknown/generic mimetype
+	if ( grep(/^$discrete\/$composite$/, @generic_mimetypes) ) {
+		if ( open(my $fh, "<", \$body) ) {
+			binmode($fh, ":raw");
+			my $mimetype = mimetype($fh);
+			if ( $mimetype and $mimetype =~ /^(.+)\/(.+)$/ ) {
+				$discrete = $1;
+				$composite = $2;
+			}
+			close($fh);
+		}
+	}
+
 	if ( not $filename ) {
 		$filename = "";
 	}
@@ -315,19 +328,6 @@ sub read_part($$$$$) {
 	if ( $type ne "attachment" ) {
 		$filename = undef;
 		$description = undef;
-	}
-
-	# Detect and overwrite mimetype for attachments which has unknown/generic mimetype
-	if ( $type eq "attachment" and grep(/^$discrete\/$composite$/, @generic_mimetypes) ) {
-		if ( open(my $fh, "<", \$body) ) {
-			binmode($fh, ":raw");
-			my $mimetype = mimetype($fh);
-			if ( $mimetype and $mimetype =~ /^(.+)\/(.+)$/ ) {
-				$discrete = $1;
-				$composite = $2;
-			}
-			close($fh);
-		}
 	}
 
 	# Invent some name if type is attachment
