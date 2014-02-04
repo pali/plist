@@ -3,7 +3,7 @@ package PList::Email::Binary;
 use strict;
 use warnings;
 
-use PList::Email;
+use base "PList::Email";
 
 sub lengthbytes($) {
 
@@ -15,11 +15,11 @@ sub lengthbytes($) {
 
 sub data($$) {
 
-	my ($private, $part) = @_;
+	my ($self, $part) = @_;
 
-	my $fh = $private->{fh};
-	my $pemail = $private->{pemail};
-	my $offsets = $private->{offsets};
+	my $fh = $self->{fh};
+	my $pemail = $self;
+	my $offsets = $self->{offsets};
 
 	my $str;
 
@@ -32,11 +32,11 @@ sub data($$) {
 
 sub read_email($) {
 
-	my ($private) = @_;
+	my ($self) = @_;
 
-	my $fh = $private->{fh};
-	my $pemail = $private->{pemail};
-	my $offsets = $private->{offsets};
+	my $fh = $self->{fh};
+	my $pemail = $self;
+	my $offsets = $self->{offsets};
 
 	my $line;
 	my $dataoffset = 0;
@@ -157,8 +157,7 @@ sub read_email($) {
 sub done($) {
 
 	my ($pemail) = @_;
-	my $private = $pemail->private();
-	my $fh = $private->{fh};
+	my $fh = $pemail->{fh};
 	close($fh);
 
 }
@@ -173,18 +172,12 @@ sub from_file($) {
 	}
 
 	my %offsets;
-	my $pemail = PList::Email::new();
+	my $pemail = PList::Email::new("PList::Email::Binary");
 
-	my $private = {
-		fh => $file,
-		pemail => $pemail,
-		offsets => \%offsets,
-	};
+	$pemail->{fh} = $file;
+	$pemail->{offsets} = \%offsets;
 
-	$pemail->set_datafunc(\&data);
-	$pemail->set_private($private);
-
-	if ( read_email($private) ) {
+	if ( read_email($pemail) ) {
 		return $pemail;
 	} else {
 		close($file);

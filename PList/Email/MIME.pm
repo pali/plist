@@ -3,7 +3,7 @@ package PList::Email::MIME;
 use strict;
 use warnings;
 
-use PList::Email;
+use base "PList::Email";
 
 use DateTime;
 use DateTime::Format::Mail;
@@ -423,7 +423,7 @@ sub read_part($$$$$) {
 			local $Email::MIME::ContentType::STRICT_PARAMS = 0;
 			$new_email = new Email::MIME($body);
 		}
-		read_email($new_email, $pemail, $partstr);
+		$pemail->read_email($new_email, $partstr);
 
 	}
 
@@ -447,13 +447,13 @@ sub read_multipart($$$$) {
 
 }
 
-# read_email(email, pemail, prefix)
-# email - Email::MIME
+# read_email(pemail, email, prefix)
 # pemail - PList::Email
+# email - Email::MIME
 # prefix - string
 sub read_email($$$) {
 
-	my ($email, $pemail, $prefix) = @_;
+	my ($pemail, $email, $prefix) = @_;
 
 	my @from = addresses($email, "From");
 	my @to = addresses($email, "To");
@@ -482,15 +482,15 @@ sub read_email($$$) {
 
 sub data($$) {
 
-	my ($datarefs, $part) = @_;
-	return ${$datarefs}{$part};
+	my ($self, $part) = @_;
+	return ${$self->{datarefs}}{$part};
 
 }
 
 sub add_data($$$) {
 
-	my ($datarefs, $part, $data) = @_;
-	${$datarefs}{$part} = $data;
+	my ($self, $part, $data) = @_;
+	${$self->{datarefs}}{$part} = $data;
 
 }
 
@@ -511,10 +511,8 @@ sub from_str($) {
 		return undef;
 	}
 
-	my $pemail = PList::Email::new();
-	$pemail->set_datafunc(\&data);
-	$pemail->set_add_datafunc(\&add_data);
-	$pemail->set_private(\%datarefs);
+	my $pemail = PList::Email::new("PList::Email::MIME");
+	$pemail->{datarefs} = \%datarefs;
 
 	my $part = {
 		part => "$first_prefix",
@@ -525,7 +523,7 @@ sub from_str($) {
 
 	$pemail->add_part($part);
 
-	read_email($email, $pemail, "$first_prefix");
+	$pemail->read_email($email, "$first_prefix");
 	return $pemail;
 
 }

@@ -3,7 +3,9 @@ package PList::Email;
 use strict;
 use warnings;
 
-sub new() {
+sub new($) {
+
+	my ($class) = @_;
 
 	my %parts;
 	my %headers;
@@ -11,12 +13,9 @@ sub new() {
 	my $self = {
 		parts => \%parts,
 		headers => \%headers,
-		datafunc => 0,
-		add_datafunc => 0,
-		private => 0,
 	};
 
-	return bless $self;
+	return bless $self, $class;
 
 }
 
@@ -48,6 +47,12 @@ sub headers($) {
 
 }
 
+sub data($$) {
+
+	die;
+
+}
+
 sub add_part($$) {
 
 	my ($self, $part) = @_;
@@ -62,51 +67,9 @@ sub add_header($$) {
 
 }
 
-sub set_datafunc($$) {
-
-	my ($self, $datafunc) = @_;
-	$self->{datafunc} = $datafunc;
-
-}
-
-sub data($$) {
-
-	my ($self, $part) = @_;
-	my $datafunc = $self->{datafunc};
-	if ($datafunc) {
-		return $datafunc->($self->{private}, $part);
-	}
-
-}
-
-sub set_add_datafunc($$) {
-
-	my ($self, $add_datafunc) = @_;
-	$self->{add_datafunc} = $add_datafunc;
-
-}
-
 sub add_data($$$) {
 
-	my ($self, $part, $data) = @_;
-	my $add_datafunc = $self->{add_datafunc};
-	if ($add_datafunc) {
-		$add_datafunc->($self->{private}, $part, $data);
-	}
-
-}
-
-sub set_private($$) {
-
-	my ($self, $private) = @_;
-	$self->{private} = $private;
-
-}
-
-sub private($) {
-
-	my ($self) = @_;
-	return $self->{private};
+	die;
 
 }
 
