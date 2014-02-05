@@ -14,7 +14,8 @@ use Email::Address;
 use Email::MIME;
 use Email::MIME::ContentType;
 
-use Encode qw(encode_utf8);
+use Encode qw(decode encode_utf8);
+use Encode::Detect;
 
 use File::MimeInfo::Magic qw(mimetype extensions);
 
@@ -194,24 +195,21 @@ sub html_strip($) {
 sub subpart_get_body($$$$) {
 
 	my ($subpart, $discrete, $composite, $charset) = @_;
-	my $body;
+	my $body = $subpart->body();
 
-	# body_str() will decode Content-Transfer-Encoding and charset encoding
-	# it working only when charset is defined or content-type is text/html or text/plain
-	# otherwise do not encode charset
-	if ( $discrete eq "text" ) {
-		eval {
-			$body = $subpart->body_str();
-		} or do {
-			$body = $subpart->body();
-		};
-		# NOTE: if part is html, charset can be specified also in <head>, but this is now ignored
-		# TODO: read charset from html <head> <meta> and change it to utf8
-		# Convert CRLF to LF and encode to utf8
+	# Text subparts should have specified charset, if not try to detect it
+	if ( $discrete eq "text" and not $charset ) {
+		$charset = "Detect";
+	}
+
+	# NOTE: if part is html, charset can be specified also in <head>, but this is now ignored
+	# TODO: read charset from html <head> <meta> and change it to utf8
+
+	# Non binary subparts are converted to utf8 with LF line ending
+	if ( $charset ) {
+		$body = decode($charset, $body);
 		$body =~ s/\r\n/\n/g;
 		$body = encode_utf8($body);
-	} else {
-		$body = $subpart->body();
 	}
 
 	return $body;
@@ -256,6 +254,12 @@ sub read_part($$$$$) {
 		if ( not $discrete or not $composite ) {
 			$discrete = "application";
 			$composite = "octet-stream";
+		}
+
+		# Method Email::MIME::ContentType::parse_content_type() return us-ascii charset when there is no content type header
+		# So remove specified fake charset and later do some charset detection
+		if ( not $subpart->content_type ) {
+			$charset = undef;
 		}
 	}
 
