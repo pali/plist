@@ -35,8 +35,6 @@ while ($_ = PList::List::Binary::read_next_from_fh($fh)) {
 	print $file PList::Email::View::to_str($_);
 	close($file);
 
-	PList::Email::Binary::done($_);
-
 }
 
 close($fh);

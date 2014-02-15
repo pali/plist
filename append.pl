@@ -26,6 +26,4 @@ if ( not open($fh, ">>:raw", $ARGV[0]) ) {
 
 PList::List::Binary::append_to_fh($pemail, $fh);
 
-PList::Email::Binary::done($pemail);
-
 close($fh);

@@ -23,4 +23,3 @@ if ( not defined $pemail ) {
 }
 
 print PList::Email::View::to_str($pemail);
-PList::Email::Binary::done($pemail);

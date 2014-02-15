@@ -154,7 +154,7 @@ sub read_email($) {
 	return 1;
 }
 
-sub done($) {
+sub DESTROY($) {
 
 	my ($pemail) = @_;
 	my $fh = $pemail->{fh};
