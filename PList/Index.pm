@@ -7,6 +7,7 @@ sub new($$) {
 
 	my ($class, $dir) = @_;
 
+	my $priv = {};
 
 	bless $priv, $class;
 
@@ -47,6 +48,15 @@ sub import_mime($$) {
 }
 
 sub import_mbox($$) {
+
+}
+
+# priv, id
+sub delete_mark($$) {
+
+}
+
+sub delete_unmark($$) {
 
 }
 
