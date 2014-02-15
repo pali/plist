@@ -12,7 +12,7 @@ sub new($$) {
 	my $priv = {
 		file => $file,
 		emails => {},
-		roots => {},
+		roots => {},
 	};
 
 	eval {
@@ -32,12 +32,12 @@ sub save($) {
 	my $hash = {
 		emails => $priv->{emails},
 		roots => $priv->{roots},
-	}
+	};
 
 	my $ret = 0;
 
 	eval {
-		store($hash, $priv->file);
+		store($hash, $priv->{file});
 		$ret = 1;
 	};
 
