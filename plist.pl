@@ -406,6 +406,7 @@ if ( not $mod or not $command ) {
 		foreach (sort keys %{$threads->emails()}) {
 			my $down = $threads->down($_) || [];
 			print "$_:";
+			print " (i)" if $threads->implicit($_);
 			print " " . $_ foreach(@{$down});
 			print "\n";
 		}
