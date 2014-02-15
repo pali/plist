@@ -360,7 +360,7 @@ sub read_part($$$$$) {
 	$pemail->add_part($part);
 
 	if ( $body and $size > 0 ) {
-		$pemail->add_data($partstr, $body);
+		$pemail->add_data($partstr, \$body);
 	}
 
 	if ( $unpack_html ) {
@@ -388,7 +388,7 @@ sub read_part($$$$$) {
 			};
 
 			$pemail->add_part($part_html);
-			$pemail->add_data($partstr_html, $data_html);
+			$pemail->add_data($partstr_html, \$data_html);
 
 		} else {
 
@@ -408,7 +408,7 @@ sub read_part($$$$$) {
 		};
 
 		$pemail->add_part($part_plain);
-		$pemail->add_data($partstr_plain, $data_plain);
+		$pemail->add_data($partstr_plain, \$data_plain);
 
 	} elsif ( $type eq "alternative" ) {
 

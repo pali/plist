@@ -77,7 +77,7 @@ foreach (sort keys %{$pemail->parts()}) {
 
 		if ( $part->{mimetype} eq "text/plain" or $part->{mimetype} eq "text/plain-from-html" ) {
 			# Plain text data are in utf8
-			my @data = split "\n", decode_utf8($pemail->data($part->{part}));
+			my @data = split "\n", decode_utf8(${$pemail->data($part->{part})});
 			print $_ foreach(@data);
 		} else {
 			print "This is non plain text view part.";

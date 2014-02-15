@@ -176,9 +176,12 @@ sub part_to_str($$$$) {
 
 			my $mimetype = $part->{mimetype};
 			if ( $mimetype eq "text/html" and ( $html_policy == 3 or $html_policy == 2 ) ) {
-				$template->param(BODY => decode_utf8($pemail->data($partid)));
+				my $data = $pemail->data($partid);
+				$data = decode_utf8(${$data});
+				$template->param(BODY => $data);
 			} elsif ( $mimetype eq "text/plain" or $mimetype eq "text/plain-from-html" ) {
-				my $data = decode_utf8($pemail->data($partid));
+				my $data = $pemail->data($partid);
+				$data = decode_utf8(${$data});
 				my $plaintext_template = HTML::Template->new(scalarref => ${$config}{plaintext_template}, die_on_bad_params => 0);
 				$plaintext_template->param(BODY => $data);
 				$template->param(BODY => $plaintext_template->output());

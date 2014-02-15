@@ -26,7 +26,7 @@ sub data($$) {
 	seek($fh, ${$offsets}{$part}, 0);
 	read $fh, $str, $pemail->part($part)->{size};
 
-	return $str;
+	return \$str;
 
 }
 
@@ -285,7 +285,8 @@ sub to_file($$) {
 	foreach (sort keys %{$pemail->parts()}) {
 		$_ = ${$pemail->parts()}{$_};
 		if ($_->{size} != 0) {
-			print $file $pemail->data($_->{part});
+			my $data = $pemail->data($_->{part});
+			print $file ${$data};
 		}
 	}
 
