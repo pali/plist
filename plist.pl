@@ -58,9 +58,7 @@ sub open_bin($) {
 	if ( $filename ) {
 		$pemail = PList::Email::Binary::from_file($filename);
 	} else {
-		binmode STDIN, ":raw:utf8";
-		my $str = join "", <STDIN>;
-		$pemail = PList::Email::Binary::from_str($str);
+		$pemail = PList::Email::Binary::from_fh(*STDIN);
 	}
 	die "Cannot open bin file $filename\n" unless $pemail;
 	return $pemail;
@@ -102,6 +100,8 @@ sub open_output($$) {
 sub bin_view($) {
 
 	my ($pemail) = @_;
+
+	binmode STDOUT, ":utf8";
 
 	my $header = $pemail->header("0");
 	if ( not $header ) {
@@ -322,7 +322,13 @@ if ( not $mod or not $command ) {
 		my $input = open_input($mimefile, ":raw:utf8");
 		my $output = open_output($binfile, ":raw:utf8");
 
-		my $str = join "", <$input>;
+		my $str;
+
+		{
+			local $/=undef;
+			$str = <$input>;
+		}
+
 		$str =~ s/^From .*\n//;
 
 		my $pemail = PList::Email::MIME::from_str($str);
