@@ -64,6 +64,8 @@ my $attachment_template_default = <<END;
 <TMPL_IF NAME=DESCRIPTION><br><b>Description:</b> <TMPL_VAR ESCAPE=HTML NAME=DESCRIPTION>
 </TMPL_IF><br><b>Mimetype:</b> <TMPL_VAR ESCAPE=HTML NAME=MIMETYPE>
 <br><b>Size:</b> <TMPL_VAR ESCAPE=HTML NAME=SIZE>
+<TMPL_IF NAME=URL><br><b><a href='<TMPL_VAR ESCAPE=URL NAME=URL><TMPL_VAR ESCAPE=URL NAME=PART>'>Download attachment</a></b>
+</TMPL_IF>
 END
 
 sub addressees_data($) {
@@ -187,6 +189,8 @@ sub part_to_str($$$$) {
 		} elsif ( $type eq "attachment" ) {
 
 			my $attachment_template = HTML::Template->new(scalarref => ${$config}{attachment_template}, die_on_bad_params => 0);
+			$attachment_template->param(URL => ${$config}{download_url});
+			$attachment_template->param(PART => $part->{part});
 			$attachment_template->param(SIZE => format_bytes($part->{size}));
 			$attachment_template->param(MIMETYPE => $part->{mimetype});
 			$attachment_template->param(FILENAME => $part->{filename});
@@ -211,6 +215,7 @@ sub part_to_str($$$$) {
 # html_policy always(4) allow(3) strip(2) plain(1) never(0)
 # time_zone origin
 # date_format default
+# download_url
 # enabled_mime_types
 # disabled_mime_types application/pgp-signature
 # base_template
