@@ -34,6 +34,13 @@ sub reset($) {
 
 }
 
+sub offset($) {
+
+	my ($mbox) = @_;
+	return ${$mbox}->offset();
+
+}
+
 sub skipnext($) {
 
 	my ($mbox) = @_;

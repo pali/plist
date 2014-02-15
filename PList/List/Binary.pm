@@ -87,6 +87,13 @@ sub reset($) {
 
 }
 
+sub offset($) {
+
+	my ($priv) = @_;
+	return tell($priv->{fh});
+
+}
+
 sub skipnext($) {
 
 	my ($priv) = @_;

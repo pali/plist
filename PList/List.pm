@@ -15,6 +15,10 @@ sub reset($) {
 	die;
 }
 
+sub offset($) {
+	die;
+}
+
 sub skipnext($) {
 	die;
 }
