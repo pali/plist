@@ -448,6 +448,118 @@ if ( not $mod or not $command ) {
 
 } elsif ( $mod eq "index" ) {
 
+	my $indexdir = shift @ARGV;
+	help() unless $indexdir;
+
+	my $index = new PList::Index($indexdir);
+
+	if ( $command eq "view" ) {
+
+	} elsif ( $command eq "add-mbox" ) {
+
+		my $mboxfile = shift @ARGV;
+		help() unless $mboxfile;
+
+		my $count = $index->add_mbox($mboxfile);
+		die "Adding mbox file $mboxfile to index dir $indexdir failed\n" unless $count;
+
+		print "Added $count emails to index dir $indexdir";
+
+	} elsif ( $command eq "add-mime" ) {
+
+		my $mimefile = shift @ARGV;
+		my $input = open_input($mimefile, ":raw");
+
+		my $str;
+
+		{
+			local $/=undef;
+			$str = <$input>;
+		}
+
+		$str =~ s/^From .*\n//;
+
+		my $pemail = PList::Email::MIME::from_str($str);
+		die "Cannot read email\n" unless $pemail;
+
+		die "Adding email failed\n" unless $index->add_email($pemail);
+
+	} elsif ( $command eq "regenerate" ) {
+
+		print "Regenerating list files...\n";
+		die "Failed\n" unless $index->regenerate_lists();
+
+		print "Regeneraring threads files...\n";
+		die "Failed\n" unless $index->regenreate_threads();
+
+		print "Done\n";
+
+	} elsif ( $command eq "del-mark" ) {
+
+		my $id = shift @ARGV;
+		help() unless $id;
+
+		print "Marking email with $id as deleted (will not be visible)\n";
+		die "Failed\n" unless $index->delete_mark($id);
+
+		print "Done\n";
+
+	} elsif ( $command eq "del-unmark" ) {
+
+		my $id = shift @ARGV;
+		help() unless $id;
+
+		print "Unmarking email with $id as deleted (will be visible)\n";
+		die "Failed\n" unless $index->delete_unmark($id);
+
+		print "Done\n";
+
+	} elsif ( $command eq "get-bin" or $command eq "gen-html" or $command eq "gen-txt" ) {
+
+		my $id = shift @ARGV;
+		help() unless $id;
+
+		my $mode = ":raw:utf8";
+		my %args;
+
+		$args{html_output} = 0 if ( $command eq "gen-txt" );
+		$mode = ":raw" if ( $command eq "get-bin" );
+
+		my $binfile = shift @ARGV;
+		my $fh = open_output($binfile, $mode);
+
+		my $str;
+		if ( $command eq "get-bin" ) {
+			$str = $index->email($id);
+		} else {
+			$str = $index->view($id, %args);
+		}
+		die "Failed\n" unless $str;
+
+		print $fh $str;
+
+	} elsif ( $command eq "get-part" ) {
+
+		my $id = shift @ARGV;
+		help() unless $id;
+
+		my $part = shift @ARGV;
+		help() unless $part;
+
+		my $file = shift @ARGV;
+		my $fh = open_output($file, ":raw");
+
+		my $str = $index->data($id, $part);
+		die "Failed\n" unless $str;
+
+		print $fh $str;
+
+	} else {
+
+		help();
+
+	}
+
 } else {
 
 	help();
