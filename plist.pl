@@ -332,8 +332,8 @@ if ( not $mod or not $command ) {
 		my $mimefile = shift @ARGV;
 		my $binfile = shift @ARGV;
 
-		my $input = open_input($mimefile, ":raw:utf8");
-		my $output = open_output($binfile, ":raw:utf8");
+		my $input = open_input($mimefile, ":raw");
+		my $output = open_output($binfile, ":raw");
 
 		my $str;
 
@@ -361,7 +361,7 @@ if ( not $mod or not $command ) {
 		my $file = shift @ARGV;
 
 		my $pemail = open_bin($binfile);
-		my $output = open_output($file, ":raw:utf8");
+		my $output = open_output($file, ":raw");
 
 		my $data = $pemail->data($part);
 		die "Cannot read part $part from email bin file $binfile\n" unless $data;
