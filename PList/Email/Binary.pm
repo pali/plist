@@ -42,14 +42,14 @@ sub read_email($) {
 	my $dataoffset = 0;
 
 	# Header is utf8 encoded
-	binmode $fh, ':raw:utf8';
+	binmode $fh, ":raw:utf8";
 	seek($fh, 0, 0);
 
 	$line = <$fh>;
 	$dataoffset += lengthbytes($line);
 
 	if ( $line ne "Parts:\n" ) {
-		binmode $fh, ':raw';
+		binmode $fh, ":raw";
 		print "read_email failed\n";
 		return 0;
 	}
@@ -145,7 +145,7 @@ sub read_email($) {
 	}
 
 	# Turn off utf8
-	binmode $fh, ':raw';
+	binmode $fh, ":raw";
 
 	foreach ( sort keys %{$offsets} ) {
 		${$offsets}{$_} += $dataoffset;
@@ -290,7 +290,7 @@ sub to_fh($$) {
 	# Data are binary raw (no utf8)
 	binmode $file, ":raw";
 
-	no warnings 'utf8';
+	no warnings "utf8";
 
 	foreach (sort keys %{$pemail->parts()}) {
 		$_ = ${$pemail->parts()}{$_};
