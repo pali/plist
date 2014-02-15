@@ -9,14 +9,32 @@ use PList::Email::Binary;
 
 use PList::Email::View;
 
-use PList::Threads::Binary;
-
 use PList::List;
 use PList::List::Binary;
+
+use PList::Threads;
+use PList::Threads::Binary;
+
+use PList::Index;
+
+binmode STDOUT, ":utf8";
 
 sub help() {
 
 	print "help:\n";
+	print "index view <dir>\n";
+	print "index add-mbox <dir> <mbox>\n";
+	print "index add-mime <dir> [<mime>]\n";
+	print "index regenerate <dir>\n";
+	print "index del-mark <dir> <id>\n";
+	print "index del-unmark <dir> <id>\n";
+	print "index get-bin <dir> <id> [<bin>]\n";
+	print "index get-part <dir> <id> <part> [<file>]\n";
+	print "index gen-html <dir> <id> [<html>]\n";
+	print "index gen-txt <dir> <id> [<txt>]\n";
+	print "threads view <threads>\n";
+	print "threads add <threads> <id> <up> <list> <offset>\n";
+	print "threads del <threads> <id>\n";
 	print "list view <list>\n";
 	print "list add-mbox <list> <mbox>\n";
 	print "list add-bin <list> [<bin>]\n";
@@ -100,8 +118,6 @@ sub open_output($$) {
 sub bin_view($) {
 
 	my ($pemail) = @_;
-
-	binmode STDOUT, ":utf8";
 
 	my $header = $pemail->header("0");
 	if ( not $header ) {
@@ -189,8 +205,6 @@ if ( not $mod or not $command ) {
 			$list->skipnext();
 			++$count;
 		}
-
-		binmode STDOUT, ":utf8";
 
 		print "Total emails in list: $count\n\n";
 
@@ -375,6 +389,63 @@ if ( not $mod or not $command ) {
 		help();
 
 	}
+
+} elsif ( $mod eq "threads" ) {
+
+	my $threadsfile = shift @ARGV;
+	help() unless $threadsfile;
+
+	my $threads = new PList::Threads::Binary($threadsfile);
+
+	if ( $command eq "view" ) {
+
+		print "Roots:";
+		print " " . $_ foreach(sort keys %{$threads->roots()});
+		print "\n";
+
+		foreach (sort keys %{$threads->emails()}) {
+			my $down = $threads->down($_) || [];
+			print "$_:";
+			print " " . $_ foreach(@{$down});
+			print "\n";
+		}
+
+	} elsif ( $command eq "add" ) {
+
+		my $id = shift @ARGV;
+		help() unless $id;
+
+		my $up = shift @ARGV;
+		help() unless $up;
+
+		my $list = shift @ARGV;
+		help() unless $list;
+
+		my $offset = shift @ARGV;
+		help() unless $offset;
+
+		die "Adding failed\n" unless $threads->add_email($id, $up, $list, $offset);
+		die "Saving failed\n" unless $threads->save();
+
+		print "Done\n";
+
+	} elsif ( $command eq "del" ) {
+
+		my $id = shift @ARGV;
+		help() unless $id;
+
+		die "Deleting failed\n" unless $threads->del_email($id);
+		die "Saving failed\n" unless $threads->save();
+
+		print "Done\n";
+
+	} else {
+
+		help();
+
+	}
+
+} elsif ( $mod eq "index" ) {
 
 } else {
 
