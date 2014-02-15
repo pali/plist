@@ -532,22 +532,38 @@ sub from_str($) {
 
 }
 
+sub from_fh($) {
+
+	my ($fh) = @_;
+
+	my $str;
+
+	binmode($fh, ":raw");
+
+	{
+		local $/=undef;
+		$str = <$fh>;
+	}
+
+	return from_str(\$str);
+
+}
+
 sub from_file($) {
 
 	my ($filename) = @_;
 
-	my $str;
+	my $fh;
 
-	if ( open(my $file, "<", $filename) ) {
-		binmode($file, ":raw");
-		local $/=undef;
-		$str = <$file>;
-		close($file);
-	} else {
+	if ( not open(my $fh, "<", $filename) ) {
 		return undef;
 	}
 
-	return from_str(\$str);
+	my $pemail = from_fh($fh);
+
+	close($fh);
+
+	return $pemail;
 
 }
 
