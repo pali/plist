@@ -31,8 +31,13 @@ while ( ! $mbox->end_of_file() ) {
 
 	my $email = $mbox->read_next_email();
 	my $pemail = PList::Email::MIME::from_str($email);
-	PList::List::Binary::append_to_fh($pemail, $fh);
-	++$count;
+	if (not $pemail) {
+		print "Cannot parse MIME email\n";
+		next;
+	} else {
+		PList::List::Binary::append_to_fh($pemail, $fh);
+		++$count;
+	}
 }
 
 close($fh);
