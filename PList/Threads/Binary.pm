@@ -54,31 +54,40 @@ sub add_email($$$$$) {
 	my $emails = $priv->{emails};
 	my $roots = $priv->{roots};
 
-	if ( $emails->{$id} ) {
+	my $email = $emails->{$id};
+
+	if ( exists ${$emails}{$id} ) {
 
 		# Email with ID is already there
-		if ( $emails->{$id}->{file} ) {
-			return;
+		if ( not $email->{implicit} ) {
+			return 0;
 		}
 
 		# Email with ID is not there, but other emails reference it
-		my $email = $emails->{$id};
 		$email->{up} = $up;
 		$email->{file} = $file;
 		$email->{offset} = $offset;
+		$email->{implicit} = 0;
 
-		return;
+	} else {
+
+		$email = {
+			up => $up,
+			down => [],
+			file => $file,
+			offset => $offset,
+			implicit => 0,
+		};
+
+		$emails->{$id} = $email;
 
 	}
 
-	my $email = {
-		up => $up,
-		down => [],
-		file => $file,
-		offset => $offset,
-	};
-
-	$emails->{$id} = $email;
+	if ( not $up ) {
+		$roots->{$id} = 1;
+	} else {
+		delete $roots->{$id};
+	}
 
 	if ( ref $up ) {
 		foreach(@{$up}) {
@@ -90,10 +99,12 @@ sub add_email($$$$$) {
 					down => [$id],
 					file => undef,
 					offset => 0,
+					implicit => 1,
 				};
+				$roots->{$_} = 1;
 			}
 		}
-	} else {
+	} elsif ( $up ) {
 		if ( $emails->{$up} ) {
 			push(@{$emails->{$up}->{down}}, $id);
 		} else {
@@ -102,13 +113,13 @@ sub add_email($$$$$) {
 				down => [$id],
 				file => undef,
 				offset => 0,
+				implicit => 1,
 			};
+			$roots->{$up} = 1;
 		}
 	}
 
-	if ( not $up ) {
-		$roots->{$id} = 1;
-	}
+	return 1;
 
 }
 
@@ -119,22 +130,53 @@ sub del_email($$) {
 	my $emails = $priv->{emails};
 	my $roots = $priv->{roots};
 
-	if ( not $emails->{$id} ) {
-		return;
+	my $email = $emails->{$id};
+	my $up = $email->{up};
+
+	if ( not exists $emails->{$id} ) {
+		return 0;
 	}
 
-	if ( $roots->{$id} ) {
+	if ( exists $roots->{$id} ) {
 		delete $roots->{$id};
 	}
 
-	if ( scalar @{$emails->{$id}->{down}} > 0 ) {
-		my $email = $emails->{$id};
+	if ( ref $up ) {
+		foreach ( @{$up} ) {
+			if ( $emails->{$_}->{implicit} ) {
+				delete $emails->{$_};
+			}
+		}
+	} elsif ( $up ) {
+		if ( $emails->{$up}->{implicit} ) {
+			delete $emails->{$up};
+		}
+	}
+
+	my $delete = 1;
+	foreach ( @{$email->{down}} ) {
+		if ( exists ${$emails}{$_} ) {
+			$delete = 0;
+			last;
+		}
+	}
+
+	if ( not $delete ) {
 		$email->{up} = undef;
 		$email->{file} = undef;
 		$email->{offset} = 0;
 	} else {
 		delete $emails->{$id};
 	}
+
+	return 1;
+
+}
+
+sub emails($) {
+
+	my ($priv) = @_;
+	return $priv->{emails};
 
 }
 
