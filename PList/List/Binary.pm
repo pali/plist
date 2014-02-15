@@ -33,20 +33,30 @@ sub new($$) {
 		return undef;
 	}
 
-	return bless $fh, $class;
+	my $priv = {
+		fh => $fh,
+		readonly => $readonly,
+		eof => 0,
+	};
+
+	return bless $priv, $class;
 
 }
 
 sub DESTROY($) {
 
-	my ($fh) = @_;
-	close($fh);
+	my ($priv) = @_;
+	close($priv->{fh});
 
 }
 
 sub append($$) {
 
-	my ($fh, $pemail) = @_;
+	my ($priv, $pemail) = @_;
+
+	return 0 if $priv->{readonly};
+
+	my $fh = $priv->{fh};
 
 	my $str = PList::Email::Binary::to_str($pemail);
 	return 0 unless $str;
@@ -58,17 +68,77 @@ sub append($$) {
 
 }
 
-sub readnext($) {
+sub eof($) {
 
-	my ($fh) = @_;
+	my ($priv) = @_;
+	return $priv->{eof} if $priv->{eof};
+	return eof($priv->{fh});
+
+}
+
+sub reset($) {
+
+	my ($priv) = @_;
+
+	return 0 unless $priv->{readonly};
+
+	seek($priv->{fh}, 0, 0);
+	$priv->{eof} = 0;
+
+}
+
+sub skipnext($) {
+
+	my ($priv) = @_;
+
+	my $fh = $priv->{fh};
+
+	if ( $priv->{eof} or not $priv->{readonly} ) {
+		return 0;
+	}
 
 	my $len;
-	return undef unless read $fh, $len, 4;
+
+	if ( not read($fh, $len, 4) ) {
+		$priv->{eof} = 1;
+		return 0;
+	}
 
 	$len = unpack("V", $len);
 
+	if ( not seek($fh, $len, 1) ) {
+		$priv->{eof} = 1;
+		return 0;
+	}
+
+	return 1;
+
+}
+
+sub readnext($) {
+
+	my ($priv) = @_;
+
+	my $fh = $priv->{fh};
+
+	if ( $priv->{eof} or not $priv->{readonly} ) {
+		return undef;
+	}
+
+	my $len;
 	my $str;
-	return undef unless read $fh, $str, $len;
+
+	if ( not read($fh, $len, 4) ) {
+		$priv->{eof} = 1;
+		return undef;
+	}
+
+	$len = unpack("V", $len);
+
+	if ( not read($fh, $str, $len) ) {
+		$priv->{eof} = 1;
+		return undef;
+	}
 
 	return PList::Email::Binary::from_str($str);
 

@@ -7,6 +7,18 @@ sub append($$) {
 	die;
 }
 
+sub eof($) {
+	die;
+}
+
+sub reset($) {
+	die;
+}
+
+sub skipnext($) {
+	die;
+}
+
 sub readnext($) {
 	die;
 }
