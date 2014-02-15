@@ -18,12 +18,13 @@ if ( not defined $pemail ) {
 	exit 1;
 }
 
-my $fh;
-if ( not open($fh, ">>:raw", $ARGV[0]) ) {
+my $list = new PList::List::Binary($ARGV[0], 0);
+if ( not defined $list ) {
 	print "Cannot open list file $ARGV[0]\n";
 	exit 1;
 }
 
-PList::List::Binary::append_to_fh($pemail, $fh);
-
-close($fh);
+if ( not $list->append($pemail) ) {
+	print "Cannot append email to list file\n";
+	exit 1;
+}

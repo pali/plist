@@ -19,8 +19,8 @@ print "MBOX file: $ARGV[0]\nList file: $ARGV[1]\n";
 my $mbox = Mail::Mbox::MessageParser->new( { 'file_name' => "$ARGV[0]", 'enable_cache' => 0, 'enable_grep' => 0 } );
 die unless $mbox;
 
-my $fh;
-if ( not open($fh, ">:raw", $ARGV[1]) ) {
+my $list = new PList::List::Binary($ARGV[1], 0);
+if ( not $list ) {
 	print "Cannot create list file $ARGV[1]\n";
 	exit 1;
 }
@@ -34,12 +34,12 @@ while ( ! $mbox->end_of_file() ) {
 	if (not $pemail) {
 		print "Cannot parse MIME email\n";
 		next;
-	} else {
-		PList::List::Binary::append_to_fh($pemail, $fh);
-		++$count;
 	}
+	if (not $list->append($pemail)) {
+		print "Cannot append email to list\n";
+		next;
+	}
+	++$count;
 }
-
-close($fh);
 
 print "Written $count mails\n";

@@ -3,6 +3,8 @@ package PList::List::Binary;
 use strict;
 use warnings;
 
+use base "PList::List";
+
 use PList::Email;
 use PList::Email::Binary;
 
@@ -14,18 +16,49 @@ sub lengthbytes($) {
 
 }
 
-# PList::Email, fh
-sub append_to_fh($$) {
+sub new($$) {
 
-	my ($pemail, $fh) = @_;
+	my ($class, $filename, $readonly) = @_;
 
-	my $str = PList::Email::Binary::to_str($pemail);
-	print $fh pack("V", lengthbytes($str)) . $str;
+	my $mode;
+	my $fh;
+
+	if ( $readonly ) {
+		$mode = "<:mmap:raw";
+	} else {
+		$mode = ">>:raw";
+	}
+
+	if ( not open($fh, $mode, $filename) ) {
+		return undef;
+	}
+
+	return bless $fh, $class;
 
 }
 
-# fh
-sub read_next_from_fh($) {
+sub DESTROY($) {
+
+	my ($fh) = @_;
+	close($fh);
+
+}
+
+sub append($$) {
+
+	my ($fh, $pemail) = @_;
+
+	my $str = PList::Email::Binary::to_str($pemail);
+	return 0 unless $str;
+
+	print $fh pack("V", lengthbytes($str));
+	print $fh $str;
+
+	return 1;
+
+}
+
+sub readnext($) {
 
 	my ($fh) = @_;
 
