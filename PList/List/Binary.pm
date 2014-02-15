@@ -1,4 +1,4 @@
-package PList::Email::Binarylist;
+package PList::List::Binary;
 
 use strict;
 use warnings;

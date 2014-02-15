@@ -6,7 +6,7 @@ use warnings;
 use PList::Email;
 use PList::Email::View;
 use PList::Email::Binary;
-use PList::Email::Binarylist;
+use PList::List::Binary;
 
 if ( @ARGV != 2 ) {
 	print "Params: list dir\n";
@@ -19,7 +19,7 @@ if ( not open($fh, "<:mmap:raw", $ARGV[0]) ) {
 	exit 1;
 }
 
-while ($_ = PList::Email::Binarylist::read_next_from_fh($fh)) {
+while ($_ = PList::List::Binary::read_next_from_fh($fh)) {
 
 	my $id = $_->header("0")->{id};
 	if ( not $id ) { next; }

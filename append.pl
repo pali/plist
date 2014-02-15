@@ -5,7 +5,7 @@ use warnings;
 
 use PList::Email;
 use PList::Email::Binary;
-use PList::Email::Binarylist;
+use PList::List::Binary;
 
 if ( @ARGV != 2 ) {
 	print "Params: list file\n";
@@ -24,7 +24,7 @@ if ( not open($fh, ">>:raw", $ARGV[0]) ) {
 	exit 1;
 }
 
-PList::Email::Binarylist::append_to_fh($pemail, $fh);
+PList::List::Binary::append_to_fh($pemail, $fh);
 
 PList::Email::Binary::done($pemail);
 

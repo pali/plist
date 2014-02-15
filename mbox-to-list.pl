@@ -7,7 +7,7 @@ use Mail::Mbox::MessageParser;
 
 use PList::Email;
 use PList::Email::MIME;
-use PList::Email::Binarylist;
+use PList::List::Binary;
 
 if ( @ARGV != 2 ) {
 	print "Params: mbox list\n";
@@ -31,7 +31,7 @@ while ( ! $mbox->end_of_file() ) {
 
 	my $email = $mbox->read_next_email();
 	my $pemail = PList::Email::MIME::from_str($email);
-	PList::Email::Binarylist::append_to_fh($pemail, $fh);
+	PList::List::Binary::append_to_fh($pemail, $fh);
 	++$count;
 }
 
