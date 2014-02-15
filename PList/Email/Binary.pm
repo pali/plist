@@ -202,11 +202,21 @@ sub to_file($$) {
 		return 0;
 	}
 
+	return to_fh($pemail, $file);
+
+}
+
+sub to_fh($$) {
+
+	my ($pemail, $fh) = @_;
+
+	my $file = $fh;
+
 	my $bin = "";
 	my $offset = 0;
 
 	# Header is utf8 encoded
-	binmode $file, ':raw:utf8';
+	binmode $file, ":raw:utf8";
 
 	print $file "Parts:\n";
 	foreach (sort keys %{$pemail->parts()}) {
