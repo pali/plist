@@ -23,7 +23,7 @@ sub add_mbox($$) {
 
 }
 
-sub add_bin($$) {
+sub add_email($$) {
 
 }
 
@@ -76,8 +76,12 @@ sub down($) {
 
 # data functions
 
+sub email($$) {
+
+}
+
 # priv, id, config
-sub view($$$) {
+sub view($$;%) {
 
 }
 
