@@ -39,4 +39,8 @@ sub offset($$) {
 	die;
 }
 
+sub implicit($$) {
+	die;
+}
+
 1;
