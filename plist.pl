@@ -19,7 +19,7 @@ sub help() {
 	print "help:\n";
 	print "list view <list>\n";
 	print "list add-mbox <list> <mbox>\n";
-	print "list add-bin <list> <bin>\n";
+	print "list add-bin <list> [<bin>]\n";
 	print "list get-bin <list> <num> [<bin>]\n";
 	print "list get-part <list> <num> <part> [<file>]\n";
 	print "list gen-html <list> <num> [<html>]\n";
@@ -244,7 +244,6 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "add-bin" ) {
 
 		my $binfile = shift @ARGV;
-		help() unless $binfile;
 
 		my $pemail = open_bin($binfile);
 		my $list = open_list($listfile, 0);
