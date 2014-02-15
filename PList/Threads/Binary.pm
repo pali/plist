@@ -3,6 +3,8 @@ package PList::Threads::Binary;
 use strict;
 use warnings;
 
+use base "PList::Threads";
+
 use Storable;
 
 sub new($$) {
