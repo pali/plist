@@ -23,8 +23,10 @@ sub data($$) {
 
 	my $str;
 
+	my $pos = tell($fh);
 	seek($fh, ${$offsets}{$part}, 0);
 	read $fh, $str, $pemail->part($part)->{size};
+	seek($fh, $pos, 0);
 
 	return \$str;
 
@@ -43,6 +45,8 @@ sub read_email($) {
 
 	# Header is utf8 encoded
 	binmode $fh, ":raw:utf8";
+
+	my $pos = tell($fh);
 	seek($fh, 0, 0);
 
 	$line = <$fh>;
@@ -147,8 +151,10 @@ sub read_email($) {
 	# Turn off utf8
 	binmode $fh, ":raw";
 
+	seek($fh, $pos, 0);
+
 	foreach ( sort keys %{$offsets} ) {
-		${$offsets}{$_} += $dataoffset;
+		${$offsets}{$_} += $pos + $dataoffset;
 	}
 
 	return 1;
@@ -157,8 +163,36 @@ sub read_email($) {
 sub DESTROY($) {
 
 	my ($pemail) = @_;
-	my $fh = $pemail->{fh};
-	close($fh);
+	close($pemail->{fh}) if ( $pemail->{autoclose} )
+
+}
+
+sub from_fh($;$) {
+
+	my ($fh, $autoclose) = @_;
+
+	# Check if fh is seekable and if not fallback to from_str
+	if ( not seek($fh, 0, 1) ) {
+		my $str;
+		{
+			local $/=undef;
+			$str = <$fh>;
+		}
+		return from_str($str);
+	}
+
+	my %offsets;
+	my $pemail = PList::Email::new("PList::Email::Binary");
+
+	$pemail->{fh} = $fh;
+	$pemail->{offsets} = \%offsets;
+	$pemail->{autoclose} = $autoclose;
+
+	if ( read_email($pemail) ) {
+		return $pemail;
+	} else {
+		return undef;
+	}
 
 }
 
@@ -166,23 +200,15 @@ sub from_file($) {
 
 	my ($filename) = @_;
 
-	my $file;
-	if ( not open($file, "<:mmap", $filename) ) {
+	my $fh;
+	if ( not open($fh, "<:mmap", $filename) ) {
 		return undef;
 	}
 
-	my %offsets;
-	my $pemail = PList::Email::new("PList::Email::Binary");
+	my $pemail = from_fh($fh, 1);
+	return undef unless $pemail;
 
-	$pemail->{fh} = $file;
-	$pemail->{offsets} = \%offsets;
-
-	if ( read_email($pemail) ) {
-		return $pemail;
-	} else {
-		close($file);
-		return undef;
-	}
+	return $pemail;
 
 }
 
@@ -190,6 +216,102 @@ sub from_str($) {
 
 	my ($str) = @_;
 	return from_file(\$str);
+
+}
+
+sub to_fh($$) {
+
+	my ($pemail, $fh) = @_;
+
+	my $bin = "";
+	my $offset = 0;
+
+	# Header is utf8 encoded
+	binmode $fh, ":raw:utf8";
+
+	print $fh "Parts:\n";
+	foreach (sort keys %{$pemail->parts()}) {
+		$_ = ${$pemail->parts()}{$_};
+		print $fh " ";
+		print $fh $_->{part};
+		print $fh " ";
+		if ( $_->{size} == 0 ) {
+			print $fh "0";
+		} else {
+			print $fh $offset;
+		}
+		print $fh " ";
+		print $fh $_->{size};
+		print $fh " ";
+		print $fh $_->{type};
+		print $fh " ";
+		print $fh $_->{mimetype};
+		if ( $_->{filename} ) {
+			print $fh " ";
+			print $fh $_->{filename};
+			if ( $_->{description} ) {
+				print $fh " ";
+				print $fh $_->{description};
+			}
+		}
+		print $fh "\n";
+		$offset += $_->{size};
+	}
+
+	foreach (sort keys %{$pemail->headers()}) {
+		$_ = ${$pemail->headers()}{$_};
+		print $fh "Part:\n";
+		print $fh " $_->{part}\n";
+		if ( $_->{from} and @{$_->{from}} ) {
+			print $fh "From:\n";
+			print $fh " $_\n" foreach (@{$_->{from}});
+		}
+		if ( $_->{to} and @{$_->{to}} ) {
+			print $fh "To:\n";
+			print $fh " $_\n" foreach (@{$_->{to}});
+		}
+		if ( $_->{cc} and @{$_->{cc}} ) {
+			print $fh "Cc:\n";
+			print $fh " $_\n" foreach (@{$_->{cc}});
+		}
+		if ( $_->{reply} and @{$_->{reply}} ) {
+			print $fh "Reply:\n";
+			print $fh " $_\n" foreach (@{$_->{reply}});
+		}
+		if ( $_->{references} and @{$_->{references}} ) {
+			print $fh "References:\n";
+			print $fh " $_\n" foreach (@{$_->{references}});
+		}
+		if ( $_->{id} ) {
+			print $fh "Id:\n";
+			print $fh " $_->{id}\n";
+		}
+		if ( $_->{date} ) {
+			print $fh "Date:\n";
+			print $fh " $_->{date}\n";
+		}
+		if ( $_->{subject} ) {
+			print $fh "Subject:\n";
+			print $fh " $_->{subject}\n";
+		}
+	}
+
+	print $fh "Data:\n";
+
+	# Data are binary raw (no utf8)
+	binmode $fh, ":raw";
+
+	no warnings "utf8";
+
+	foreach (sort keys %{$pemail->parts()}) {
+		$_ = ${$pemail->parts()}{$_};
+		if ($_->{size} != 0) {
+			my $data = $pemail->data($_->{part});
+			print $fh ${$data};
+		}
+	}
+
+	return 1;
 
 }
 
@@ -203,105 +325,6 @@ sub to_file($$) {
 	}
 
 	return to_fh($pemail, $file);
-
-}
-
-sub to_fh($$) {
-
-	my ($pemail, $fh) = @_;
-
-	my $file = $fh;
-
-	my $bin = "";
-	my $offset = 0;
-
-	# Header is utf8 encoded
-	binmode $file, ":raw:utf8";
-
-	print $file "Parts:\n";
-	foreach (sort keys %{$pemail->parts()}) {
-		$_ = ${$pemail->parts()}{$_};
-		print $file " ";
-		print $file $_->{part};
-		print $file " ";
-		if ( $_->{size} == 0 ) {
-			print $file "0";
-		} else {
-			print $file $offset;
-		}
-		print $file " ";
-		print $file $_->{size};
-		print $file " ";
-		print $file $_->{type};
-		print $file " ";
-		print $file $_->{mimetype};
-		if ( $_->{filename} ) {
-			print $file " ";
-			print $file $_->{filename};
-			if ( $_->{description} ) {
-				print $file " ";
-				print $file $_->{description};
-			}
-		}
-		print $file "\n";
-		$offset += $_->{size};
-	}
-
-	foreach (sort keys %{$pemail->headers()}) {
-		$_ = ${$pemail->headers()}{$_};
-		print $file "Part:\n";
-		print $file " $_->{part}\n";
-		if ( $_->{from} and @{$_->{from}} ) {
-			print $file "From:\n";
-			print $file " $_\n" foreach (@{$_->{from}});
-		}
-		if ( $_->{to} and @{$_->{to}} ) {
-			print $file "To:\n";
-			print $file " $_\n" foreach (@{$_->{to}});
-		}
-		if ( $_->{cc} and @{$_->{cc}} ) {
-			print $file "Cc:\n";
-			print $file " $_\n" foreach (@{$_->{cc}});
-		}
-		if ( $_->{reply} and @{$_->{reply}} ) {
-			print $file "Reply:\n";
-			print $file " $_\n" foreach (@{$_->{reply}});
-		}
-		if ( $_->{references} and @{$_->{references}} ) {
-			print $file "References:\n";
-			print $file " $_\n" foreach (@{$_->{references}});
-		}
-		if ( $_->{id} ) {
-			print $file "Id:\n";
-			print $file " $_->{id}\n";
-		}
-		if ( $_->{date} ) {
-			print $file "Date:\n";
-			print $file " $_->{date}\n";
-		}
-		if ( $_->{subject} ) {
-			print $file "Subject:\n";
-			print $file " $_->{subject}\n";
-		}
-	}
-
-	print $file "Data:\n";
-
-	# Data are binary raw (no utf8)
-	binmode $file, ":raw";
-
-	no warnings "utf8";
-
-	foreach (sort keys %{$pemail->parts()}) {
-		$_ = ${$pemail->parts()}{$_};
-		if ($_->{size} != 0) {
-			my $data = $pemail->data($_->{part});
-			print $file ${$data};
-		}
-	}
-
-	close($file);
-	return 1;
 
 }
 
