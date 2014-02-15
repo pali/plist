@@ -133,29 +133,15 @@ sub del_email($$) {
 	my $email = $emails->{$id};
 	my $up = $email->{up};
 
-	if ( not exists $emails->{$id} ) {
+	if ( not exists ${$emails}{$id} ) {
 		return 0;
 	}
 
-	if ( exists $roots->{$id} ) {
-		delete $roots->{$id};
-	}
-
-	if ( ref $up ) {
-		foreach ( @{$up} ) {
-			if ( $emails->{$_}->{implicit} ) {
-				delete $emails->{$_};
-			}
-		}
-	} elsif ( $up ) {
-		if ( $emails->{$up}->{implicit} ) {
-			delete $emails->{$up};
-		}
-	}
+	$email->{deleting} = 1;
 
 	my $delete = 1;
 	foreach ( @{$email->{down}} ) {
-		if ( exists ${$emails}{$_} ) {
+		if ( exists ${$emails}{$_} and not $emails->{$_}->{implicit} ) {
 			$delete = 0;
 			last;
 		}
@@ -165,9 +151,38 @@ sub del_email($$) {
 		$email->{up} = undef;
 		$email->{file} = undef;
 		$email->{offset} = 0;
+		$email->{implicit} = 1;
 	} else {
+		foreach ( @{$email->{down}} ) {
+			if ( exists ${$emails}{$_} ) {
+				$roots->{$_} = 1;
+			}
+		}
 		delete $emails->{$id};
+		if ( exists $roots->{$id} ) {
+			delete $roots->{$id};
+		}
 	}
+
+	if ( ref $up ) {
+		foreach ( @{$up} ) {
+			if ( exists ${$emails}{$_} ) {
+				if ( $emails->{$_}->{implicit} and not $emails->{$_}->{deleting} ) {
+					$priv->del_email($_);
+				}
+			}
+			# TODO: delete $id from $emails->{$_}->{down}
+		}
+	} elsif ( $up ) {
+		if ( exists ${$emails}{$up} ) {
+			if ( $emails->{$up}->{implicit} and not $emails->{$up}->{deleting} ) {
+				$priv->del_email($up);
+			}
+			# TODO: delete $id from $emails->{$up}->{down}
+		}
+	}
+
+	delete $email->{deleting};
 
 	return 1;
 
@@ -212,6 +227,13 @@ sub offset($$) {
 
 	my ($priv, $id) = @_;
 	return $priv->{emails}->{$id}->{offset};
+
+}
+
+sub implicit($$) {
+
+	my ($priv, $id) = @_;
+	return $priv->{emails}->{$id}->{implicit};
 
 }
 
