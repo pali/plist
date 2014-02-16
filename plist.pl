@@ -336,7 +336,7 @@ if ( not $mod or not $command ) {
 
 		$str =~ s/^From .*\n//;
 
-		my $pemail = PList::Email::MIME::from_str($str);
+		my $pemail = PList::Email::MIME::from_str(\$str);
 		die "Cannot read email\n" unless $pemail;
 
 		$str = PList::Email::Binary::to_str($pemail);
@@ -471,7 +471,7 @@ if ( not $mod or not $command ) {
 
 		$str =~ s/^From .*\n//;
 
-		my $pemail = PList::Email::MIME::from_str($str);
+		my $pemail = PList::Email::MIME::from_str(\$str);
 		die "Cannot read email\n" unless $pemail;
 
 		die "Adding email failed\n" unless $index->add_email($pemail);
