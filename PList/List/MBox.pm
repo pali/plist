@@ -11,9 +11,27 @@ use Mail::Mbox::MessageParser;
 
 sub new($$) {
 
-	my ($class, $filename) = @_;
+	my ($class, $arg) = @_;
 
-	my $mbox = new Mail::Mbox::MessageParser({file_name => $filename, enable_cache => 0, enable_grep => 0});
+	my $is_fh = 0;
+	{
+		$@ = "";
+		my $fd = eval { fileno $arg };
+		$is_fh = !$@ && defined $fd;
+	}
+
+	my $hash = {
+		enable_cache => 0,
+		enable_grep => 0,
+	};
+
+	if ( $is_fh ) {
+		$hash->{file_handle} = $arg;
+	} else {
+		$hash->{file_name} = $arg;
+	}
+
+	my $mbox = new Mail::Mbox::MessageParser($hash);
 	return undef unless $mbox;
 
 	return bless \$mbox, $class;

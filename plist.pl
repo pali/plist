@@ -10,6 +10,7 @@ use PList::Email::Binary;
 use PList::Email::View;
 
 use PList::List;
+use PList::List::MBox;
 use PList::List::Binary;
 
 use PList::Threads;
@@ -23,7 +24,7 @@ sub help() {
 
 	print "help:\n";
 	print "index view <dir>\n";
-	print "index add-mbox <dir> <mbox>\n";
+	print "index add-mbox <dir> [<mbox>]\n";
 	print "index add-mime <dir> [<mime>]\n";
 	print "index regenerate <dir>\n";
 	print "index del-mark <dir> <id>\n";
@@ -36,7 +37,7 @@ sub help() {
 	print "threads add <threads> <id> <up> <list> <offset>\n";
 	print "threads del <threads> <id>\n";
 	print "list view <list>\n";
-	print "list add-mbox <list> <mbox>\n";
+	print "list add-mbox <list> [<mbox>]\n";
 	print "list add-bin <list> [<bin>]\n";
 	print "list get-bin <list> <num> [<bin>]\n";
 	print "list get-part <list> <num> <part> [<file>]\n";
@@ -54,6 +55,9 @@ sub help() {
 sub open_mbox($) {
 
 	my ($filename) = @_;
+	if ( not $filename ) {
+		$filename = \*STDIN;
+	}
 	my $list = new PList::List::MBox($filename);
 	die "Cannot open mbox file $filename\n" unless $list;
 	return $list;
@@ -226,7 +230,6 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "add-mbox" ) {
 
 		my $mboxfile = shift @ARGV;
-		help() unless $mboxfile;
 
 		my $mbox = open_mbox($mboxfile);
 		my $list = open_list($listfile, 0);
@@ -458,9 +461,9 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "add-mbox" ) {
 
 		my $mboxfile = shift @ARGV;
-		help() unless $mboxfile;
+		my $mbox = open_mbox($mboxfile);
 
-		my $count = $index->add_mbox($mboxfile);
+		my $count = $index->add_mbox($mbox);
 		die "Adding mbox file $mboxfile to index dir $indexdir failed\n" unless $count;
 
 		print "Added $count emails to index dir $indexdir";
