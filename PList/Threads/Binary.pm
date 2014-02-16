@@ -49,7 +49,7 @@ sub save($) {
 
 sub add_email($$$$$) {
 
-	my ($priv, $id, $up, $file, $offset) = @_;
+	my ($priv, $id, $up, $list, $num) = @_;
 
 	my $emails = $priv->{emails};
 	my $roots = $priv->{roots};
@@ -65,8 +65,8 @@ sub add_email($$$$$) {
 
 		# Email with ID is not there, but other emails reference it
 		$email->{up} = $up;
-		$email->{file} = $file;
-		$email->{offset} = $offset;
+		$email->{list} = $list;
+		$email->{num} = $num;
 		$email->{implicit} = 0;
 
 	} else {
@@ -74,8 +74,8 @@ sub add_email($$$$$) {
 		$email = {
 			up => $up,
 			down => [],
-			file => $file,
-			offset => $offset,
+			list => $list,
+			num => $num,
 			implicit => 0,
 		};
 
@@ -97,8 +97,8 @@ sub add_email($$$$$) {
 				$emails->{$_} = {
 					up => undef,
 					down => [$id],
-					file => undef,
-					offset => 0,
+					list => undef,
+					num => undef,
 					implicit => 1,
 				};
 				$roots->{$_} = 1;
@@ -111,8 +111,8 @@ sub add_email($$$$$) {
 			$emails->{$up} = {
 				up => undef,
 				down => [$id],
-				file => undef,
-				offset => 0,
+				list => undef,
+				num => undef,
 				implicit => 1,
 			};
 			$roots->{$up} = 1;
@@ -149,8 +149,8 @@ sub del_email($$) {
 
 	if ( not $delete ) {
 		$email->{up} = undef;
-		$email->{file} = undef;
-		$email->{offset} = 0;
+		$email->{list} = undef;
+		$email->{num} = undef;
 		$email->{implicit} = 1;
 	} else {
 		foreach ( @{$email->{down}} ) {
@@ -216,17 +216,17 @@ sub down($$) {
 
 }
 
-sub file($$) {
+sub list($$) {
 
 	my ($priv, $id) = @_;
-	return $priv->{emails}->{$id}->{file};
+	return $priv->{emails}->{$id}->{list};
 
 }
 
-sub offset($$) {
+sub num($$) {
 
 	my ($priv, $id) = @_;
-	return $priv->{emails}->{$id}->{offset};
+	return $priv->{emails}->{$id}->{num};
 
 }
 

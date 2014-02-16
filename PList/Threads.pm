@@ -31,11 +31,11 @@ sub down($$) {
 	die;
 }
 
-sub file($$) {
+sub list($$) {
 	die;
 }
 
-sub offset($$) {
+sub num($$) {
 	die;
 }
 

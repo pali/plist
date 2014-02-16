@@ -34,7 +34,7 @@ sub help() {
 	print "index gen-html <dir> <id> [<html>]\n";
 	print "index gen-txt <dir> <id> [<txt>]\n";
 	print "threads view <threads>\n";
-	print "threads add <threads> <id> <up> <list> <offset>\n";
+	print "threads add <threads> <id> <up> <list> <num>\n";
 	print "threads del <threads> <id>\n";
 	print "list view <list>\n";
 	print "list add-mbox <list> [<mbox>]\n";
@@ -415,10 +415,10 @@ if ( not $mod or not $command ) {
 		my $list = shift @ARGV;
 		help() unless $list;
 
-		my $offset = shift @ARGV;
-		help() unless $offset;
+		my $num = shift @ARGV;
+		help() unless $num;
 
-		die "Adding failed\n" unless $threads->add_email($id, $up, $list, $offset);
+		die "Adding failed\n" unless $threads->add_email($id, $up, $list, $num);
 		die "Saving failed\n" unless $threads->save();
 
 		print "Done\n";
