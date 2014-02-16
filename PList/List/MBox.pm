@@ -32,7 +32,7 @@ sub new($$) {
 	}
 
 	my $mbox = new Mail::Mbox::MessageParser($hash);
-	return undef unless $mbox;
+	return undef unless ref $mbox;
 
 	return bless \$mbox, $class;
 
