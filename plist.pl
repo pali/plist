@@ -175,12 +175,7 @@ sub bin_get($$$) {
 	my $fh = open_output($binfile, ":raw");
 	my $list = open_list($listfile, 1);
 
-	my $count = 0;
-	$list->skipnext() while ( not $list->eof() and $count++ != $num );
-
-	die "Cannot find email (num $num) in list file $listfile (max $count)\n" unless $count == $num or not $list->eof();
-
-	my $pemail = $list->readnext();
+	my $pemail = $list->readnum($num);
 	die "Cannot read email (num $num) from list file $listfile\n" unless $pemail;
 
 	return ($pemail, $fh);
@@ -204,15 +199,9 @@ if ( not $mod or not $command ) {
 
 		my $list = open_list($listfile, 1);
 
-		my $count = 0;
-		while ( not $list->eof() ) {
-			$list->skipnext();
-			++$count;
-		}
-
+		my $count = $list->count();
 		print "Total emails in list: $count\n\n";
 
-		$list->reset();
 		$count = 0;
 		while ( not $list->eof() ) {
 			my $pemail = $list->readnext();
@@ -247,7 +236,7 @@ if ( not $mod or not $command ) {
 				next;
 			}
 
-			if ( not $list->append($pemail) ) {
+			if ( not defined $list->append($pemail) ) {
 				warn "Cannot write email to list file $listfile ($count)\n";
 				next;
 			}
@@ -266,7 +255,7 @@ if ( not $mod or not $command ) {
 		my $list = open_list($listfile, 0);
 
 		$_ = $list->append($pemail);
-		die "Cannot write email from bin file $binfile to list file $listfile\n" unless $_;
+		die "Cannot write email from bin file $binfile to list file $listfile\n" unless defined $_;
 
 		print "Written one email from bin file $binfile to list file $listfile\n";
 
