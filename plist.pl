@@ -76,7 +76,7 @@ sub open_bin($) {
 	if ( $filename ) {
 		$pemail = PList::Email::Binary::from_file($filename);
 	} else {
-		$pemail = PList::Email::Binary::from_fh(*STDIN);
+		$pemail = PList::Email::Binary::from_fh(\*STDIN);
 	}
 	die "Cannot open bin file $filename\n" unless $pemail;
 	return $pemail;
@@ -92,7 +92,7 @@ sub open_input($$) {
 			die "Cannot open input file $filename\n";
 		}
 	} else {
-		$fh = *STDIN;
+		$fh = \*STDIN;
 		binmode $fh, $mode;
 	}
 	return $fh;
@@ -108,7 +108,7 @@ sub open_output($$) {
 			die "Cannot open output file $filename\n";
 		}
 	} else {
-		$fh = *STDOUT;
+		$fh = \*STDOUT;
 		binmode $fh, $mode;
 	}
 	return $fh;
