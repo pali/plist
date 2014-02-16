@@ -52,24 +52,6 @@ sub reset($) {
 
 }
 
-sub offset($) {
-
-	my ($mbox) = @_;
-	return ${$mbox}->offset();
-
-}
-
-sub skipnext($) {
-
-	my ($mbox) = @_;
-
-	my $email = ${$mbox}->read_next_email();
-	return 0 unless $email;
-
-	return 1;
-
-}
-
 sub readnext($) {
 
 	my ($mbox) = @_;

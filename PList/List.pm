@@ -15,15 +15,15 @@ sub reset($) {
 	die;
 }
 
-sub offset($) {
-	die;
-}
-
-sub skipnext($) {
-	die;
-}
-
 sub readnext($) {
+	die;
+}
+
+sub count($) {
+	die;
+}
+
+sub readnum($) {
 	die;
 }
 
