@@ -64,10 +64,10 @@ sub open_mbox($) {
 
 }
 
-sub open_list($$) {
+sub open_list($$$) {
 
-	my ($filename, $readonly) = @_;
-	my $list = new PList::List::Binary($filename, $readonly);
+	my ($filename, $readonly, $noheader) = @_;
+	my $list = new PList::List::Binary($filename, $readonly, $noheader);
 	die "Cannot open list file $filename\n" unless $list;
 	return $list;
 
@@ -173,9 +173,8 @@ sub bin_get($$$) {
 	my ($listfile, $binfile, $num) = @_;
 
 	my $fh = open_output($binfile, ":raw");
-	my $list = open_list($listfile, 1);
 
-	my $pemail = $list->readnum($num);
+	my $pemail = PList::List::Binary::read_from_list($listfile, $num);
 	die "Cannot read email (num $num) from list file $listfile\n" unless $pemail;
 
 	return ($pemail, $fh);
@@ -197,7 +196,7 @@ if ( not $mod or not $command ) {
 
 	if ( $command eq "view" ) {
 
-		my $list = open_list($listfile, 1);
+		my $list = open_list($listfile, 1, 0);
 
 		my $count = $list->count();
 		print "Total emails in list: $count\n\n";
@@ -221,7 +220,7 @@ if ( not $mod or not $command ) {
 		my $mboxfile = shift @ARGV;
 
 		my $mbox = open_mbox($mboxfile);
-		my $list = open_list($listfile, 0);
+		my $list = open_list($listfile, 0, 1);
 
 		my $count = 0;
 		my $success = 0;
@@ -245,6 +244,8 @@ if ( not $mod or not $command ) {
 
 		}
 
+		$list->regenerate_header();
+
 		print "Written $success (/$count) emails from mbox file $mboxfile to list file $listfile\n";
 
 	} elsif ( $command eq "add-bin" ) {
@@ -252,7 +253,7 @@ if ( not $mod or not $command ) {
 		my $binfile = shift @ARGV;
 
 		my $pemail = open_bin($binfile);
-		my $list = open_list($listfile, 0);
+		my $list = open_list($listfile, 0, 0);
 
 		$_ = $list->append($pemail);
 		die "Cannot write email from bin file $binfile to list file $listfile\n" unless defined $_;
