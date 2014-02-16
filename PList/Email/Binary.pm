@@ -178,7 +178,7 @@ sub from_fh($;$) {
 			local $/=undef;
 			$str = <$fh>;
 		}
-		return from_str($str);
+		return from_str(\$str);
 	}
 
 	my %offsets;
@@ -215,7 +215,11 @@ sub from_file($) {
 sub from_str($) {
 
 	my ($str) = @_;
-	return from_file(\$str);
+	if (ref $str) {
+		return from_file($str);
+	} else {
+		return from_file(\$str);
+	}
 
 }
 

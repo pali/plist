@@ -234,7 +234,7 @@ sub readnum($$) {
 		return undef;
 	}
 
-	return PList::Email::Binary::from_str($str);
+	return PList::Email::Binary::from_str(\$str);
 
 }
 
