@@ -207,7 +207,7 @@ sub subpart_get_body($$$$) {
 
 	# Non binary subparts are converted to utf8 with LF line ending
 	if ( $charset ) {
-		$body = decode($charset, $body);
+		eval { my $newbody = decode($charset, $body); $body = $newbody; };
 		$body =~ s/\r\n/\n/g;
 		$body = encode_utf8($body);
 	}
