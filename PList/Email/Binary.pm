@@ -24,7 +24,7 @@ sub data($$) {
 	my $str;
 
 	my $pos = tell($fh);
-	seek($fh, ${$offsets}{$part}, 0);
+	seek($fh, $self->{begin} + ${$offsets}{$part}, 0);
 	read $fh, $str, $pemail->part($part)->{size};
 	seek($fh, $pos, 0);
 
@@ -47,7 +47,7 @@ sub read_email($) {
 	binmode $fh, ":raw:utf8";
 
 	my $pos = tell($fh);
-	seek($fh, 0, 0);
+	seek($fh, $self->{begin}, 0);
 
 	$line = <$fh>;
 	$dataoffset += lengthbytes($line);
@@ -171,7 +171,7 @@ sub from_fh($;$) {
 	my ($fh, $autoclose) = @_;
 
 	# Check if fh is seekable and if not fallback to from_str
-	if ( not seek($fh, 0, 1) ) {
+	if ( not seek($fh, tell($fh), 0) ) {
 		my $str;
 		{
 			local $/=undef;
@@ -187,6 +187,7 @@ sub from_fh($;$) {
 	$pemail->{fh} = $fh;
 	$pemail->{offsets} = \%offsets;
 	$pemail->{autoclose} = $autoclose;
+	$pemail->{begin} = tell($fh);
 
 	if ( read_email($pemail) ) {
 		return $pemail;
