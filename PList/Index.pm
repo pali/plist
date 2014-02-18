@@ -15,10 +15,14 @@ use File::Copy;
 # threads
 # mark_deleted.txt
 
-# NEW:
+# OLD:
 # [0-9]{5}.list
 # threads
 # deleted
+
+# NEW:
+# [0-9]{5}.list
+# config.pl
 
 sub new($$;$) {
 

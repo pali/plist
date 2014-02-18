@@ -27,4 +27,11 @@ sub readnum($) {
 	die;
 }
 
+# NEW:
+# append($$)
+# readat($$) # + duplicate fd + email::from_fd ( not shared )
+# readnext($)
+# eof($)
+# reset($)
+
 1;
