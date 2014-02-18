@@ -77,10 +77,10 @@ sub open_mbox($) {
 
 }
 
-sub open_list($$$) {
+sub open_list($$) {
 
-	my ($filename, $readonly, $noheader) = @_;
-	my $list = new PList::List::Binary($filename, $readonly, $noheader);
+	my ($filename, $append) = @_;
+	my $list = new PList::List::Binary($filename, $append);
 	die "Cannot open list file $filename\n" unless $list;
 	return $list;
 
@@ -183,12 +183,12 @@ sub bin_view($) {
 
 sub bin_get($$$) {
 
-	my ($listfile, $binfile, $num) = @_;
+	my ($listfile, $binfile, $offset) = @_;
 
 	my $fh = open_output($binfile, ":raw");
-
-	my $pemail = PList::List::Binary::read_from_list($listfile, $num);
-	die "Cannot read email (num $num) from list file $listfile\n" unless $pemail;
+	my $list = open_list($listfile, 0);
+	my $pemail = $list->readat($offset);
+	die "Cannot read email (at $offset) from list file $listfile\n" unless $pemail;
 
 	return ($pemail, $fh);
 
@@ -209,22 +209,20 @@ if ( not $mod or not $command ) {
 
 	if ( $command eq "view" ) {
 
-		my $list = open_list($listfile, 1, 0);
+		my $list = open_list($listfile, 0);
 
-		my $count = $list->count();
-		print "Total emails in list: $count\n\n";
-
-		$count = 0;
+		my $count = 0;
 		while ( not $list->eof() ) {
+			my $offset = $list->offset();
 			my $pemail = $list->readnext();
-			print "Number: $count\n";
+			print "\n" if $count != 0;
 			if (not $pemail) {
 				print "Error: Corrupted email\n\n";
 				++$count;
 				next;
 			}
+			print "Offset: $offset\n";
 			bin_view($pemail);
-			print "\n";
 			++$count;
 		}
 
@@ -233,7 +231,7 @@ if ( not $mod or not $command ) {
 		my $mboxfile = shift @ARGV;
 
 		my $mbox = open_mbox($mboxfile);
-		my $list = open_list($listfile, 0, 1);
+		my $list = open_list($listfile, 1);
 
 		my $count = 0;
 		my $success = 0;
@@ -257,8 +255,6 @@ if ( not $mod or not $command ) {
 
 		}
 
-		$list->regenerate_header();
-
 		print "Written $success (/$count) emails from mbox file $mboxfile to list file $listfile\n";
 
 	} elsif ( $command eq "add-bin" ) {
@@ -266,7 +262,7 @@ if ( not $mod or not $command ) {
 		my $binfile = shift @ARGV;
 
 		my $pemail = open_bin($binfile);
-		my $list = open_list($listfile, 0, 0);
+		my $list = open_list($listfile, 1);
 
 		$_ = $list->append($pemail);
 		die "Cannot write email from bin file $binfile to list file $listfile\n" unless defined $_;
@@ -275,39 +271,39 @@ if ( not $mod or not $command ) {
 
 	} elsif ( $command eq "get-bin" ) {
 
-		my $num = shift @ARGV;
-		help() unless defined $num;
+		my $offset = shift @ARGV;
+		help() unless defined $offset;
 
 		my $file = shift @ARGV;
 
-		my ($pemail, $fh) = bin_get($listfile, $file, $num);
+		my ($pemail, $fh) = bin_get($listfile, $file, $offset);
 		PList::Email::Binary::to_fh($pemail, $fh);
 
 	} elsif ( $command eq "get-part" ) {
 
-		my $num = shift @ARGV;
-		help() unless defined $num;
+		my $offset = shift @ARGV;
+		help() unless defined $offset;
 
 		my $part = shift @ARGV;
 		help() unless $part;
 
 		my $file = shift @ARGV;
 
-		my ($pemail, $fh) = bin_get($listfile, $file, $num);
+		my ($pemail, $fh) = bin_get($listfile, $file, $offset);
 
 		my $data = $pemail->data($part);
-		die "Cannot read part $part from email (num $num) from list file $listfile\n" unless $data;
+		die "Cannot read part $part from email (at $offset) from list file $listfile\n" unless $data;
 
 		print $fh $data;
 
 	} elsif ( $command eq "gen-html" or $command eq "gen-txt" ) {
 
-		my $num = shift @ARGV;
-		help() unless defined $num;
+		my $offset = shift @ARGV;
+		help() unless defined $offset;
 
 		my $file = shift @ARGV;
 
-		my ($pemail, $fh) = bin_get($listfile, $file, $num);
+		my ($pemail, $fh) = bin_get($listfile, $file, $offset);
 
 		binmode $fh, ":raw:utf8";
 
