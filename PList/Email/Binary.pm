@@ -177,6 +177,7 @@ sub from_fh($;$) {
 			local $/=undef;
 			$str = <$fh>;
 		}
+		close($fh) if ( $autoclose );
 		return from_str(\$str);
 	}
 
