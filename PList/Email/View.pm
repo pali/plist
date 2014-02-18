@@ -229,7 +229,7 @@ sub part_to_str($$$$) {
 # attachment_template
 
 # to_str(pemail, config...)
-sub to_str($%) {
+sub to_str($;%) {
 
 	my ($pemail, %config) = @_;
 
@@ -240,6 +240,7 @@ sub to_str($%) {
 	# TODO: Time zone & Date format
 
 	# TODO: Set default templates based on $html_output
+	# TODO: Add support for $html_output == 0
 	$config{disabled_mime_types} = \@disabled_mime_types_default unless $config{disabled_mime_types};
 	$config{base_template} = \$base_template_default unless $config{base_template};
 	$config{message_template} = \$message_template_default unless $config{message_template};
