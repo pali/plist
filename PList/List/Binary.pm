@@ -16,17 +16,17 @@ sub lengthbytes($) {
 
 }
 
-sub new($$) {
+sub new($$;$) {
 
-	my ($class, $filename, $readonly) = @_;
+	my ($class, $filename, $append) = @_;
 
 	my $mode;
 	my $fh;
 
-	if ( $readonly ) {
-		$mode = "<:mmap:raw";
-	} else {
+	if ( $append ) {
 		$mode = ">>:raw";
+	} else {
+		$mode = "<:mmap:raw";
 	}
 
 	if ( not open($fh, $mode, $filename) ) {
@@ -35,7 +35,7 @@ sub new($$) {
 
 	my $priv = {
 		fh => $fh,
-		readonly => $readonly,
+		append => $append,
 		eof => 0,
 	};
 
@@ -54,71 +54,33 @@ sub append($$) {
 
 	my ($priv, $pemail) = @_;
 
-	return 0 if $priv->{readonly};
+	return undef unless $priv->{append};
 
 	my $fh = $priv->{fh};
 
 	my $str = PList::Email::Binary::to_str($pemail);
-	return 0 unless $str;
+	return undef unless $str;
+
+	my $pos = tell($fh);
 
 	print $fh pack("V", lengthbytes($str));
 	print $fh $str;
 
-	return 1;
+	return $pos;
 
 }
 
-sub eof($) {
+sub readat($$) {
 
-	my ($priv) = @_;
-	return $priv->{eof} if $priv->{eof};
-	return eof($priv->{fh});
+	my ($priv, $offset) = @_;
 
-}
+	return undef if $priv->{append};
 
-sub reset($) {
+	return undef unless seek($priv->{fh}, $offset, 0);
 
-	my ($priv) = @_;
-
-	return 0 unless $priv->{readonly};
-
-	seek($priv->{fh}, 0, 0);
 	$priv->{eof} = 0;
 
-}
-
-sub offset($) {
-
-	my ($priv) = @_;
-	return tell($priv->{fh});
-
-}
-
-sub skipnext($) {
-
-	my ($priv) = @_;
-
-	my $fh = $priv->{fh};
-
-	if ( $priv->{eof} or not $priv->{readonly} ) {
-		return 0;
-	}
-
-	my $len;
-
-	if ( not read($fh, $len, 4) ) {
-		$priv->{eof} = 1;
-		return 0;
-	}
-
-	$len = unpack("V", $len);
-
-	if ( not seek($fh, $len, 1) ) {
-		$priv->{eof} = 1;
-		return 0;
-	}
-
-	return 1;
+	return $priv->readnext();
 
 }
 
@@ -128,9 +90,7 @@ sub readnext($) {
 
 	my $fh = $priv->{fh};
 
-	if ( $priv->{eof} or not $priv->{readonly} ) {
-		return undef;
-	}
+	return undef if $priv->{eof} or $priv->{append};
 
 	my $len;
 	my $str;
@@ -147,7 +107,34 @@ sub readnext($) {
 		return undef;
 	}
 
+	# TODO: Use from_fh with autoclose = 1 and duplicate $priv->{fh}
 	return PList::Email::Binary::from_str($str);
+
+}
+
+sub offset($) {
+
+	my ($priv) = @_;
+	return tell($priv->{fh});
+
+}
+
+sub eof($) {
+
+	my ($priv) = @_;
+	return 1 if $priv->{eof};
+	return eof($priv->{fh});
+
+}
+
+sub reset($) {
+
+	my ($priv) = @_;
+
+	return if $priv->{append};
+
+	seek($priv->{fh}, 0, 0);
+	$priv->{eof} = 0;
 
 }
 

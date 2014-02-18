@@ -7,11 +7,7 @@ sub append($$) {
 	die;
 }
 
-sub eof($) {
-	die;
-}
-
-sub reset($) {
+sub readat($$) {
 	die;
 }
 
@@ -19,19 +15,16 @@ sub readnext($) {
 	die;
 }
 
-sub count($) {
+sub offset($) {
 	die;
 }
 
-sub readnum($) {
+sub eof($) {
 	die;
 }
 
-# NEW:
-# append($$)
-# readat($$) # + duplicate fd + email::from_fd ( not shared )
-# readnext($)
-# eof($)
-# reset($)
+sub reset($) {
+	die;
+}
 
 1;
