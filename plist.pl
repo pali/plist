@@ -34,8 +34,9 @@ sub help() {
 	print "index gen-html <dir> <id> [<html>]\n";
 	print "index gen-txt <dir> <id> [<txt>]\n";
 	print "threads view <threads>\n";
-	print "threads add <threads> <id> <up> <list> <num>\n";
-	print "threads del <threads> <id>\n";
+	print "threads add-list <threads> <list>\n";
+	print "threads add-id <threads> <id> <up> <list> <num>\n";
+	print "threads del-id <threads> <id>\n";
 	print "list view <list>\n";
 	print "list add-mbox <list> [<mbox>]\n";
 	print "list add-bin <list> [<bin>]\n";
@@ -404,7 +405,11 @@ if ( not $mod or not $command ) {
 			print "\n";
 		}
 
-	} elsif ( $command eq "add" ) {
+	} elsif ( $command eq "add-list" ) {
+
+		# TODO
+
+	} elsif ( $command eq "add-id" ) {
 
 		my $id = shift @ARGV;
 		help() unless $id;
@@ -423,7 +428,7 @@ if ( not $mod or not $command ) {
 
 		print "Done\n";
 
-	} elsif ( $command eq "del" ) {
+	} elsif ( $command eq "del-id" ) {
 
 		my $id = shift @ARGV;
 		help() unless $id;
