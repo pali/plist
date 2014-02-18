@@ -102,13 +102,22 @@ sub readnext($) {
 
 	$len = unpack("V", $len);
 
-	if ( not read($fh, $str, $len) ) {
-		$priv->{eof} = 1;
+	# FIXME: Use &= or only & ?
+	if ( open(my $newfh, "<&=:mmap:raw", $fh) ) {
+		if ( not seek($fh, $len, 1) ) {
+			$priv->{eof} = 1;
+			close($newfh);
+			return undef;
+		}
+		return PList::Email::Binary::from_fh($newfh, 1);
+	} else {
 		return undef;
+#		if ( not read($fh, $str, $len) ) {
+#			$priv->{eof} = 1;
+#			return undef;
+#		}
+#		return PList::Email::Binary::from_str($str);
 	}
-
-	# TODO: Use from_fh with autoclose = 1 and duplicate $priv->{fh}
-	return PList::Email::Binary::from_str($str);
 
 }
 
