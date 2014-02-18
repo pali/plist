@@ -54,7 +54,6 @@ sub read_email($) {
 
 	if ( $line ne "Parts:\n" ) {
 		binmode $fh, ":raw";
-		print "read_email failed\n";
 		return 0;
 	}
 
