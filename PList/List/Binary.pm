@@ -95,29 +95,19 @@ sub readnext($) {
 	my $len;
 	my $str;
 
-	if ( not read($fh, $len, 4) ) {
+	if ( read($fh, $len, 4) != 4 ) {
 		$priv->{eof} = 1;
 		return undef;
 	}
 
 	$len = unpack("V", $len);
 
-	# FIXME: Use &= or only & ?
-	if ( open(my $newfh, "<&=:mmap:raw", $fh) ) {
-		if ( not seek($fh, $len, 1) ) {
-			$priv->{eof} = 1;
-			close($newfh);
-			return undef;
-		}
-		return PList::Email::Binary::from_fh($newfh, 1);
-	} else {
+	if ( not read($fh, $str, $len) != $len ) {
+		$priv->{eof} = 1;
 		return undef;
-#		if ( not read($fh, $str, $len) ) {
-#			$priv->{eof} = 1;
-#			return undef;
-#		}
-#		return PList::Email::Binary::from_str($str);
 	}
+
+	return PList::Email::Binary::from_str($str);
 
 }
 
