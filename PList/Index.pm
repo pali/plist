@@ -3,34 +3,37 @@ package PList::Index;
 use strict;
 use warnings;
 
-use File::Copy;
-
-# OLD!!!
-# structure:
-# imported_[0-9]{5}.mbox
-# [0-9]{5}.mbox
-# imported_[0-9]{5}.list
+# directory structure:
+#
 # [0-9]{5}.list
-# [0-9]{5}.offs
-# threads
-# mark_deleted.txt
-
-# OLD:
-# [0-9]{5}.list
-# threads
 # deleted
-
-# NEW:
-# [0-9]{5}.list
 # config.pl
 
-sub new($$;$) {
+# SQL tables:
+#
+# emails:
+# id, messageid, date, subjectid(subjects)
+#
+# reply:
+# id, emailid1(emails), emailid2(emails)
+#
+# references:
+# id, emailid1(emails), emailid2(emails)
+#
+# subjects:
+# id, subject (normalized)
+# NOTE: subject is normalized (stripped whitespaces, removed leading RE, FWD)
+#
+# address:
+# id, email, name
+#
+# addressess:
+# id, emailid(emails), addressid(address), type
+# NOTE: type is: 0 - from, 1 - to, 2 - cc
 
-	my ($class, $dir, $create) = @_;
+sub new($$) {
 
-	if ( $create ) {
-		die "Cannot create directory $dir" unless mkpath($dir);
-	}
+	my ($class, $dir) = @_;
 
 	my $priv = {
 		dir => $dir,
@@ -42,104 +45,61 @@ sub new($$;$) {
 
 sub DESTROY($) {
 
+	my ($priv) = @_;
+
 }
 
-# file functions
+sub create($) {
 
-# priv, mbox
-#sub add_mbox($$) {
-#
-#	my ($priv, $mbox) = @_;
-#
-#	my $dh;
-#	return undef unless opendir($dh, $priv->{dir});
-#	my @imported = sort grep { /^imported_[0-9]{5}.mbox$/ } readdir $dh;
-#	my $last = $imported[-1];
-#	$last =~ s/^imported_([0-9]{5}).mbox$/$1/;
-#	$last = sprintf("%05d", $last+1);
-#
-#	copy($mbox, $priv->{dir} . "/imported_" . $last . ".mbox");
-#
-#}
+	my ($dir) = @_;
 
-# priv, pemail
+}
+
+sub regenerate($) {
+
+	my ($priv) = @_;
+
+}
+
+sub add_list($$) {
+
+	my ($priv, $list) = @_;
+
+}
+
 sub add_email($$) {
 
 	my ($priv, $pemail) = @_;
 
 }
 
-# priv, $id, $up, $file, $offset
-sub add_threads($$) {
+sub email($$) {
+
+	my ($priv, $id) = @_;
 
 }
 
-# recovery functions
+sub view($$$) {
 
-sub regenerate_lists_headers($) {
-
-}
-
-sub regenerate_threads($) {
+	my ($priv, $id, $part) = @_;
 
 }
 
-# import functions
+sub data($$$) {
 
-sub import_mime($$) {
-
-}
-
-sub import_mbox($$) {
+	my ($priv, $id, $part) = @_;
 
 }
 
-# priv, id
 sub delete_mark($$) {
+
+	my ($priv, $id) = @_;
 
 }
 
 sub delete_unmark($$) {
 
-}
-
-# threads functions
-
-sub roots($) {
-
-}
-
-sub up($) {
-
-}
-
-sub down($) {
-
-}
-
-# data functions
-
-sub email($$) {
-
-}
-
-# priv, id, config
-sub view($$;%) {
-
-}
-
-# priv, id, part
-sub data($$$) {
-
-}
-
-# priv, id
-sub parts($$) {
-
-}
-
-# priv, id, part
-sub headers($$$) {
+	my ($priv, $id) = @_;
 
 }
 
