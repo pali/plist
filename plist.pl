@@ -226,6 +226,9 @@ if ( not $mod or not $command ) {
 			++$count;
 		}
 
+		print "\n" if $count != 0;
+		print "Total emails: $count\n";
+
 	} elsif ( $command eq "add-mbox" ) {
 
 		my $mboxfile = shift @ARGV;
