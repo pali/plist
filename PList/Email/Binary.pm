@@ -50,6 +50,11 @@ sub read_email($) {
 	seek($fh, $self->{begin}, 0);
 
 	$line = <$fh>;
+	if ( not $line ) {
+		binmode $fh, ":raw";
+		return 0;
+	}
+
 	$dataoffset += lengthbytes($line);
 
 	if ( $line ne "Parts:\n" ) {
