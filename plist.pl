@@ -13,9 +13,6 @@ use PList::List;
 use PList::List::MBox;
 use PList::List::Binary;
 
-#use PList::Threads;
-#use PList::Threads::Binary;
-
 use PList::Index;
 
 binmode STDOUT, ":utf8";
@@ -33,10 +30,6 @@ sub help() {
 #	print "index get-part <dir> <id> <part> [<file>]\n";
 #	print "index gen-html <dir> <id> [<html>]\n";
 #	print "index gen-txt <dir> <id> [<txt>]\n";
-#	print "threads view <threads>\n";
-#	print "threads add-list <threads> <list>\n";
-#	print "threads add-id <threads> <id> <up> <list> <num>\n";
-#	print "threads del-id <threads> <id>\n";
 	print "index view <dir>\n";
 	print "index create <dir> <database> <maxsize>\n";
 	print "index add-list <dir> [<list>]\n";
@@ -395,66 +388,6 @@ if ( not $mod or not $command ) {
 
 	}
 
-#} elsif ( $mod eq "threads" ) {
-#
-#	my $threadsfile = shift @ARGV;
-#	help() unless $threadsfile;
-#
-#	my $threads = new PList::Threads::Binary($threadsfile);
-#
-#	if ( $command eq "view" ) {
-#
-#		print "Roots:";
-#		print " " . $_ foreach(sort keys %{$threads->roots()});
-#		print "\n";
-#
-#		foreach (sort keys %{$threads->emails()}) {
-#			my $down = $threads->down($_) || [];
-#			print "$_:";
-#			print " (i)" if $threads->implicit($_);
-#			print " " . $_ foreach(@{$down});
-#			print "\n";
-#		}
-#
-#	} elsif ( $command eq "add-list" ) {
-#
-#		# TODO
-#
-#	} elsif ( $command eq "add-id" ) {
-#
-#		my $id = shift @ARGV;
-#		help() unless $id;
-#
-#		my $up = shift @ARGV;
-#		help() unless $up;
-#
-#		my $list = shift @ARGV;
-#		help() unless $list;
-#
-#		my $num = shift @ARGV;
-#		help() unless $num;
-#
-#		die "Adding failed\n" unless $threads->add_email($id, $up, $list, $num);
-#		die "Saving failed\n" unless $threads->save();
-#
-#		print "Done\n";
-#
-#	} elsif ( $command eq "del-id" ) {
-#
-#		my $id = shift @ARGV;
-#		help() unless $id;
-#
-#		die "Deleting failed\n" unless $threads->del_email($id);
-#		die "Saving failed\n" unless $threads->save();
-#
-#		print "Done\n";
-#
-#	} else {
-#
-#		help();
-#
-#	}
-#
 } elsif ( $mod eq "index" ) {
 
 	my $indexdir = shift @ARGV;
