@@ -21,7 +21,7 @@ sub help() {
 
 	print "help:\n";
 	print "index view <dir>\n";
-	print "index create <dir> <database> <maxsize>\n";
+	print "index create <dir>\n";
 	print "index regenerate <dir>\n";
 	print "index add-list <dir> [<list>]\n";
 	print "index add-mbox <dir> [<mbox>]\n";
@@ -383,21 +383,18 @@ if ( not $mod or not $command ) {
 	my $indexdir = shift @ARGV;
 	help() unless $indexdir;
 
+	my $datasource = "DBI:SQLite:dbname=$indexdir/sqlite.db";
+	my $username = "";
+	my $password = "";
+
 	if ( $command eq "create" ) {
 
 		print "Creating index dir '$indexdir'...\n";
-		die "Failed\n" unless PList::Index::create($indexdir);
+		die "Failed\n" unless PList::Index::create($indexdir, $datasource, $username, $password);
 		print "Done\n";
 	}
 
 	my $index = new PList::Index($indexdir);
-
-	print "index get-bin <dir> <id> [<bin>]\n";
-	print "index get-part <dir> <id> <part> [<file>]\n";
-	print "index gen-html <dir> <id> [<html>]\n";
-	print "index gen-txt <dir> <id> [<txt>]\n";
-	print "index del-mark <dir> <id>\n";
-	print "index del-unmark <dir> <id>\n";
 
 	if ( $command eq "view" or $command eq "create" ) {
 
