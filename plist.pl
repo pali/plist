@@ -20,18 +20,9 @@ binmode STDOUT, ":utf8";
 sub help() {
 
 	print "help:\n";
-#	print "index view <dir>\n";
-#	print "index add-mbox <dir> [<mbox>]\n";
-#	print "index add-mime <dir> [<mime>]\n";
-#	print "index regenerate <dir>\n";
-#	print "index del-mark <dir> <id>\n";
-#	print "index del-unmark <dir> <id>\n";
-#	print "index get-bin <dir> <id> [<bin>]\n";
-#	print "index get-part <dir> <id> <part> [<file>]\n";
-#	print "index gen-html <dir> <id> [<html>]\n";
-#	print "index gen-txt <dir> <id> [<txt>]\n";
 	print "index view <dir>\n";
 	print "index create <dir> <database> <maxsize>\n";
+	print "index regenerate <dir>\n";
 	print "index add-list <dir> [<list>]\n";
 	print "index add-mbox <dir> [<mbox>]\n";
 	print "index add-mime <dir> [<mime>]\n";
@@ -39,7 +30,6 @@ sub help() {
 	print "index get-part <dir> <id> <part> [<file>]\n";
 	print "index gen-html <dir> <id> [<html>]\n";
 	print "index gen-txt <dir> <id> [<txt>]\n";
-	print "index regenerate-database <dir>\n";
 	print "index del-mark <dir> <id>\n";
 	print "index del-unmark <dir> <id>\n";
 	print "list view <list>\n";
@@ -393,24 +383,57 @@ if ( not $mod or not $command ) {
 	my $indexdir = shift @ARGV;
 	help() unless $indexdir;
 
+	if ( $command eq "create" ) {
+
+		print "Creating index dir '$indexdir'...\n";
+		die "Failed\n" unless PList::Index::create($indexdir);
+		print "Done\n";
+	}
+
 	my $index = new PList::Index($indexdir);
 
-	if ( $command eq "view" ) {
+	print "index get-bin <dir> <id> [<bin>]\n";
+	print "index get-part <dir> <id> <part> [<file>]\n";
+	print "index gen-html <dir> <id> [<html>]\n";
+	print "index gen-txt <dir> <id> [<txt>]\n";
+	print "index del-mark <dir> <id>\n";
+	print "index del-unmark <dir> <id>\n";
+
+	if ( $command eq "view" or $command eq "create" ) {
+
+	} elsif ( $command eq "regenerate" ) {
+
+		print "Regenerating index dir '$indexdir'...\n";
+		die "Failed\n" unless $index->regenerate();
+		print "Done\n"
+
+	} elsif ( $command eq "add-list" ) {
+
+		my $listfile = shift @ARGV;
+		my $list = open_list($listfile, 0);
+		$listfile = "STDIN" unless $listfile;
+
+		print "Adding list file '$listfile' to index dir '$indexdir'...\n";
+		my $count = $index->add_list($list);
+		die "Failed\n" unless $count;
+		print "Done ($count emails)\n";
 
 	} elsif ( $command eq "add-mbox" ) {
 
 		my $mboxfile = shift @ARGV;
 		my $mbox = open_mbox($mboxfile);
+		$mboxfile = "STDIN" unless $mboxfile;
 
-		my $count = $index->add_mbox($mbox);
-		die "Adding mbox file $mboxfile to index dir $indexdir failed\n" unless $count;
-
-		print "Added $count emails to index dir $indexdir";
+		print "Adding mbox file '$mboxfile' to index dir '$indexdir'...\n";
+		my $count = $index->add_list($mbox);
+		die "Failed\n" unless $count;
+		print "Done ($count emails)\n";
 
 	} elsif ( $command eq "add-mime" ) {
 
 		my $mimefile = shift @ARGV;
 		my $input = open_input($mimefile, ":raw");
+		$mimefile = "STDIN" unless $mimefile;
 
 		my $str;
 
@@ -421,39 +444,11 @@ if ( not $mod or not $command ) {
 
 		$str =~ s/^From .*\n//;
 
+		print "Adding MIME email file '$mimefile' to index dir '$indexdir'...\n";
 		my $pemail = PList::Email::MIME::from_str(\$str);
-		die "Cannot read email\n" unless $pemail;
+		die "Failed (Cannot read email)\n" unless $pemail;
 
-		die "Adding email failed\n" unless $index->add_email($pemail);
-
-	} elsif ( $command eq "regenerate" ) {
-
-		print "Regenerating list files...\n";
-		die "Failed\n" unless $index->regenerate_lists();
-
-		print "Regeneraring threads files...\n";
-		die "Failed\n" unless $index->regenreate_threads();
-
-		print "Done\n";
-
-	} elsif ( $command eq "del-mark" ) {
-
-		my $id = shift @ARGV;
-		help() unless $id;
-
-		print "Marking email with $id as deleted (will not be visible)\n";
-		die "Failed\n" unless $index->delete_mark($id);
-
-		print "Done\n";
-
-	} elsif ( $command eq "del-unmark" ) {
-
-		my $id = shift @ARGV;
-		help() unless $id;
-
-		print "Unmarking email with $id as deleted (will be visible)\n";
-		die "Failed\n" unless $index->delete_unmark($id);
-
+		die "Failed (Cannot add email)\n" unless $index->add_email($pemail);
 		print "Done\n";
 
 	} elsif ( $command eq "get-bin" or $command eq "gen-html" or $command eq "gen-txt" ) {
@@ -495,6 +490,26 @@ if ( not $mod or not $command ) {
 		die "Failed\n" unless $str;
 
 		print $fh $str;
+
+	} elsif ( $command eq "del-mark" ) {
+
+		my $id = shift @ARGV;
+		help() unless $id;
+
+		print "Marking email with $id as deleted (will not be visible)...\n";
+		die "Failed\n" unless $index->delete_mark($id);
+
+		print "Done\n";
+
+	} elsif ( $command eq "del-unmark" ) {
+
+		my $id = shift @ARGV;
+		help() unless $id;
+
+		print "Unmarking email with $id as deleted (will be visible)...\n";
+		die "Failed\n" unless $index->delete_unmark($id);
+
+		print "Done\n";
 
 	} else {
 
