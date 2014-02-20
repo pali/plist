@@ -3,6 +3,12 @@ package PList::Index;
 use strict;
 use warnings;
 
+use PList::Email::Binary;
+use PList::Email::View;
+
+use PList::List::Binary;
+
+use Time::Piece;
 use File::Path qw(make_path);
 use DBI;
 
@@ -48,11 +54,14 @@ sub new($$) {
 	my $username = <$fh>;
 	my $password = <$fh>;
 
+	chop($datasource);
+	chop($username);
+	chop($password);
+
 	close($fh);
 
 	my $dbh = DBI->connect($datasource, $username, $password, { RaiseError => 1, AutoCommit => 0 });
 	if ( not $dbh ) {
-		warn $DBI::errstr;
 		return undef;
 	}
 
@@ -74,57 +83,69 @@ sub DESTROY($) {
 
 }
 
-sub create($$$$) {
+sub create_tables($) {
 
-	my ($dir, $datasource, $username, $password) = @_;
+	my ($dbh) = @_;
 
-	if ( not make_path($dir) ) {
-		warn "Cannot create dir $dir\n";
-		return 0;
-	}
+	my $statement;
 
-	my $dbh = DBI->connect($datasource, $username, $password, { RaiseError => 1 });
-	if ( not $dbh ) {
-		warn $DBI::errstr;
-		return 0;
-	}
-
-	my $statement = qq(
+	$statement = qq(
 		CREATE TABLE subjects (
-			id		INTEGER PRIMARY KEY NOT NULL,
-			subject		TEXT UNIQUE
+			id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			subject		TEXT UNIQUE ON CONFLICT IGNORE
 		);
+	);
+	return 0 unless $dbh->do($statement);
+
+	$statement = qq(
 		CREATE TABLE emails (
-			id		INTEGER PRIMARY KEY NOT NULL,
-			messageid	TEXT UNIQUE NOT NULL,
+			id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			messageid	TEXT UNIQUE NOT NULL ON CONFLICT IGNORE,
 			date		INTEGER,
-			subjectid	INTEGER NOT NULL,
-			list		TEXT NOT NULL,
+			subjectid	INTEGER,
+			list		TEXT,
 			offset		INTEGER,
+			implicit	INTEGER,
 			FOREIGN KEY(subjectid) REFERENCES subjects(id)
 		);
-		CREATE TABLE references (
-			id		INTEGER PRIMARY KEY NOT NULL,
+	);
+	return 0 unless $dbh->do($statement);
+
+	$statement = qq(
+		CREATE TABLE replies (
+			id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 			emailid1	INTEGER NOT NULL,
 			emailid2	INTEGER NOT NULL,
 			type		INTEGER,
 			FOREIGN KEY(emailid1) REFERENCES emails(id),
 			FOREIGN KEY(emailid2) REFERENCES emails(id)
 		);
-		CREATE TABLE subreferences (
-			id		INTEGER PRIMARY KEY NOT NULL,
-			subjectid	INTEGER NOT NULL,
+	);
+	return 0 unless $dbh->do($statement);
+
+	$statement = qq(
+		CREATE TABLE subreplies (
+			id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 			emailid		INTEGER NOT NULL,
-			FOREIGN KEY(subjectid) REFERENCES subjects(id),
-			FOREIGN KEY(emailid) REFERENCES emails(id)
+			subjectid	INTEGER NOT NULL,
+			FOREIGN KEY(emailid) REFERENCES emails(id),
+			FOREIGN KEY(subjectid) REFERENCES subjects(id)
 		);
+	);
+	return 0 unless $dbh->do($statement);
+
+	$statement = qq(
 		CREATE TABLE address (
-			id		INTEGER PRIMARY KEY NOT NULL,
+			id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 			email		TEXT NOT NULL,
 			name		TEXT NOT NULL
 		);
+	);
+	return 0 unless $dbh->do($statement);
+
+	$statement = qq(
 		CREATE TABLE addressess (
-			id		INTEGER PRIMARY KEY NOT NULL,
+			id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 			emailid		INTEGER NOT NULL,
 			addressid	INTEGER NOT NULL,
 			type		INTEGER,
@@ -132,12 +153,35 @@ sub create($$$$) {
 			FOREIGN KEY(addressid) REFERENCES address(id)
 		);
 	);
+	return 0 unless $dbh->do($statement);
 
-	my $ret = $dbh->do($statement);
+	return 1;
+
+}
+
+sub create($$$$) {
+
+	my ($dir, $datasource, $username, $password) = @_;
+
+	my $dbh;
+	my $statement;
+	my $ret;
+
+	if ( not make_path($dir) ) {
+		warn "Cannot create dir $dir\n";
+		return 0;
+	}
+
+	$dbh = DBI->connect($datasource, $username, $password);
+	if ( not $dbh ) {
+		return 0;
+	}
+
+	$ret = create_tables($dbh);
+
 	$dbh->disconnect();
 
-	if ( $ret < 0 ) {
-		warn $DBI::errstr;
+	if ( not $ret ) {
 		return 0;
 	}
 
@@ -162,15 +206,275 @@ sub regenerate($) {
 
 }
 
-sub add_list($$) {
+sub normalize_subject($) {
 
-	my ($priv, $list) = @_;
+	my ($subject) = @_;
+
+	$subject =~ s/^\s*[\s*RE\s*:\s*]\s*//i;
+	$subject =~ s/^\s*[\s*FWD\s*:\s*]\s*//i;
+	$subject =~ s/^\s*//;
+	$subject =~ s/\s*$//;
+
+	return $subject;
 
 }
 
 sub add_email($$) {
 
 	my ($priv, $pemail) = @_;
+
+	my $header = $pemail->header("0");
+
+	if ( not $header ) {
+		warn "Corrupted email\n";
+		return 0;
+	}
+
+	my $dbh = $priv->{dbh};
+
+	my $id = $header->{id};
+
+	my $statement;
+	my $sth;
+	my $ret;
+
+	$statement = qq(
+		SELECT id
+			FROM emails
+			WHERE implicit = 0 AND messageid = ?
+			LIMIT 1
+		;
+	);
+
+	eval {
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute($id);
+		$ret = $sth->fetchall_hashref("id");
+	} or do {
+		eval { $dbh->rollback(); };
+		return undef;
+	};
+
+	if ( $ret and $ret->{$id} ) {
+		warn "Email already in database, skipping\n";
+		return 0;
+	}
+
+	my $listfile = "00000.list";
+	my $offset;
+
+	my $list = new PList::List::Binary($priv->{dir} . "/" . $listfile, 1);
+	if ( not $list ) {
+		warn "Cannot open listfile '$listfile'\n";
+		eval { $dbh->rollback(); };
+		return 0;
+	};
+
+	$offset = $list->append($pemail);
+	if ( not defined $offset ) {
+		warn "Cannot append email to listfile '$listfile'\n";
+		eval { $dbh->rollback(); };
+		return 0;
+	};
+
+	my $from = $header->{from};
+	my $to = $header->{to};
+	my $cc = $header->{cc};
+	my $reply = $header->{reply};
+	my $references = $header->{references};
+	my $subject = normalize_subject($header->{subject});
+	my $date;
+
+	eval { $date = Time::Piece->strptime($header->{date}, "%Y-%m-%d %H:%M:%S %z") };
+	$date = $date->epoch() if $date;
+	$date = 0 unless $date;
+
+	$statement = qq(
+		INSERT INTO subjects (subject)
+			VALUES (?)
+		;
+	);
+
+	eval {
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute($subject);
+	} or do {
+		eval { $dbh->rollback(); };
+		return 0;
+	};
+
+	$statement = qq(
+		INSERT OR REPLACE INTO emails (messageid, date, subjectid, list, offset, implicit)
+			VALUES (
+				?,
+				?,
+				(SELECT id FROM subjects WHERE subject = ?),
+				?,
+				?,
+				0
+			)
+		;
+	);
+
+	eval {
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute($id, $date, $subject, $listfile, $offset);
+	} or do {
+		warn "";
+		eval { $dbh->rollback(); };
+		return 0;
+	};
+
+	my @replies;
+
+	if ( $reply and @{$reply} ) {
+		push(@replies, [$id, $_, 0]) foreach ( @{$reply} );
+	}
+	if ( $references and @{$references} ) {
+		push(@replies, [$id, $_, 1]) foreach ( @{$references} );
+	}
+
+	$statement = qq(
+		INSERT OR IGNORE INTO emails (messageid, implicit)
+			VALUES (?, 1)
+		;
+	);
+
+#	eval {
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute(@{$_}[1]) foreach (@replies);
+#	} or do {
+#		eval { $dbh->rollback(); };
+#		return 0;
+#	};
+
+	$statement = qq(
+		INSERT INTO replies (emailid1, emailid2, type)
+			VALUES (
+				(SELECT id FROM emails WHERE messageid = ?),
+				(SELECT id FROM emails WHERE messageid = ?),
+				?
+			)
+		;
+	);
+
+#	eval {
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute(@{$_}) foreach (@replies);
+#	} or do {
+#		eval { $dbh->rollback(); };
+#		return 0;
+#	};
+
+	if ( not $reply or @{$reply} ) {
+
+		$statement = qq(
+			INSERT INTO subreplies (emailid, subjectid)
+				VALUES (
+					(SELECT id FROM emails WHERE messageid = ?),
+					(SELECT id FROM subjects WHERE subject = ?)
+				)
+			;
+		);
+
+		eval {
+			$sth = $dbh->prepare_cached($statement);
+			$sth->execute($id, $subject);
+		} or do {
+			eval { $dbh->rollback(); };
+			return 0;
+		};
+
+	}
+
+	my @addressess;
+
+	if ( $from and @{$from} ) {
+		foreach ( @{$from} ) {
+			$_ =~ /^(\S*) (\S*)/;
+			push(@addressess, [$id, $1, $2, 0]);
+		}
+	}
+
+	if ( $to and @{$to} ) {
+		foreach ( @{$to} ) {
+			$_ =~ /^(\S*) (\S*)/;
+			push(@addressess, [$id, $1, $2, 1]);
+		}
+	}
+
+	if ( $cc and @{$cc} ) {
+		foreach ( @{$cc} ) {
+			$_ =~ /^(\S*) (\S*)/;
+			push(@addressess, [$id, $1, $2, 2]);
+		}
+	}
+
+	$statement = qq(
+		INSERT OR IGNORE INTO address (email, name)
+			VALUES (?, ?)
+		;
+	);
+
+#	eval {
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute(${$_}[1], ${$_}[2]) foreach (@addressess);
+#	} or do {
+#		eval { $dbh->rollback(); };
+#		return 0;
+#	};
+
+	$statement = qq(
+		INSERT INTO addressess (emailid, addressid, type)
+			VALUES (
+				(SELECT id FROM emails WHERE messageid = ?),
+				(SELECT id FROM address WHERE email = ? AND name = ?),
+				?
+			)
+		;
+	);
+
+#	eval {
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute(@{$_}) foreach (@addressess);
+#	} or do {
+#		eval { $dbh->rollback(); };
+#		return 0;
+#	};
+
+	eval {
+		$dbh->commit();
+	} or do {
+		eval { $dbh->rollback(); };
+		return 0;
+	};
+
+	return 1;
+
+}
+
+sub add_list($$) {
+
+	my ($priv, $list) = @_;
+
+	my $count = 0;
+	my $total = 0;
+
+	while ( not $list->eof() ) {
+		++$total;
+		my $pemail = $list->readnext();
+		if ( not $pemail ) {
+			warn "Cannot read email\n";
+			next;
+		}
+		if ( not $priv->add_email($pemail) ) {
+			warn "Cannot add email\n";
+			next;
+		}
+		++$count;
+	}
+
+	return ($count, $total);
 
 }
 
@@ -185,7 +489,7 @@ sub db_email($$) {
 	my $ret;
 
 	$statement = qq(
-		SELECT e.id, e.messageid, e.date, s.subject, e.list, e.offset
+		SELECT e.id, e.messageid, e.date, s.subject, e.list, e.offset, e.implicit
 			FROM emails AS e
 			JOIN subjects AS s ON s.id = e.subjectid
 			WHERE e.messageid = ?
@@ -193,13 +497,19 @@ sub db_email($$) {
 		;
 	);
 
-	$dbh->prepare_cached($statement);
-	$dbh->execute($id);
-	$ret = $dbh->fetchall_hashref("id");
+	eval {
+		$dbh->prepare_cached($statement);
+		$dbh->execute($id);
+		$ret = $dbh->fetchall_hashref("id");
+	} or do {
+		return undef;
+	};
 
 	return undef unless $ret and $ret->{$id};
 
 	$email->{$_} = $ret->{$id}->{$_} foreach (keys %{$ret->{$id}});
+
+	return $email if $email->{implicit};
 
 	$statement = qq(
 		SELECT DISTINCT a.email, a.name, s.type
@@ -209,9 +519,13 @@ sub db_email($$) {
 		;
 	);
 
-	$dbh->prepare_cached($statement);
-	$dbh->execute($email->{id});
-	$ret = $dbh->fetchall_arrayref();
+	eval {
+		$dbh->prepare_cached($statement);
+		$dbh->execute($email->{id});
+		$ret = $dbh->fetchall_arrayref();
+	} or do {
+		return undef;
+	};
 
 	return $email unless $ret;
 
@@ -245,10 +559,7 @@ sub db_emails($;%) {
 	my $ret;
 
 	if ( exists $args{subject} ) {
-		$args{subject} =~ s/^\s*[\s*RE\s*:\s*]\s*//i;
-		$args{subject} =~ s/^\s*[\s*FWD\s*:\s*]\s*//i;
-		$args{subject} =~ s/^\s*//;
-		$args{subject} =~ s/\s*$//;
+		$args{subject} = normalize_subject($args{subject});
 	}
 
 	$statement = "SELECT DISTINCT e.messageid FROM emails AS e";
@@ -257,11 +568,11 @@ sub db_emails($;%) {
 		$statement .= " JOIN subjects AS s ON s.id = e.subjectid";
 	}
 
-	if ( exists $args{from_email} or exists $args{from_name} or exists $args{to_email} or exists $args{to_name} or exists $args{cc_email} or exists $args{cc_name} ) {
+	if ( exists $args{email} or exists $args{name} ) {
 		$statement .= " JOIN addressess AS s ON s.emailid = e.id JOIN address AS a ON a.id = s.addressid";
 	}
 
-	if ( exists $args{date1} or exists $args{date2} or exists $args{subject} or exists $args{from_email} or exists $args{from_name} or exists $args{to_email} or exists $args{to_name} or exists $args{cc_email} or exists $args{cc_name} ) {
+	if ( exists $args{date1} or exists $args{date2} or exists $args{subject} or exists $args{email} or exists $args{name} ) {
 		$statement .= " WHERE";
 	}
 
@@ -280,23 +591,32 @@ sub db_emails($;%) {
 		push(@args, $args{subject});
 	}
 
-	# TODO: from, to, cc
-#	if ( exists $args{from_email} ) {
-#		$statement .= " a.email LIKE %?% AND ...";
-#	}
+	if ( exists $args{email} ) {
+		$statement .= " a.email LIKE %?% AND";
+		push(@args, $args{email});
+	}
+
+	if ( exists $args{name} ) {
+		$statement .= " a.name LIKE %?% AND";
+		push(@args, $args{name});
+	}
 
 	$statement =~ s/AND$//;
 
-	$dbh->prepare_cached($statement);
-	$dbh->execute(@args);
-	$ret = $dbh->fetchall_arrayref();
+	eval {
+		$dbh->prepare_cached($statement);
+		$dbh->execute(@args);
+		$ret = $dbh->fetchall_arrayref();
+	} or do {
+		return undef;
+	};
 
 	return undef unless $ret;
 	return map { ${$_}[0] } @{$ret};
 
 }
 
-sub db_references($$$) {
+sub db_replies($$$) {
 
 	my ($priv, $id, $up) = @_;
 
@@ -318,7 +638,7 @@ sub db_references($$$) {
 	$statement = qq(
 		SELECT DISTINCT e2.messageid, r.type
 			FROM emails AS e1
-			JOIN references AS r ON r.$emailid1 = e1.id
+			JOIN replies AS r ON r.$emailid1 = e1.id
 			JOIN emails AS e2 ON e2.id = r.$emailid2
 			WHERE e1.messageid = ?
 		;
@@ -351,7 +671,7 @@ sub db_references($$$) {
 		SELECT e2.messageid
 			FROM emails AS e1
 			JOIN emails AS e2 ON e2.subjectid = e1.subjectid
-			JOIN references AS r ON e2.messageid
+			JOIN replies AS r ON e2.messageid
 			WHERE e1.messageid = ? AND e1.messageid != e2.messageid AND r.$emailid1 != e1.id
 			ORDER BY e2.date
 			LIMIT 1
@@ -373,11 +693,43 @@ sub email($$) {
 
 	my ($priv, $id) = @_;
 
+	my $dbh = $priv->{dbh};
+
+	my $statement;
+	my $ret;
+
+	$statement = qq(
+		SELECT list, offset
+			FROM emails
+			WHERE implicit = 0 AND messageid = ?
+			LIMIT 1
+		;
+	);
+
+	$dbh->prepare_cached($statement);
+	$dbh->execute($id);
+	$ret = $dbh->fetchall_hashref("id");
+
+	return undef unless $ret and $ret->{$id};
+
+	my $listname = $ret->{$id}->{list};
+	my $offset = $ret->{$id}->{offset};
+
+	my $list = new PList::List::Binary($priv->{dir} . "/" . $listname, 0);
+	return undef unless $list;
+
+	return $list->readat($offset);
+
 }
 
-sub view($$$) {
+sub view($$;%) {
 
-	my ($priv, $id, $part) = @_;
+	my ($priv, $id, %args) = @_;
+
+	my $pemail = $priv->email($id);
+	return undef unless $pemail;
+
+	return PList::Email::View::to_str($pemail, %args);
 
 }
 
@@ -385,17 +737,19 @@ sub data($$$) {
 
 	my ($priv, $id, $part) = @_;
 
+	my $pemail = $priv->email($id);
+	return undef unless $pemail;
+
+	return $pemail->data($part);
+
 }
 
-sub delete_mark($$) {
+sub delete($$) {
 
 	my ($priv, $id) = @_;
 
-}
-
-sub delete_unmark($$) {
-
-	my ($priv, $id) = @_;
+	# TODO: add to file deleted
+	# TODO: remove from database
 
 }
 
