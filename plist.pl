@@ -30,8 +30,7 @@ sub help() {
 	print "index get-part <dir> <id> <part> [<file>]\n";
 	print "index gen-html <dir> <id> [<html>]\n";
 	print "index gen-txt <dir> <id> [<txt>]\n";
-	print "index del-mark <dir> <id>\n";
-	print "index del-unmark <dir> <id>\n";
+	print "index del <dir> <id>\n";
 	print "list view <list>\n";
 	print "list add-mbox <list> [<mbox>]\n";
 	print "list add-bin <list> [<bin>]\n";
@@ -398,6 +397,8 @@ if ( not $mod or not $command ) {
 
 	if ( $command eq "view" or $command eq "create" ) {
 
+		# TODO
+
 	} elsif ( $command eq "regenerate" ) {
 
 		print "Regenerating index dir '$indexdir'...\n";
@@ -411,9 +412,8 @@ if ( not $mod or not $command ) {
 		$listfile = "STDIN" unless $listfile;
 
 		print "Adding list file '$listfile' to index dir '$indexdir'...\n";
-		my $count = $index->add_list($list);
-		die "Failed\n" unless $count;
-		print "Done ($count emails)\n";
+		my ($count, $total) = $index->add_list($list);
+		print "Done ($count/$total emails)\n";
 
 	} elsif ( $command eq "add-mbox" ) {
 
@@ -422,9 +422,8 @@ if ( not $mod or not $command ) {
 		$mboxfile = "STDIN" unless $mboxfile;
 
 		print "Adding mbox file '$mboxfile' to index dir '$indexdir'...\n";
-		my $count = $index->add_list($mbox);
-		die "Failed\n" unless $count;
-		print "Done ($count emails)\n";
+		my ($count, $total) = $index->add_list($mbox);
+		print "Done ($count/$total emails)\n";
 
 	} elsif ( $command eq "add-mime" ) {
 
@@ -488,23 +487,13 @@ if ( not $mod or not $command ) {
 
 		print $fh $str;
 
-	} elsif ( $command eq "del-mark" ) {
+	} elsif ( $command eq "del" ) {
 
 		my $id = shift @ARGV;
 		help() unless $id;
 
-		print "Marking email with $id as deleted (will not be visible)...\n";
-		die "Failed\n" unless $index->delete_mark($id);
-
-		print "Done\n";
-
-	} elsif ( $command eq "del-unmark" ) {
-
-		my $id = shift @ARGV;
-		help() unless $id;
-
-		print "Unmarking email with $id as deleted (will be visible)...\n";
-		die "Failed\n" unless $index->delete_unmark($id);
+		print "Deleting email with $id...\n";
+		die "Failed\n" unless $index->delete($id);
 
 		print "Done\n";
 
