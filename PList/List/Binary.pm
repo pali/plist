@@ -102,7 +102,7 @@ sub readnext($) {
 
 	$len = unpack("V", $len);
 
-	if ( not read($fh, $str, $len) != $len ) {
+	if ( read($fh, $str, $len) != $len ) {
 		$priv->{eof} = 1;
 		return undef;
 	}
