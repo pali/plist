@@ -155,6 +155,13 @@ sub create_tables($) {
 	);
 	return 0 unless $dbh->do($statement);
 
+	$statement = qq(
+		INSERT INTO subjects (id, subject)
+			VALUES (0, NULL)
+		;
+	);
+	return 0 unless $dbh->do($statement);
+
 	return 1;
 
 }
@@ -334,8 +341,8 @@ sub add_email($$) {
 	}
 
 	$statement = qq(
-		INSERT OR IGNORE INTO emails (messageid, implicit)
-			VALUES (?, 1)
+		INSERT OR IGNORE INTO emails (messageid, subjectid, implicit)
+			VALUES (?, 0, 1)
 		;
 	);
 
