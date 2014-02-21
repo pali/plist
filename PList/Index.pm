@@ -396,21 +396,21 @@ sub add_email($$) {
 
 	if ( $from and @{$from} ) {
 		foreach ( @{$from} ) {
-			$_ =~ /^(\S*) (\S*)/;
+			$_ =~ /^(\S*) (.*)$/;
 			push(@addressess, [$id, $1, $2, 0]);
 		}
 	}
 
 	if ( $to and @{$to} ) {
 		foreach ( @{$to} ) {
-			$_ =~ /^(\S*) (\S*)/;
+			$_ =~ /^(\S*) (.*)$/;
 			push(@addressess, [$id, $1, $2, 1]);
 		}
 	}
 
 	if ( $cc and @{$cc} ) {
 		foreach ( @{$cc} ) {
-			$_ =~ /^(\S*) (\S*)/;
+			$_ =~ /^(\S*) (.*)$/;
 			push(@addressess, [$id, $1, $2, 2]);
 		}
 	}
