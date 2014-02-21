@@ -223,8 +223,10 @@ sub index_tree_get($$) {
 		print "Subject: $subject\n";
 	}
 
-	my %visited;
+	my %processed = ( $id => 1 );
 	my @stack = ($id);
+	my @len = ();
+	my $linelen = 0;
 
 	print "Tree:\n";
 
@@ -232,19 +234,25 @@ sub index_tree_get($$) {
 
 		$id = pop(@stack);
 
-		next if $visited{id};
-		$visited{id} = 1;
+		my ($reply, $references) = $index->db_replies_id($id, 0);
 
-		my ($reply, $references) = $index->db_replies_id($id);
+		my $size = scalar @stack;
 
-		push(@stack, $_) foreach ( @{$reply} );
-		push(@stack, $_) foreach ( @{$references} );
+		foreach ( (@{$reply}, @{$references}) ) {
+			if ( not $processed{$_} ) {
+				$processed{$_} = 1;
+				push(@stack, $_);
+				push(@len, $linelen+1);
+			}
+		}
 
 		printf(" %05d", $id);
 
-		if ( not @{$reply} and not @{$references} ) {
+		$linelen = pop(@len) if @stack;
+
+		if ( $size == scalar @stack ) {
 			print "\n";
-			print "     " x scalar @stack;
+			print "      " x $linelen if @stack;
 		}
 
 	}
