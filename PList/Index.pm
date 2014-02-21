@@ -218,8 +218,7 @@ sub normalize_subject($) {
 	my ($subject) = @_;
 
 	return "" unless defined $subject;
-	$subject =~ s/^\s*(?:(?:(Re|Fw|Fwd):\s*)*)(?:(\[[^\]]+\]\s*)?)(?:(?:(Re|Fw|Fwd):\s*)*)//i;
-	$subject =~ s/\s*$//;
+	$subject =~ s/^\s*(?:(?:(Re|Fw|Fwd):\s*)*)(?:(\[[^\]]+\]\s*(?:(Re|Fw|Fwd):\s*)+)*)//i;
 
 	return $subject;
 
