@@ -477,6 +477,7 @@ if ( not $mod or not $command ) {
 	}
 
 	my $index = new PList::Index($indexdir);
+	die "Cannot open index dir '$indexdir'\n" unless $index;
 
 	if ( $command eq "view" or $command eq "create" ) {
 
@@ -544,18 +545,18 @@ if ( not $mod or not $command ) {
 		my $outputfile = shift @ARGV;
 		my $fh = open_output($outputfile, $mode);
 
-		my $str;
 		if ( $command eq "get-bin" ) {
-			$str = $index->email($id);
+			my $pemail = $index->email($id);
+			die "Failed\n" unless $pemail;
+			PList::Email::Binary::to_fh($pemail, $fh);
 		} elsif ( $command eq "get-tree" ) {
 			index_tree_get($index, $id);
 			exit 0;
 		} else {
-			$str = $index->view($id, %args);
+			my $str = $index->view($id, %args);
+			die "Failed\n" unless $str;
+			print $fh $str;
 		}
-		die "Failed\n" unless $str;
-
-		print $fh $str;
 
 	} elsif ( $command eq "get-part" ) {
 
