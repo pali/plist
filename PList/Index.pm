@@ -91,7 +91,7 @@ sub create_tables($) {
 
 	$statement = qq(
 		CREATE TABLE subjects (
-			id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			id		INTEGER PRIMARY KEY NOT NULL,
 			subject		TEXT UNIQUE ON CONFLICT IGNORE
 		);
 	);
@@ -99,8 +99,8 @@ sub create_tables($) {
 
 	$statement = qq(
 		CREATE TABLE emails (
-			id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-			messageid	TEXT UNIQUE NOT NULL ON CONFLICT IGNORE,
+			id		INTEGER PRIMARY KEY NOT NULL,
+			messageid	TEXT NOT NULL UNIQUE,
 			date		INTEGER,
 			subjectid	INTEGER,
 			list		TEXT,
@@ -113,10 +113,11 @@ sub create_tables($) {
 
 	$statement = qq(
 		CREATE TABLE replies (
-			id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			id		INTEGER PRIMARY KEY NOT NULL,
 			emailid1	INTEGER NOT NULL,
 			emailid2	INTEGER NOT NULL,
-			type		INTEGER,
+			type		INTEGER NOT NULL,
+			UNIQUE (emailid1, emailid2, type) ON CONFLICT IGNORE,
 			FOREIGN KEY(emailid1) REFERENCES emails(id),
 			FOREIGN KEY(emailid2) REFERENCES emails(id)
 		);
@@ -136,19 +137,21 @@ sub create_tables($) {
 
 	$statement = qq(
 		CREATE TABLE address (
-			id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			id		INTEGER PRIMARY KEY NOT NULL,
 			email		TEXT NOT NULL,
-			name		TEXT NOT NULL
+			name		TEXT NOT NULL,
+			UNIQUE (email, name) ON CONFLICT IGNORE
 		);
 	);
 	return 0 unless $dbh->do($statement);
 
 	$statement = qq(
 		CREATE TABLE addressess (
-			id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+			id		INTEGER PRIMARY KEY NOT NULL,
 			emailid		INTEGER NOT NULL,
 			addressid	INTEGER NOT NULL,
-			type		INTEGER,
+			type		INTEGER NOT NULL,
+			UNIQUE (emailid, addressid, type) ON CONFLICT IGNORE,
 			FOREIGN KEY(emailid) REFERENCES emails(id),
 			FOREIGN KEY(addressid) REFERENCES address(id)
 		);
@@ -416,7 +419,7 @@ sub add_email($$) {
 	}
 
 	$statement = qq(
-		INSERT OR IGNORE INTO address (email, name)
+		INSERT INTO address (email, name)
 			VALUES (?, ?)
 		;
 	);
