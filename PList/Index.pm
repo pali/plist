@@ -245,7 +245,7 @@ sub add_email($$) {
 	my $ret;
 
 	$statement = qq(
-		SELECT id
+		SELECT messageid
 			FROM emails
 			WHERE implicit = 0 AND messageid = ?
 			LIMIT 1
@@ -255,7 +255,7 @@ sub add_email($$) {
 	eval {
 		$sth = $dbh->prepare_cached($statement);
 		$sth->execute($id);
-		$ret = $sth->fetchall_hashref("id");
+		$ret = $sth->fetchall_hashref("messageid");
 	} or do {
 		eval { $dbh->rollback(); };
 		return undef;
@@ -779,13 +779,12 @@ sub db_replies_id($$$) {
 		$sth->execute($id);
 		$ret = $sth->fetchall_arrayref();
 	} or do {
-		warn;
 		return (\@reply, \@references);
 	};
 
 	return (\@reply, \@references) if ( not $ret or scalar @{$ret} == 0 );
 
-	push(@reply, ${@{$ret}}[0]);
+	push(@reply, ${${$ret}[0]}[0]);
 	return (\@reply, \@references);
 
 }
@@ -811,7 +810,7 @@ sub email($$) {
 	eval {
 		$sth = $dbh->prepare_cached($statement);
 		$sth->execute($id);
-		$ret = $sth->fetchall_hashref("id");
+		$ret = $sth->fetchall_hashref("messageid");
 	} or do {
 		return undef;
 	};
