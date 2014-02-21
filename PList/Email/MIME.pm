@@ -89,16 +89,7 @@ sub date($) {
 sub ids(@) {
 
 	my @ret;
-
-	foreach (@_) {
-		foreach (split(" ", $_)) {
-			my $id = $_;
-			$id =~ s/^\s*<(.*)>\s*$/$1/;
-			$id =~ s/\s/_/g;
-			push(@ret, $id);
-		}
-	}
-
+	push(@ret, m/<\s*(\S*)\s*>/g) foreach (@_);
 	return @ret;
 
 }
