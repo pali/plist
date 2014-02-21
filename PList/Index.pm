@@ -106,6 +106,7 @@ sub create_tables($) {
 			list		TEXT,
 			offset		INTEGER,
 			implicit	INTEGER,
+			hasreply	INTEGER,
 			FOREIGN KEY(subjectid) REFERENCES subjects(id)
 		);
 	);
@@ -120,17 +121,6 @@ sub create_tables($) {
 			UNIQUE (emailid1, emailid2, type) ON CONFLICT IGNORE,
 			FOREIGN KEY(emailid1) REFERENCES emails(id),
 			FOREIGN KEY(emailid2) REFERENCES emails(id)
-		);
-	);
-	return 0 unless $dbh->do($statement);
-
-	$statement = qq(
-		CREATE TABLE subreplies (
-			id		INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-			emailid		INTEGER NOT NULL,
-			subjectid	INTEGER NOT NULL,
-			FOREIGN KEY(emailid) REFERENCES emails(id),
-			FOREIGN KEY(subjectid) REFERENCES subjects(id)
 		);
 	);
 	return 0 unless $dbh->do($statement);
@@ -264,7 +254,7 @@ sub add_email($$) {
 	};
 
 	if ( $ret and $ret->{$id} ) {
-		warn "Email already in database, skipping\n";
+		warn "Email with id '$id' already in database, skipping\n";
 		return 0;
 	}
 
@@ -295,7 +285,6 @@ sub add_email($$) {
 
 	eval { $date = Time::Piece->strptime($header->{date}, "%Y-%m-%d %H:%M:%S %z") };
 	$date = $date->epoch() if $date;
-	$date = 0 unless $date;
 
 	$statement = qq(
 		INSERT INTO subjects (subject)
@@ -311,22 +300,26 @@ sub add_email($$) {
 		return 0;
 	};
 
+	my $hasreply = 0;
+	$hasreply = 1 if $reply and @{$reply};
+
 	$statement = qq(
-		INSERT OR REPLACE INTO emails (messageid, date, subjectid, list, offset, implicit)
+		INSERT OR REPLACE INTO emails (messageid, date, subjectid, list, offset, implicit, hasreply)
 			VALUES (
 				?,
 				?,
 				(SELECT id FROM subjects WHERE subject = ?),
 				?,
 				?,
-				0
+				0,
+				?
 			)
 		;
 	);
 
 	eval {
 		$sth = $dbh->prepare_cached($statement);
-		$sth->execute($id, $date, $subject, $listfile, $offset);
+		$sth->execute($id, $date, $subject, $listfile, $offset, $hasreply);
 	} or do {
 		warn "";
 		eval { $dbh->rollback(); };
@@ -365,35 +358,6 @@ sub add_email($$) {
 			)
 		;
 	);
-
-#	eval {
-		$sth = $dbh->prepare_cached($statement);
-		$sth->execute(@{$_}) foreach (@replies);
-#	} or do {
-#		eval { $dbh->rollback(); };
-#		return 0;
-#	};
-
-	if ( not $reply or @{$reply} ) {
-
-		$statement = qq(
-			INSERT INTO subreplies (emailid, subjectid)
-				VALUES (
-					(SELECT id FROM emails WHERE messageid = ?),
-					(SELECT id FROM subjects WHERE subject = ?)
-				)
-			;
-		);
-
-		eval {
-			$sth = $dbh->prepare_cached($statement);
-			$sth->execute($id, $subject);
-		} or do {
-			eval { $dbh->rollback(); };
-			return 0;
-		};
-
-	}
 
 	my @addressess;
 
@@ -498,7 +462,7 @@ sub db_email($$) {
 	my $ret;
 
 	$statement = qq(
-		SELECT e.id, e.messageid, e.date, s.subject, e.list, e.offset, e.implicit
+		SELECT e.id, e.messageid, e.date, s.subject, e.list, e.offset, e.implicit, e.hasreply
 			FROM emails AS e
 			JOIN subjects AS s ON s.id = e.subjectid
 			WHERE e.messageid = ?
@@ -636,21 +600,21 @@ sub db_replies($$$) {
 	my $sth;
 	my $ret;
 
-	my $emailid1;
-	my $emailid2;
+	my $id1;
+	my $id2;
 	if ( $up ) {
-		$emailid1 = "emailid1";
-		$emailid2 = "emailid2";
+		$id1 = "1";
+		$id2 = "2";
 	} else {
-		$emailid1 = "emailid2";
-		$emailid2 = "emailid1";
+		$id1 = "2";
+		$id2 = "1";
 	}
 
 	$statement = qq(
 		SELECT DISTINCT e2.messageid, r.type
 			FROM emails AS e1
-			JOIN replies AS r ON r.$emailid1 = e1.id
-			JOIN emails AS e2 ON e2.id = r.$emailid2
+			JOIN replies AS r ON r.emailid$id1 = e1.id
+			JOIN emails AS e2 ON e2.id = r.emailid$id2
 			WHERE e1.messageid = ?
 			ORDER BY e2.date
 		;
@@ -687,8 +651,7 @@ sub db_replies($$$) {
 		SELECT e2.messageid
 			FROM emails AS e1
 			JOIN emails AS e2 ON e2.subjectid = e1.subjectid
-			JOIN replies AS r ON r.$emailid2 = e2.id
-			WHERE e1.id != e2.id AND r.$emailid1 != e1.id AND e1.messageid = ?
+			WHERE e1.id != e2.id AND e$id2.hasreply = 0 AND e1.date IS NOT NULL AND e2.date IS NOT NULL AND e$id1.date >= e$id2.date AND e1.messageid = ?
 			ORDER BY e2.date
 			LIMIT 1
 		;
