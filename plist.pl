@@ -223,6 +223,38 @@ sub index_tree_get($$) {
 		print "Subject: $subject\n";
 	}
 
+	my %tree = ( root => [] );
+	my @stack1 = (["root", $id]);
+	my @stack2;
+
+	while ( scalar @stack1 or scalar @stack2 ) {
+
+		my $m;
+		if ( scalar @stack1 ) {
+			$m = pop(@stack1);
+		} else {
+			$m = pop(@stack2);
+		}
+
+		my ($up, $tid) = @{$m};
+
+		next if $tree{$tid};
+
+		$tree{$tid} = [];
+		push(@{$tree{$up}}, $tid);
+
+		my ($reply, $references) = $index->db_replies_id($tid, 0);
+
+		push(@stack1, [$tid, $_]) foreach ( @{$reply} );
+		push(@stack2, [$tid, $_]) foreach ( @{$references} );
+
+	}
+
+	my @keys = sort keys %tree;
+	pop(@keys);
+	my $len = length(pop(@keys))+1;
+	my $space = " " x $len;
+
 	my %processed = ( $id => 1 );
 	my @stack = ($id);
 	my @len = ();
@@ -232,27 +264,29 @@ sub index_tree_get($$) {
 
 	while (@stack) {
 
-		$id = pop(@stack);
-
-		my ($reply, $references) = $index->db_replies_id($id, 0);
+		my $tid = pop(@stack);
 
 		my $size = scalar @stack;
 
-		foreach ( (@{$reply}, @{$references}) ) {
-			if ( not $processed{$_} ) {
-				$processed{$_} = 1;
-				push(@stack, $_);
-				push(@len, $linelen+1);
+		my $down = $tree{$tid};
+
+		if ( $down ) {
+			foreach ( @{$down} ) {
+				if ( not $processed{$_} ) {
+					$processed{$_} = 1;
+					push(@stack, $_);
+					push(@len, $linelen+1);
+				}
 			}
 		}
 
-		printf(" %05d", $id);
+		printf(" %0" . ($len-1) . "d", $tid);
 
 		$linelen = pop(@len) if @stack;
 
 		if ( $size == scalar @stack ) {
 			print "\n";
-			print "      " x $linelen if @stack;
+			print $space x $linelen if @stack;
 		}
 
 	}
