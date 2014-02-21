@@ -28,6 +28,7 @@ sub help() {
 	print "index add-mime <dir> [<mime>]\n";
 	print "index get-bin <dir> <id> [<bin>]\n";
 	print "index get-part <dir> <id> <part> [<file>]\n";
+	print "index get-tree <dir> <id> [<file]\n";
 	print "index gen-html <dir> <id> [<html>]\n";
 	print "index gen-txt <dir> <id> [<txt>]\n";
 	print "index del <dir> <id>\n";
@@ -173,6 +174,80 @@ sub bin_get($$$) {
 	die "Cannot read email (at $offset) from list file $listfile\n" unless $pemail;
 
 	return ($pemail, $fh);
+
+}
+
+sub index_tree_get($$) {
+
+	my ($index, $messageid) = @_;
+
+	my $email = $index->db_email($messageid);
+
+	if ( not $email ) {
+		print "Error: Email not found\n";
+		return;
+	}
+
+	my $id = $email->{id};
+	my $implicit = $email->{implicit};
+	my $from = $email->{from};
+	my $to = $email->{to};
+	my $cc = $email->{cc};
+	my $date = $email->{date};
+	my $subject = $email->{subject};
+
+	print "Internal id: $id\n";
+	print "Id: $messageid\n";
+
+	if ( $from and @{$from} ) {
+		print "From:";
+		print " " . $_->[1] . " <" . $_->[0] . ">" foreach (@{$from});
+		print "\n";
+	}
+	if ( $to and @{$to} ) {
+		print "To:";
+		print " " . $_->[1] . " <" . $_->[0] . ">" foreach (@{$to});
+		print "\n";
+	}
+	if ( $cc and @{$cc} ) {
+		print "Cc:";
+		print " " . $_->[1] . " <" . $_->[0] . ">" foreach (@{$cc});
+		print "\n";
+	}
+
+	if ( $date ) {
+		print "Date: $date\n";
+	}
+
+	if ( $subject ) {
+		print "Subject: $subject\n";
+	}
+
+	my %visited;
+	my @stack = ($id);
+
+	print "Tree:\n";
+
+	while (@stack) {
+
+		$id = pop(@stack);
+
+		next if $visited{id};
+		$visited{id} = 1;
+
+		my ($reply, $references) = $index->db_replies_id($id);
+
+		push(@stack, $_) foreach ( @{$reply} );
+		push(@stack, $_) foreach ( @{$references} );
+
+		printf(" %05d", $id);
+
+		if ( not @{$reply} and not @{$references} ) {
+			print "\n";
+			print "     " x scalar @stack;
+		}
+
+	}
 
 }
 
@@ -447,7 +522,7 @@ if ( not $mod or not $command ) {
 		die "Failed (Cannot add email)\n" unless $index->add_email($pemail);
 		print "Done\n";
 
-	} elsif ( $command eq "get-bin" or $command eq "gen-html" or $command eq "gen-txt" ) {
+	} elsif ( $command eq "get-bin" or $command eq "get-tree" or $command eq "gen-html" or $command eq "gen-txt" ) {
 
 		my $id = shift @ARGV;
 		help() unless $id;
@@ -458,12 +533,15 @@ if ( not $mod or not $command ) {
 		$args{html_output} = 0 if ( $command eq "gen-txt" );
 		$mode = ":raw" if ( $command eq "get-bin" );
 
-		my $binfile = shift @ARGV;
-		my $fh = open_output($binfile, $mode);
+		my $outputfile = shift @ARGV;
+		my $fh = open_output($outputfile, $mode);
 
 		my $str;
 		if ( $command eq "get-bin" ) {
 			$str = $index->email($id);
+		} elsif ( $command eq "get-tree" ) {
+			index_tree_get($index, $id);
+			exit 0;
 		} else {
 			$str = $index->view($id, %args);
 		}
