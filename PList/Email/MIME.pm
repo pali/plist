@@ -89,8 +89,8 @@ sub date($) {
 sub ids(@) {
 
 	my @ret;
-	push(@ret, m/<\s*(\S*)\s*>/g) foreach (@_);
-	return @ret;
+	push(@ret, m/<\s*([^<>]+)\s*>/g) foreach (@_);
+	return map { $_ =~ s/\s//g; $_ } @ret;
 
 }
 
