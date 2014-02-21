@@ -799,7 +799,7 @@ sub email($$) {
 	my $ret;
 
 	$statement = qq(
-		SELECT list, offset
+		SELECT messageid, list, offset
 			FROM emails
 			WHERE implicit = 0 AND messageid = ?
 			LIMIT 1
