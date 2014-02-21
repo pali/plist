@@ -484,6 +484,7 @@ sub db_email($$) {
 	my $dbh = $priv->{dbh};
 
 	my $statement;
+	my $sth;
 	my $email = { from => [], to => [], cc => [] };
 	my $ret;
 
@@ -497,9 +498,9 @@ sub db_email($$) {
 	);
 
 	eval {
-		$dbh->prepare_cached($statement);
-		$dbh->execute($id);
-		$ret = $dbh->fetchall_hashref("id");
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute($id);
+		$ret = $sth->fetchall_hashref("messageid");
 	} or do {
 		return undef;
 	};
@@ -519,9 +520,9 @@ sub db_email($$) {
 	);
 
 	eval {
-		$dbh->prepare_cached($statement);
-		$dbh->execute($email->{id});
-		$ret = $dbh->fetchall_arrayref();
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute($email->{id});
+		$ret = $sth->fetchall_arrayref();
 	} or do {
 		return undef;
 	};
@@ -540,7 +541,7 @@ sub db_email($$) {
 		} else {
 			next;
 		}
-		push(@{$array}, {email => $_->[0], name => $_->[1]});
+		push(@{$array}, [$_->[0], $_->[1]]);
 	}
 
 	return $email;
@@ -555,6 +556,7 @@ sub db_emails($;%) {
 
 	my $statement;
 	my @args;
+	my $sth;
 	my $ret;
 
 	if ( exists $args{subject} ) {
@@ -603,9 +605,9 @@ sub db_emails($;%) {
 	$statement =~ s/AND$//;
 
 	eval {
-		$dbh->prepare_cached($statement);
-		$dbh->execute(@args);
-		$ret = $dbh->fetchall_arrayref();
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute(@args);
+		$ret = $sth->fetchall_arrayref();
 	} or do {
 		return undef;
 	};
@@ -622,6 +624,7 @@ sub db_replies($$$) {
 	my $dbh = $priv->{dbh};
 
 	my $statement;
+	my $sth;
 	my $ret;
 
 	my $emailid1;
@@ -640,12 +643,17 @@ sub db_replies($$$) {
 			JOIN replies AS r ON r.$emailid1 = e1.id
 			JOIN emails AS e2 ON e2.id = r.$emailid2
 			WHERE e1.messageid = ?
+			ORDER BY e2.date
 		;
 	);
 
-	$dbh->prepare_cached($statement);
-	$dbh->execute($id);
-	$ret = $dbh->fetchall_arrayref();
+	eval {
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute($id);
+		$ret = $sth->fetchall_arrayref();
+	} or do {
+		return undef;
+	};
 
 	return undef unless $ret;
 
@@ -670,16 +678,103 @@ sub db_replies($$$) {
 		SELECT e2.messageid
 			FROM emails AS e1
 			JOIN emails AS e2 ON e2.subjectid = e1.subjectid
-			JOIN replies AS r ON e2.messageid
-			WHERE e1.messageid = ? AND e1.messageid != e2.messageid AND r.$emailid1 != e1.id
+			JOIN replies AS r ON r.$emailid2 = e2.id
+			WHERE e1.id != e2.id AND r.$emailid1 != e1.id AND e1.messageid = ?
 			ORDER BY e2.date
 			LIMIT 1
 		;
 	);
 
-	$dbh->prepare_cached($statement);
-	$dbh->execute($id);
-	$ret = $dbh->fetchall_arrayref();
+	eval {
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute($id);
+		$ret = $sth->fetchall_arrayref();
+	} or do {
+		return (\@reply, \@references);
+	};
+
+	return (\@reply, \@references) if ( not $ret or scalar @{$ret} == 0 );
+
+	push(@reply, ${@{$ret}}[0]);
+	return (\@reply, \@references);
+
+}
+
+sub db_replies_id($$$) {
+
+	my ($priv, $id, $up) = @_;
+
+	my $dbh = $priv->{dbh};
+
+	my $statement;
+	my $sth;
+	my $ret;
+
+	my $emailid1;
+	my $emailid2;
+	if ( $up ) {
+		$emailid1 = "emailid1";
+		$emailid2 = "emailid2";
+	} else {
+		$emailid1 = "emailid2";
+		$emailid2 = "emailid1";
+	}
+
+	$statement = qq(
+		SELECT DISTINCT r.$emailid2, r.type
+			FROM replies AS r
+			JOIN emails AS e ON e.id = r.$emailid1
+			WHERE r.$emailid1 = ?
+			ORDER BY e.date
+		;
+	);
+
+	eval {
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute($id);
+		$ret = $sth->fetchall_arrayref();
+	} or do {
+		return undef;
+	};
+
+	return undef unless $ret;
+
+	my @reply;
+	my @references;
+
+	foreach ( @{$ret} ) {
+		my $mid = ${$_}[0];
+		my $type = ${$_}[1];
+		if ( $type == 0 ) {
+			push(@reply, $mid);
+		} elsif ( $type == 1 ) {
+			push(@references, $mid);
+		} else {
+			next;
+		}
+	}
+
+	return (\@reply, \@references) if ( $up and scalar @reply != 0 );
+
+	$statement = qq(
+		SELECT e2.id
+			FROM emails AS e1
+			JOIN emails AS e2 ON e2.subjectid = e1.subjectid
+			JOIN replies AS r ON r.$emailid2 = e2.id
+			WHERE e1.id != e2.id AND r.$emailid1 != e1.id AND e1.id = ?
+			ORDER BY e2.date
+			LIMIT 1
+		;
+	);
+
+	eval {
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute($id);
+		$ret = $sth->fetchall_arrayref();
+	} or do {
+		warn;
+		return (\@reply, \@references);
+	};
 
 	return (\@reply, \@references) if ( not $ret or scalar @{$ret} == 0 );
 
@@ -695,6 +790,7 @@ sub email($$) {
 	my $dbh = $priv->{dbh};
 
 	my $statement;
+	my $sth;
 	my $ret;
 
 	$statement = qq(
@@ -705,9 +801,13 @@ sub email($$) {
 		;
 	);
 
-	$dbh->prepare_cached($statement);
-	$dbh->execute($id);
-	$ret = $dbh->fetchall_hashref("id");
+	eval {
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute($id);
+		$ret = $sth->fetchall_hashref("id");
+	} or do {
+		return undef;
+	};
 
 	return undef unless $ret and $ret->{$id};
 
