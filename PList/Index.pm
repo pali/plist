@@ -285,6 +285,7 @@ sub add_email($$) {
 
 	eval { $date = Time::Piece->strptime($header->{date}, "%Y-%m-%d %H:%M:%S %z") };
 	$date = $date->epoch() if $date;
+	$date = undef unless $date;
 
 	$statement = qq(
 		INSERT INTO subjects (subject)
