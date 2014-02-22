@@ -243,15 +243,15 @@ sub index_tree_get($$) {
 		$tree{$tid} = [];
 		push(@{$tree{$up}}, $tid);
 
-		my ($reply, $references) = $index->db_replies($tid, 0, 0);
+		my ($reply, $references) = $index->db_replies($tid, 0, 0, 1);
 
 		push(@stack1, [$tid, ${$_}[0]]) foreach ( @{$reply} );
 		push(@stack2, [$tid, ${$_}[0]]) foreach ( @{$references} );
 
 	}
 
-	my @keys = sort keys %tree;
-	pop(@keys);
+	delete $tree{root};
+	my @keys = sort { $a <=> $b } keys %tree;
 	my $len = length(pop(@keys))+1;
 	my $space = " " x $len;
 
@@ -280,7 +280,7 @@ sub index_tree_get($$) {
 			}
 		}
 
-		printf(" %0" . ($len-1) . "d", $tid);
+		printf(" %" . ($len-1) . "d", $tid);
 
 		$linelen = pop(@len) if @stack;
 
