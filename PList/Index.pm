@@ -343,7 +343,7 @@ sub add_email($$) {
 #	eval {
 	{
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute(@{$_}[1]) foreach (@replies);
+		$sth->execute(${$_}[1]) foreach (@replies);
 	}
 #	} or do {
 #		eval { $dbh->rollback(); };
