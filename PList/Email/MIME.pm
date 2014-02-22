@@ -52,12 +52,14 @@ sub subject($) {
 
 }
 
-sub find_date_received($) {
+sub find_dates_received(@) {
 
-	return unless defined $_[0] and length $_[0];
-	my $date = pop;
-	$date =~ s/.+;//;
-	$date;
+	my @ret;
+	foreach (@_) {
+		$_ =~ s/.+;//;
+		push(@ret, $_);
+	}
+	return @ret;
 
 }
 
@@ -67,22 +69,24 @@ sub find_date_received($) {
 sub date($) {
 
 	my ($email) = @_;
-	my $header;
 	my $date;
 
-	$header = $email->header("Date") || find_date_received($email->header("Received")) || $email->header("Resent-Date");
+	my @headers;
 
-	if ( $header and length $header ) {
-		eval { $date = DateTime::Format::Mail->parse_datetime($header); };
+	push(@headers, $email->header("Resent-Date"));
+	push(@headers, find_dates_received($email->header("Received")));
+	push(@headers, $email->header("Date"));
+
+	foreach ( reverse @headers ) {
+		next unless $_;
+		eval { $date = DateTime::Format::Mail->new(loose => 1)->parse_datetime($_); };
+		last if $date;
+		# TODO: Check if date is not in future
 	}
 
-	# TODO: Check if date is not in future
+	return "" unless $date;
 
-	if ( $date ) {
-		return $date->strftime("%Y-%m-%d %H:%M:%S %z");
-	} else {
-		return "";
-	}
+	return $date->strftime("%Y-%m-%d %H:%M:%S %z");
 
 }
 
