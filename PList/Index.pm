@@ -232,7 +232,6 @@ sub add_email($$) {
 	my $id = $header->{id};
 
 	my $statement;
-	my $sth;
 	my $ret;
 
 	$statement = qq(
@@ -244,7 +243,7 @@ sub add_email($$) {
 	);
 
 	eval {
-		$sth = $dbh->prepare_cached($statement);
+		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute($id);
 		$ret = $sth->fetchall_hashref("messageid");
 	} or do {
@@ -293,7 +292,7 @@ sub add_email($$) {
 	);
 
 	eval {
-		$sth = $dbh->prepare_cached($statement);
+		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute($subject);
 	} or do {
 		eval { $dbh->rollback(); };
@@ -318,7 +317,7 @@ sub add_email($$) {
 	);
 
 	eval {
-		$sth = $dbh->prepare_cached($statement);
+		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute($id, $date, $subject, $listfile, $offset, $hasreply);
 	} or do {
 		warn "";
@@ -342,8 +341,10 @@ sub add_email($$) {
 	);
 
 #	eval {
-		$sth = $dbh->prepare_cached($statement);
+	{
+		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute(@{$_}[1]) foreach (@replies);
+	}
 #	} or do {
 #		eval { $dbh->rollback(); };
 #		return 0;
@@ -360,8 +361,10 @@ sub add_email($$) {
 	);
 
 #	eval {
-		$sth = $dbh->prepare_cached($statement);
+	{
+		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute(@{$_}) foreach (@replies);
+	}
 #	} or do {
 #		eval { $dbh->rollback(); };
 #		return 0;
@@ -397,8 +400,10 @@ sub add_email($$) {
 	);
 
 #	eval {
-		$sth = $dbh->prepare_cached($statement);
+	{
+		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute(${$_}[1], ${$_}[2]) foreach (@addressess);
+	}
 #	} or do {
 #		eval { $dbh->rollback(); };
 #		return 0;
@@ -415,8 +420,10 @@ sub add_email($$) {
 	);
 
 #	eval {
-		$sth = $dbh->prepare_cached($statement);
+	{
+		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute(@{$_}) foreach (@addressess);
+	}
 #	} or do {
 #		eval { $dbh->rollback(); };
 #		return 0;
@@ -465,7 +472,6 @@ sub db_email($$) {
 	my $dbh = $priv->{dbh};
 
 	my $statement;
-	my $sth;
 	my $email = { from => [], to => [], cc => [] };
 	my $ret;
 
@@ -479,7 +485,7 @@ sub db_email($$) {
 	);
 
 	eval {
-		$sth = $dbh->prepare_cached($statement);
+		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute($id);
 		$ret = $sth->fetchall_hashref("messageid");
 	} or do {
@@ -501,7 +507,7 @@ sub db_email($$) {
 	);
 
 	eval {
-		$sth = $dbh->prepare_cached($statement);
+		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute($email->{id});
 		$ret = $sth->fetchall_arrayref();
 	} or do {
@@ -537,7 +543,6 @@ sub db_emails($;%) {
 
 	my $statement;
 	my @args;
-	my $sth;
 	my $ret;
 
 	if ( exists $args{subject} ) {
@@ -586,7 +591,7 @@ sub db_emails($;%) {
 	$statement =~ s/AND$//;
 
 	eval {
-		$sth = $dbh->prepare_cached($statement);
+		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute(@args);
 		$ret = $sth->fetchall_arrayref();
 	} or do {
@@ -605,7 +610,6 @@ sub db_replies($$$$) {
 	my $dbh = $priv->{dbh};
 
 	my $statement;
-	my $sth;
 	my $ret;
 
 	my $id1 = "1";
@@ -633,7 +637,7 @@ sub db_replies($$$$) {
 	);
 
 	eval {
-		$sth = $dbh->prepare_cached($statement);
+		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute($id);
 		$ret = $sth->fetchall_arrayref();
 	} or do {
@@ -676,7 +680,7 @@ sub db_replies($$$$) {
 	);
 
 	eval {
-		$sth = $dbh->prepare_cached($statement);
+		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute($id);
 		$ret = $sth->fetchall_arrayref();
 	} or do {
@@ -697,7 +701,6 @@ sub email($$) {
 	my $dbh = $priv->{dbh};
 
 	my $statement;
-	my $sth;
 	my $ret;
 
 	$statement = qq(
@@ -709,7 +712,7 @@ sub email($$) {
 	);
 
 	eval {
-		$sth = $dbh->prepare_cached($statement);
+		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute($id);
 		$ret = $sth->fetchall_hashref("messageid");
 	} or do {
