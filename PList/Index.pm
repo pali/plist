@@ -591,9 +591,9 @@ sub db_emails($;%) {
 
 }
 
-sub db_replies($$$) {
+sub db_replies($$$$) {
 
-	my ($priv, $id, $up) = @_;
+	my ($priv, $id, $up, $desc) = @_;
 
 	my $dbh = $priv->{dbh};
 
@@ -601,23 +601,27 @@ sub db_replies($$$) {
 	my $sth;
 	my $ret;
 
-	my $id1;
-	my $id2;
-	if ( $up ) {
-		$id1 = "1";
-		$id2 = "2";
-	} else {
+	my $id1 = "1";
+	my $id2 = "2";
+
+	if ( not $up ) {
 		$id1 = "2";
 		$id2 = "1";
 	}
 
+	if ( $desc ) {
+		$desc = "DESC";
+	} else {
+		$desc = "";
+	}
+
 	$statement = qq(
-		SELECT DISTINCT e2.messageid, r.type
+		SELECT DISTINCT e2.id, e2.messageid, r.type
 			FROM emails AS e1
 			JOIN replies AS r ON r.emailid$id1 = e1.id
 			JOIN emails AS e2 ON e2.id = r.emailid$id2
 			WHERE e1.messageid = ?
-			ORDER BY e2.date
+			ORDER BY e2.date $desc
 		;
 	);
 
@@ -635,8 +639,8 @@ sub db_replies($$$) {
 	my @references;
 
 	foreach ( @{$ret} ) {
-		my $mid = ${$_}[0];
-		my $type = ${$_}[1];
+		my $mid = [${$_}[0], ${$_}[1]];
+		my $type = ${$_}[2];
 		if ( $type == 0 ) {
 			push(@reply, $mid);
 		} elsif ( $type == 1 ) {
@@ -646,15 +650,21 @@ sub db_replies($$$) {
 		}
 	}
 
-	return (\@reply, \@references) if ( $up and scalar @reply != 0 );
+	return (\@reply, \@references) if ( $up and ( @reply or @references ) );
+
+	my $limit = "";
+	if ( $up ) {
+		$limit = "LIMIT 1";
+		$desc = "";
+	}
 
 	$statement = qq(
-		SELECT e2.messageid
+		SELECT DISTINCT e2.id, e2.messageid
 			FROM emails AS e1
 			JOIN emails AS e2 ON e2.subjectid = e1.subjectid
-			WHERE e1.id != e2.id AND e$id2.hasreply = 0 AND e1.date IS NOT NULL AND e2.date IS NOT NULL AND e$id1.date >= e$id2.date AND e1.messageid = ?
-			ORDER BY e2.date
-			LIMIT 1
+			WHERE e1.id != e2.id AND e$id1.hasreply = 0 AND e1.date IS NOT NULL AND e2.date IS NOT NULL AND e$id1.date >= e$id2.date AND e1.messageid = ?
+			ORDER BY e2.date $desc
+			$limit
 		;
 	);
 
@@ -666,9 +676,9 @@ sub db_replies($$$) {
 		return (\@reply, \@references);
 	};
 
-	return (\@reply, \@references) if ( not $ret or scalar @{$ret} == 0 );
+	return (\@reply, \@references) unless ( $ret and @{$ret} );
 
-	push(@reply, ${@{$ret}}[0]);
+	push(@reply, @{$ret});
 	return (\@reply, \@references);
 
 }
