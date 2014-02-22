@@ -320,7 +320,6 @@ sub add_email($$) {
 		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute($id, $date, $subject, $listfile, $offset, $hasreply);
 	} or do {
-		warn "";
 		eval { $dbh->rollback(); };
 		return 0;
 	};
@@ -340,15 +339,14 @@ sub add_email($$) {
 		;
 	);
 
-#	eval {
-	{
+	eval {
 		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute(${$_}[1]) foreach (@replies);
-	}
-#	} or do {
-#		eval { $dbh->rollback(); };
-#		return 0;
-#	};
+		1;
+	} or do {
+		eval { $dbh->rollback(); };
+		return 0;
+	};
 
 	$statement = qq(
 		INSERT INTO replies (emailid1, emailid2, type)
@@ -360,15 +358,14 @@ sub add_email($$) {
 		;
 	);
 
-#	eval {
-	{
+	eval {
 		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute(@{$_}) foreach (@replies);
-	}
-#	} or do {
-#		eval { $dbh->rollback(); };
-#		return 0;
-#	};
+		1;
+	} or do {
+		eval { $dbh->rollback(); };
+		return 0;
+	};
 
 	my @addressess;
 
@@ -399,15 +396,14 @@ sub add_email($$) {
 		;
 	);
 
-#	eval {
-	{
+	eval {
 		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute(${$_}[1], ${$_}[2]) foreach (@addressess);
-	}
-#	} or do {
-#		eval { $dbh->rollback(); };
-#		return 0;
-#	};
+		1;
+	} or do {
+		eval { $dbh->rollback(); };
+		return 0;
+	};
 
 	$statement = qq(
 		INSERT INTO addressess (emailid, addressid, type)
@@ -419,15 +415,14 @@ sub add_email($$) {
 		;
 	);
 
-#	eval {
-	{
+	eval {
 		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute(@{$_}) foreach (@addressess);
-	}
-#	} or do {
-#		eval { $dbh->rollback(); };
-#		return 0;
-#	};
+		1;
+	} or do {
+		eval { $dbh->rollback(); };
+		return 0;
+	};
 
 	eval {
 		$dbh->commit();
