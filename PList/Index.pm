@@ -603,9 +603,9 @@ sub db_emails($;%) {
 
 }
 
-sub db_replies($$$$) {
+sub db_replies($$;$$$) {
 
-	my ($priv, $id, $up, $desc) = @_;
+	my ($priv, $id, $up, $desc, $rid) = @_;
 
 	my $dbh = $priv->{dbh};
 
@@ -626,12 +626,15 @@ sub db_replies($$$$) {
 		$desc = "";
 	}
 
+	my $where = "messageid";
+	$where = "id" if ( $rid );
+
 	$statement = qq(
 		SELECT DISTINCT e2.id, e2.messageid, r.type
 			FROM emails AS e1
 			JOIN replies AS r ON r.emailid$id1 = e1.id
 			JOIN emails AS e2 ON e2.id = r.emailid$id2
-			WHERE e1.messageid = ?
+			WHERE e1.$where = ?
 			ORDER BY e2.date $desc
 		;
 	);
@@ -673,7 +676,7 @@ sub db_replies($$$$) {
 		SELECT DISTINCT e2.id, e2.messageid
 			FROM emails AS e1
 			JOIN emails AS e2 ON e2.subjectid = e1.subjectid
-			WHERE e1.id != e2.id AND e$id1.hasreply = 0 AND e1.date IS NOT NULL AND e2.date IS NOT NULL AND e$id1.date >= e$id2.date AND e1.messageid = ?
+			WHERE e1.id != e2.id AND e$id1.hasreply = 0 AND e1.date IS NOT NULL AND e2.date IS NOT NULL AND e$id1.date >= e$id2.date AND e1.$where = ?
 			ORDER BY e2.date $desc
 			$limit
 		;
