@@ -164,7 +164,6 @@ sub create($$$$) {
 	my ($dir, $datasource, $username, $password) = @_;
 
 	my $dbh;
-	my $statement;
 	my $ret;
 
 	if ( not make_path($dir) ) {
@@ -359,6 +358,14 @@ sub add_email($$) {
 			)
 		;
 	);
+
+#	eval {
+		$sth = $dbh->prepare_cached($statement);
+		$sth->execute(@{$_}) foreach (@replies);
+#	} or do {
+#		eval { $dbh->rollback(); };
+#		return 0;
+#	};
 
 	my @addressess;
 
