@@ -243,10 +243,10 @@ sub index_tree_get($$) {
 		$tree{$tid} = [];
 		push(@{$tree{$up}}, $tid);
 
-		my ($reply, $references) = $index->db_replies_id($tid, 0);
+		my ($reply, $references) = $index->db_replies($tid, 0, 0);
 
-		push(@stack1, [$tid, $_]) foreach ( @{$reply} );
-		push(@stack2, [$tid, $_]) foreach ( @{$references} );
+		push(@stack1, [$tid, ${$_}[0]]) foreach ( @{$reply} );
+		push(@stack2, [$tid, ${$_}[0]]) foreach ( @{$references} );
 
 	}
 
