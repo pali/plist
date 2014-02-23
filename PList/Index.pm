@@ -104,12 +104,11 @@ sub create_tables($) {
 			id		INTEGER PRIMARY KEY NOT NULL,
 			messageid	TEXT NOT NULL UNIQUE,
 			date		INTEGER,
-			subjectid	INTEGER,
+			subjectid	INTEGER NOT NULL REFERENCES subjects(id) ON UPDATE CASCADE ON DELETE RESTRICT,
 			list		TEXT,
 			offset		INTEGER,
-			implicit	INTEGER,
-			hasreply	INTEGER,
-			FOREIGN KEY(subjectid) REFERENCES subjects(id)
+			implicit	INTEGER NOT NULL,
+			hasreply	INTEGER
 		);
 	);
 	return 0 unless $dbh->do($statement);
@@ -117,12 +116,10 @@ sub create_tables($) {
 	$statement = qq(
 		CREATE TABLE replies (
 			id		INTEGER PRIMARY KEY NOT NULL,
-			emailid1	INTEGER NOT NULL,
-			emailid2	INTEGER NOT NULL,
+			emailid1	INTEGER NOT NULL REFERENCES emails(id) ON UPDATE CASCADE ON DELETE CASCADE,
+			emailid2	INTEGER NOT NULL REFERENCES emails(id) ON UPDATE CASCADE ON DELETE RESTRICT,
 			type		INTEGER NOT NULL,
-			UNIQUE (emailid1, emailid2, type) ON CONFLICT IGNORE,
-			FOREIGN KEY(emailid1) REFERENCES emails(id),
-			FOREIGN KEY(emailid2) REFERENCES emails(id)
+			UNIQUE (emailid1, emailid2, type) ON CONFLICT IGNORE
 		);
 	);
 	return 0 unless $dbh->do($statement);
@@ -140,12 +137,10 @@ sub create_tables($) {
 	$statement = qq(
 		CREATE TABLE addressess (
 			id		INTEGER PRIMARY KEY NOT NULL,
-			emailid		INTEGER NOT NULL,
-			addressid	INTEGER NOT NULL,
+			emailid		INTEGER NOT NULL REFERENCES emails(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+			addressid	INTEGER NOT NULL REFERENCES address(id) ON UPDATE CASCADE ON DELETE RESTRICT,
 			type		INTEGER NOT NULL,
-			UNIQUE (emailid, addressid, type) ON CONFLICT IGNORE,
-			FOREIGN KEY(emailid) REFERENCES emails(id),
-			FOREIGN KEY(addressid) REFERENCES address(id)
+			UNIQUE (emailid, addressid, type) ON CONFLICT IGNORE
 		);
 	);
 	return 0 unless $dbh->do($statement);
