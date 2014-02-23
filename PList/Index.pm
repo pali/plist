@@ -229,14 +229,15 @@ sub add_email($$) {
 	my $dbh = $priv->{dbh};
 
 	my $id = $header->{id};
+	my $rid;
 
 	my $statement;
 	my $ret;
 
 	$statement = qq(
-		SELECT messageid
+		SELECT id, messageid, implicit
 			FROM emails
-			WHERE implicit = 0 AND messageid = ?
+			WHERE messageid = ?
 			LIMIT 1
 		;
 	);
@@ -247,12 +248,16 @@ sub add_email($$) {
 		$ret = $sth->fetchall_hashref("messageid");
 	} or do {
 		eval { $dbh->rollback(); };
-		return undef;
+		return 0;
 	};
 
-	if ( $ret and $ret->{$id} ) {
-		warn "Email with id '$id' already in database, skipping\n";
+	if ( $ret and $ret->{$id} and not $ret->{$id}->{implicit} ) {
+		warn "Email with id '$id' already in database\n";
 		return 0;
+	}
+
+	if ( $ret and $ret->{$id} ) {
+		$rid = $ret->{$id}->{id};
 	}
 
 	my $listfile = "00000.list";
@@ -301,23 +306,38 @@ sub add_email($$) {
 	my $hasreply = 0;
 	$hasreply = 1 if $reply and @{$reply};
 
-	$statement = qq(
-		INSERT OR REPLACE INTO emails (messageid, date, subjectid, list, offset, implicit, hasreply)
-			VALUES (
-				?,
-				?,
-				(SELECT id FROM subjects WHERE subject = ?),
-				?,
-				?,
-				0,
-				?
-			)
-		;
-	);
+	if ( defined $rid ) {
+		$statement = qq(
+			UPDATE emails
+				SET
+					date = ?,
+					subjectid = (SELECT id FROM subjects WHERE subject = ?),
+					list = ?,
+					offset = ?,
+					implicit = 0,
+					hasreply = ?
+				WHERE messageid = ?
+			;
+		);
+	} else {
+		$statement = qq(
+			INSERT INTO emails (date, subjectid, list, offset, implicit, hasreply, messageid)
+				VALUES (
+					?,
+					(SELECT id FROM subjects WHERE subject = ?),
+					?,
+					?,
+					0,
+					?,
+					?
+				)
+			;
+		);
+	}
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($id, $date, $subject, $listfile, $offset, $hasreply);
+		$sth->execute($date, $subject, $listfile, $offset, $hasreply, $id);
 	} or do {
 		eval { $dbh->rollback(); };
 		return 0;
