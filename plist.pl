@@ -271,7 +271,7 @@ sub index_tree_get($$) {
 		my $down = $tree{$tid};
 
 		if ( $down ) {
-			foreach ( reverse @{$down} ) {
+			foreach ( @{$down} ) {
 				if ( not $processed{$_} ) {
 					$processed{$_} = 1;
 					push(@stack, $_);
