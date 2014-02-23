@@ -65,6 +65,8 @@ sub new($$) {
 		return undef;
 	}
 
+	$dbh->do("PRAGMA foreign_keys = ON;");
+
 	my $priv = {
 		dir => $dir,
 		dbh => $dbh,
@@ -175,6 +177,8 @@ sub create($$$$) {
 	if ( not $dbh ) {
 		return 0;
 	}
+
+	$dbh->do("PRAGMA foreign_keys = ON;");
 
 	$ret = create_tables($dbh);
 
