@@ -366,6 +366,8 @@ if ( not $mod or not $command ) {
 		my $pemail = open_bin($binfile);
 		my $list = open_list($listfile, 1);
 
+		$binfile = "STDIN" unless $binfile;
+
 		$_ = $list->append($pemail);
 		die "Cannot write email from bin file $binfile to list file $listfile\n" unless defined $_;
 
