@@ -21,13 +21,11 @@ use DBI;
 # SQL tables:
 #
 # emails:
-# id, messageid, date, subjectid(subjects)
+# id, messageid, date, subjectid(subjects), list, offset, implicit, hasreply
 #
-# reply:
-# id, emailid1(emails), emailid2(emails)
-#
-# references:
-# id, emailid1(emails), emailid2(emails)
+# replies:
+# id, emailid1(emails), emailid2(emails), type
+# NOTE: type is: 0 - in-reply-to, 1 - references
 #
 # subjects:
 # id, subject (normalized)
