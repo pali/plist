@@ -69,7 +69,9 @@ sub new($$) {
 		return undef;
 	}
 
-	$dbh->do("PRAGMA foreign_keys = ON;");
+	if ( $driver eq "SQLite" ) {
+		$dbh->do("PRAGMA foreign_keys = ON;");
+	}
 
 	my $priv = {
 		dir => $dir,
@@ -180,7 +182,9 @@ sub create($$$;$$) {
 		return 0;
 	}
 
-	$dbh->do("PRAGMA foreign_keys = ON;");
+	if ( $driver eq "SQLite" ) {
+		$dbh->do("PRAGMA foreign_keys = ON;");
+	}
 
 	$ret = create_tables($dbh, $driver);
 
