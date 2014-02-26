@@ -50,15 +50,19 @@ sub new($$) {
 		return undef;
 	}
 
-	my $datasource = <$fh>;
+	my $driver = <$fh>;
+	my $params = <$fh>;
 	my $username = <$fh>;
 	my $password = <$fh>;
 
-	chop($datasource);
-	chop($username);
-	chop($password);
+	chop($driver) if $driver;
+	chop($params) if $params;
+	chop($username) if $username;
+	chop($password) if $password;
 
 	close($fh);
+
+	my $datasource = "DBI:$driver:$params";
 
 	my $dbh = DBI->connect($datasource, $username, $password, { RaiseError => 1, AutoCommit => 0 });
 	if ( not $dbh ) {
@@ -70,6 +74,7 @@ sub new($$) {
 	my $priv = {
 		dir => $dir,
 		dbh => $dbh,
+		driver => $driver,
 	};
 
 	bless $priv, $class;
@@ -85,9 +90,9 @@ sub DESTROY($) {
 
 }
 
-sub create_tables($) {
+sub create_tables($$) {
 
-	my ($dbh) = @_;
+	my ($dbh, $driver) = @_;
 
 	my $statement;
 
@@ -156,9 +161,9 @@ sub create_tables($) {
 
 }
 
-sub create($$$$) {
+sub create($$$;$$) {
 
-	my ($dir, $datasource, $username, $password) = @_;
+	my ($dir, $driver, $params, $username, $password) = @_;
 
 	my $dbh;
 	my $ret;
@@ -168,6 +173,8 @@ sub create($$$$) {
 		return 0;
 	}
 
+	my $datasource = "DBI:$driver:$params";
+
 	$dbh = DBI->connect($datasource, $username, $password);
 	if ( not $dbh ) {
 		return 0;
@@ -175,7 +182,7 @@ sub create($$$$) {
 
 	$dbh->do("PRAGMA foreign_keys = ON;");
 
-	$ret = create_tables($dbh);
+	$ret = create_tables($dbh, $driver);
 
 	$dbh->disconnect();
 
@@ -189,9 +196,10 @@ sub create($$$$) {
 		return 0;
 	}
 
-	print $fh "$datasource\n";
-	print $fh "$username\n";
-	print $fh "$password\n";
+	print $fh "$driver\n";
+	print $fh "$params\n";
+	print $fh "$username\n" if $username;
+	print $fh "$password\n" if $password;
 	close($fh);
 
 	return 1;

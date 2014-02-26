@@ -21,7 +21,7 @@ sub help() {
 
 	print "help:\n";
 	print "index view <dir>\n";
-	print "index create <dir>\n";
+	print "index create <dir> <driver> <params> [<username>] [<password>]\n";
 	print "index regenerate <dir>\n";
 	print "index add-list <dir> [<list>]\n";
 	print "index add-mbox <dir> [<mbox>]\n";
@@ -501,14 +501,19 @@ if ( not $mod or not $command ) {
 	my $indexdir = shift @ARGV;
 	help() unless $indexdir;
 
-	my $datasource = "DBI:SQLite:dbname=$indexdir/sqlite.db";
-	my $username = "";
-	my $password = "";
-
 	if ( $command eq "create" ) {
 
+		my $driver = shift @ARGV;
+		help() unless $driver;
+
+		my $params = shift @ARGV;
+		help() unless $params;
+
+		my $username = shift @ARGV;
+		my $password = shift @ARGV;
+
 		print "Creating index dir '$indexdir'...\n";
-		die "Failed\n" unless PList::Index::create($indexdir, $datasource, $username, $password);
+		die "Failed\n" unless PList::Index::create($indexdir, $driver, $params, $username, $password);
 		print "Done\n";
 	}
 
