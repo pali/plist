@@ -70,6 +70,7 @@ sub new($$) {
 	}
 
 	if ( $driver eq "SQLite" ) {
+		$dbh->do("PRAGMA synchronous = OFF;");
 		$dbh->do("PRAGMA foreign_keys = ON;");
 	}
 
@@ -183,6 +184,7 @@ sub create($$$;$$) {
 	}
 
 	if ( $driver eq "SQLite" ) {
+		$dbh->do("PRAGMA synchronous = OFF;");
 		$dbh->do("PRAGMA foreign_keys = ON;");
 	}
 
