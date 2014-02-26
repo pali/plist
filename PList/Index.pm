@@ -99,63 +99,80 @@ sub create_tables($$) {
 
 	my $statement;
 
+	my $text = "TEXT";
+	$text = "VARCHAR(8192) CHARACTER SET utf8" if $driver eq "mysql";
+
+	my $uniquesize = "";
+	$uniquesize = "(255)" if $driver eq "mysql";
+
+	my $uniquehalfsize = "";
+	$uniquehalfsize = "(127)" if $driver eq "mysql";
+
+	my $ignoreconflict = "";
+	$ignoreconflict = "ON CONFLICT IGNORE" if $driver eq "SQLite";
+
+	my $autoincrement = "AUTO_INCREMENT";
+	$autoincrement = "" if $driver eq "SQLite";
+
 	$statement = qq(
 		CREATE TABLE subjects (
-			id		INTEGER PRIMARY KEY NOT NULL,
-			subject		TEXT UNIQUE ON CONFLICT IGNORE
+			id		INTEGER PRIMARY KEY NOT NULL $autoincrement,
+			subject		$text,
+			UNIQUE (subject $uniquesize) $ignoreconflict
 		);
 	);
 	return 0 unless $dbh->do($statement);
 
 	$statement = qq(
 		CREATE TABLE emails (
-			id		INTEGER PRIMARY KEY NOT NULL,
-			messageid	TEXT NOT NULL UNIQUE,
+			id		INTEGER PRIMARY KEY NOT NULL $autoincrement,
+			messageid	$text NOT NULL,
 			date		INTEGER,
 			subjectid	INTEGER NOT NULL REFERENCES subjects(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-			list		TEXT,
+			list		$text,
 			offset		INTEGER,
 			implicit	INTEGER NOT NULL,
-			hasreply	INTEGER
+			hasreply	INTEGER,
+			UNIQUE (messageid $uniquesize) $ignoreconflict
 		);
 	);
 	return 0 unless $dbh->do($statement);
 
 	$statement = qq(
 		CREATE TABLE replies (
-			id		INTEGER PRIMARY KEY NOT NULL,
+			id		INTEGER PRIMARY KEY NOT NULL $autoincrement,
 			emailid1	INTEGER NOT NULL REFERENCES emails(id) ON UPDATE CASCADE ON DELETE CASCADE,
 			emailid2	INTEGER NOT NULL REFERENCES emails(id) ON UPDATE CASCADE ON DELETE RESTRICT,
 			type		INTEGER NOT NULL,
-			UNIQUE (emailid1, emailid2, type) ON CONFLICT IGNORE
+			UNIQUE (emailid1, emailid2, type) $ignoreconflict
 		);
 	);
 	return 0 unless $dbh->do($statement);
 
 	$statement = qq(
 		CREATE TABLE address (
-			id		INTEGER PRIMARY KEY NOT NULL,
-			email		TEXT NOT NULL,
-			name		TEXT NOT NULL,
-			UNIQUE (email, name) ON CONFLICT IGNORE
+			id		INTEGER PRIMARY KEY NOT NULL $autoincrement,
+			email		$text NOT NULL,
+			name		$text NOT NULL,
+			UNIQUE (email $uniquehalfsize, name $uniquehalfsize) $ignoreconflict
 		);
 	);
 	return 0 unless $dbh->do($statement);
 
 	$statement = qq(
 		CREATE TABLE addressess (
-			id		INTEGER PRIMARY KEY NOT NULL,
+			id		INTEGER PRIMARY KEY NOT NULL $autoincrement,
 			emailid		INTEGER NOT NULL REFERENCES emails(id) ON UPDATE CASCADE ON DELETE RESTRICT,
 			addressid	INTEGER NOT NULL REFERENCES address(id) ON UPDATE CASCADE ON DELETE RESTRICT,
 			type		INTEGER NOT NULL,
-			UNIQUE (emailid, addressid, type) ON CONFLICT IGNORE
+			UNIQUE (emailid, addressid, type) $ignoreconflict
 		);
 	);
 	return 0 unless $dbh->do($statement);
 
 	$statement = qq(
 		INSERT INTO subjects (id, subject)
-			VALUES (0, NULL)
+			VALUES (1, NULL)
 		;
 	);
 	return 0 unless $dbh->do($statement);
@@ -241,6 +258,7 @@ sub add_email($$) {
 	}
 
 	my $dbh = $priv->{dbh};
+	my $driver = $priv->{driver};
 
 	my $id = $header->{id};
 	my $rid;
@@ -303,9 +321,13 @@ sub add_email($$) {
 	$date = $date->epoch() if $date;
 	$date = undef unless $date;
 
+	my $ignoreconflict = "";
+	$ignoreconflict = "ON DUPLICATE KEY UPDATE id=id" if $driver eq "mysql";
+
 	$statement = qq(
 		INSERT INTO subjects (subject)
 			VALUES (?)
+			$ignoreconflict
 		;
 	);
 
@@ -367,8 +389,9 @@ sub add_email($$) {
 	}
 
 	$statement = qq(
-		INSERT OR IGNORE INTO emails (messageid, subjectid, implicit)
-			VALUES (?, 0, 1)
+		INSERT INTO emails (messageid, subjectid, implicit)
+			VALUES (?, 1, 1)
+			$ignoreconflict
 		;
 	);
 
@@ -388,6 +411,7 @@ sub add_email($$) {
 				(SELECT id FROM emails WHERE messageid = ?),
 				?
 			)
+			$ignoreconflict
 		;
 	);
 
@@ -426,6 +450,7 @@ sub add_email($$) {
 	$statement = qq(
 		INSERT INTO address (email, name)
 			VALUES (?, ?)
+			$ignoreconflict
 		;
 	);
 
@@ -445,6 +470,7 @@ sub add_email($$) {
 				(SELECT id FROM address WHERE email = ? AND name = ?),
 				?
 			)
+			$ignoreconflict
 		;
 	);
 
