@@ -549,14 +549,21 @@ sub db_email($$) {
 		$sth->execute($id);
 		$ret = $sth->fetchall_hashref("messageid");
 	} or do {
+		eval { $dbh->rollback(); };
 		return undef;
 	};
 
-	return undef unless $ret and $ret->{$id};
+	if ( not $ret or not $ret->{$id} ) {
+		eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
+		return undef;
+	}
 
 	$email->{$_} = $ret->{$id}->{$_} foreach (keys %{$ret->{$id}});
 
-	return $email if $email->{implicit};
+	if ( $email->{implicit} ) {
+		eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
+		return $email;
+	}
 
 	$statement = qq(
 		SELECT DISTINCT a.email, a.name, s.type
@@ -571,8 +578,11 @@ sub db_email($$) {
 		$sth->execute($email->{id});
 		$ret = $sth->fetchall_arrayref();
 	} or do {
+		eval { $dbh->rollback(); };
 		return undef;
 	};
+
+	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
 
 	return $email unless $ret;
 
@@ -655,8 +665,11 @@ sub db_emails($;%) {
 		$sth->execute(@args);
 		$ret = $sth->fetchall_arrayref();
 	} or do {
+		eval { $dbh->rollback(); };
 		return undef;
 	};
+
+	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
 
 	return undef unless $ret;
 	return map { ${$_}[0] } @{$ret};
@@ -704,6 +717,7 @@ sub db_replies($$;$$$) {
 		$sth->execute($id);
 		$ret = $sth->fetchall_arrayref();
 	} or do {
+		eval { $dbh->rollback(); };
 		return undef;
 	};
 
@@ -724,7 +738,10 @@ sub db_replies($$;$$$) {
 		}
 	}
 
-	return (\@reply, \@references) if ( $up and ( @reply or @references ) );
+	if ( $up and ( @reply or @references ) ) {
+		eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
+		return (\@reply, \@references);
+	}
 
 	my $limit = "";
 	if ( $up ) {
@@ -747,8 +764,11 @@ sub db_replies($$;$$$) {
 		$sth->execute($id);
 		$ret = $sth->fetchall_arrayref();
 	} or do {
+		eval { $dbh->rollback(); };
 		return (\@reply, \@references);
 	};
+
+	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
 
 	return (\@reply, \@references) unless ( $ret and @{$ret} );
 
@@ -779,8 +799,11 @@ sub email($$) {
 		$sth->execute($id);
 		$ret = $sth->fetchall_hashref("messageid");
 	} or do {
+		eval { $dbh->rollback(); };
 		return undef;
 	};
+
+	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
 
 	return undef unless $ret and $ret->{$id};
 
