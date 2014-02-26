@@ -843,8 +843,117 @@ sub delete($$) {
 
 	my ($priv, $id) = @_;
 
-	# TODO: add to file deleted
-	# TODO: remove from database
+	my $fh;
+	if (not open($fh, ">>", $priv->{dir} . "/deleted")) {
+		warn "Cannot open file deleted\n";
+		return 0;
+	}
+
+	if (not flock($fh, 2)) {
+		warn "Cannot lock file deleted\n";
+		return 0;
+	}
+
+	my $dbh = $priv->{dbh};
+	my $statement;
+	my $ret;
+	my $rid;
+
+	$statement = qq(
+		SELECT id, messageid
+			FROM emails
+			WHERE implicit = 0 AND messageid = ?
+			LIMIT 1
+		;
+	);
+
+	eval {
+		my $sth = $dbh->prepare_cached($statement);
+		$sth->execute($id);
+		$ret = $sth->fetchall_hashref("messageid");
+	} or do {
+		eval { $dbh->rollback(); };
+		return 0;
+	};
+
+	if ( not $ret or not $ret->{$id} ) {
+		warn "Email with id '$id' is not in database\n";
+		close($fh);
+		return 0;
+	}
+
+	$rid = $ret->{$id}->{id};
+
+	$statement = qq(
+		SELECT COUNT(*)
+			FROM replies
+			WHERE emailid2 = ?
+	);
+
+	eval {
+		my $sth = $dbh->prepare_cached($statement);
+		$sth->execute($rid);
+		$ret = $sth->fetchall_arrayref();
+	} or do {
+		eval { $dbh->rollback(); };
+		close($fh);
+		return 0;
+	};
+
+	if ( not $ret or not @{$ret} or not ${$ret}[0] or not @{${$ret}[0]} ) {
+		eval { $dbh->rollback(); };
+		close($fh);
+		return 0;
+	}
+
+	my $count = ${${$ret}[0]}[0];
+
+	if ( $count > 0 ) {
+
+		$statement = qq(
+			UPDATE emails
+				SET
+					date = NULL,
+					subjectid = 1,
+					list = NULL,
+					offset = NULL,
+					implicit = 1,
+					hasreply = NULL
+				WHERE messageid = ?
+			;
+		);
+
+	} else {
+
+		$statement = qq(
+			DELETE
+				FROM emails
+				WHERE messageid = ?
+			;
+		);
+
+	}
+
+	eval {
+		my $sth = $dbh->prepare_cached($statement);
+		$sth->execute($id);
+	} or do {
+		eval { $dbh->rollback(); };
+		close($fh);
+		return 0;
+	};
+
+	eval {
+		$dbh->commit();
+	} or do {
+		eval { $dbh->rollback(); };
+		close($fh);
+		return 0;
+	};
+
+	seek($fh, 0, 2);
+	print $fh "$id\n";
+	close($fh);
 
 }
 
