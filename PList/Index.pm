@@ -70,8 +70,11 @@ sub new($$) {
 	}
 
 	if ( $driver eq "SQLite" ) {
+		$dbh->{sqlite_unicode} = 1;
 		$dbh->do("PRAGMA synchronous = OFF;");
 		$dbh->do("PRAGMA foreign_keys = ON;");
+	} elsif ( $driver eq "mysql" ) {
+		$dbh->{mysql_enable_utf8} = 1;
 	}
 
 	my $priv = {
@@ -201,8 +204,11 @@ sub create($$$;$$) {
 	}
 
 	if ( $driver eq "SQLite" ) {
+		$dbh->{sqlite_unicode} = 1;
 		$dbh->do("PRAGMA synchronous = OFF;");
 		$dbh->do("PRAGMA foreign_keys = ON;");
+	} elsif ( $driver eq "mysql" ) {
+		$dbh->{mysql_enable_utf8} = 1;
 	}
 
 	$ret = create_tables($dbh, $driver);
