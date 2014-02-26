@@ -69,8 +69,10 @@ sub new($$) {
 
 	if ( $driver eq "SQLite" ) {
 		$dbh->{sqlite_unicode} = 1;
+		$dbh->{AutoCommit} = 1; # NOTE: AutoCommit must be disabled when chaning pragmas, otherwise foreign_keys will not be changed
 		$dbh->do("PRAGMA synchronous = OFF;");
 		$dbh->do("PRAGMA foreign_keys = ON;");
+		$dbh->{AutoCommit} = 0;
 	} elsif ( $driver eq "mysql" ) {
 		$dbh->{mysql_enable_utf8} = 1;
 	}
