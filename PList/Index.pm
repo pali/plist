@@ -509,7 +509,7 @@ sub add_list($$) {
 			next;
 		}
 		if ( not $priv->add_email($pemail) ) {
-			warn "Cannot add email\n";
+			warn "Cannot add email with id '" . $pemail->header("0")->{id} . "'\n";
 			next;
 		}
 		++$count;
