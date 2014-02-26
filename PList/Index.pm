@@ -165,7 +165,7 @@ sub create_tables($$) {
 	$statement = qq(
 		CREATE TABLE addressess (
 			id		INTEGER PRIMARY KEY NOT NULL $autoincrement,
-			emailid		INTEGER NOT NULL REFERENCES emails(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+			emailid		INTEGER NOT NULL REFERENCES emails(id) ON UPDATE CASCADE ON DELETE CASCADE,
 			addressid	INTEGER NOT NULL REFERENCES address(id) ON UPDATE CASCADE ON DELETE RESTRICT,
 			type		INTEGER NOT NULL,
 			UNIQUE (emailid, addressid, type) $ignoreconflict
