@@ -68,13 +68,13 @@ sub new($$) {
 	}
 
 	if ( $driver eq "SQLite" ) {
-		$dbh->{sqlite_unicode} = 1;
-		$dbh->{AutoCommit} = 1; # NOTE: AutoCommit must be disabled when chaning pragmas, otherwise foreign_keys will not be changed
-		$dbh->do("PRAGMA synchronous = OFF;");
-		$dbh->do("PRAGMA foreign_keys = ON;");
+		$dbh->{sqlite_unicode} = 1; # By default utf8 is turned off
+		$dbh->{AutoCommit} = 1; # NOTE: AutoCommit must be disabled when changing pragmas, otherwise foreign_keys will not be changed
+		$dbh->do("PRAGMA synchronous = OFF;"); # This will dramatically speed up SQLite inserts (60-120 times) at cost of possible corruption if kernel crash
+		$dbh->do("PRAGMA foreign_keys = ON;"); # By default foreign keys constraints are turned off
 		$dbh->{AutoCommit} = 0;
 	} elsif ( $driver eq "mysql" ) {
-		$dbh->{mysql_enable_utf8} = 1;
+		$dbh->{mysql_enable_utf8} = 1; # by default utf8 is turned off
 	}
 
 	my $priv = {
@@ -102,6 +102,7 @@ sub create_tables($$) {
 
 	my $statement;
 
+	# NOTE: Higher values are not possible for MySQL INNODB engline
 	my $text = "TEXT";
 	$text = "VARCHAR(8192) CHARACTER SET utf8" if $driver eq "mysql";
 
@@ -111,11 +112,13 @@ sub create_tables($$) {
 	my $uniquehalfsize = "";
 	$uniquehalfsize = "(127)" if $driver eq "mysql";
 
+	# NOTE: AUTOINCREMENT is not needed for SQLite PRIMARY KEY
+	my $autoincrement = "";
+	$autoincrement = "AUTO_INCREMENT" if $driver eq "mysql";
+
+	# NOTE: Equvalents for MySQL are in INSERT/UPDATE SQL statements
 	my $ignoreconflict = "";
 	$ignoreconflict = "ON CONFLICT IGNORE" if $driver eq "SQLite";
-
-	my $autoincrement = "AUTO_INCREMENT";
-	$autoincrement = "" if $driver eq "SQLite";
 
 	$statement = qq(
 		CREATE TABLE subjects (
@@ -241,6 +244,8 @@ sub regenerate($) {
 
 }
 
+# Remove all leadings strings RE: FW: FWD: and mailinglist name in square brackets
+# After this normalization subject can be used for fiding reply emails if in-reply-to header is missing
 sub normalize_subject($) {
 
 	my ($subject) = @_;
@@ -298,6 +303,8 @@ sub add_email($$) {
 		$rid = $ret->{$id}->{id};
 	}
 
+	# TODO: Increase listfile name number if file is too big
+
 	my $listfile = "00000.list";
 	my $offset;
 
@@ -327,6 +334,7 @@ sub add_email($$) {
 	$date = $date->epoch() if $date;
 	$date = undef unless $date;
 
+	# NOTE: SQLite has conflict action directly in CREATE TABLE
 	my $ignoreconflict = "";
 	$ignoreconflict = "ON DUPLICATE KEY UPDATE id=id" if $driver eq "mysql";
 
@@ -348,6 +356,7 @@ sub add_email($$) {
 	my $hasreply = 0;
 	$hasreply = 1 if $reply and @{$reply};
 
+	# Insert new email to database (or update implicit email)
 	if ( defined $rid ) {
 		$statement = qq(
 			UPDATE emails
@@ -394,6 +403,7 @@ sub add_email($$) {
 		push(@replies, [$id, $_, 1]) foreach ( @{$references} );
 	}
 
+	# Insert in-reply-to and references emails to database as implicit (if not exists)
 	$statement = qq(
 		INSERT INTO emails (messageid, subjectid, implicit)
 			VALUES (?, 1, 1)
@@ -410,6 +420,7 @@ sub add_email($$) {
 		return 0;
 	};
 
+	# Insert in-reply-to and references edges to database
 	$statement = qq(
 		INSERT INTO replies (emailid1, emailid2, type)
 			VALUES (
@@ -453,6 +464,7 @@ sub add_email($$) {
 		}
 	}
 
+	# Insert pairs email address and name (if not exists)
 	$statement = qq(
 		INSERT INTO address (email, name)
 			VALUES (?, ?)
@@ -469,6 +481,7 @@ sub add_email($$) {
 		return 0;
 	};
 
+	# Insert from, to and cc headers to database for new email
 	$statement = qq(
 		INSERT INTO addressess (emailid, addressid, type)
 			VALUES (
@@ -535,6 +548,7 @@ sub db_email($$) {
 	my $email = { from => [], to => [], cc => [] };
 	my $ret;
 
+	# Select email with messageid
 	$statement = qq(
 		SELECT e.id, e.messageid, e.date, s.subject, e.list, e.offset, e.implicit, e.hasreply
 			FROM emails AS e
@@ -565,6 +579,7 @@ sub db_email($$) {
 		return $email;
 	}
 
+	# Select from, to, cc for email
 	$statement = qq(
 		SELECT DISTINCT a.email, a.name, s.type
 			FROM addressess AS s
@@ -619,6 +634,7 @@ sub db_emails($;%) {
 		$args{subject} = normalize_subject($args{subject});
 	}
 
+	# Select all email messageids which match conditions
 	$statement = "SELECT DISTINCT e.messageid FROM emails AS e";
 
 	if ( exists $args{subject} ) {
@@ -702,6 +718,7 @@ sub db_replies($$;$$$) {
 	my $where = "messageid";
 	$where = "id" if ( $rid );
 
+	# Select all emails which are in-reply-to or references (up or down) to specified email
 	$statement = qq(
 		SELECT DISTINCT e2.id, e2.messageid, r.type
 			FROM emails AS e1
@@ -749,6 +766,7 @@ sub db_replies($$;$$$) {
 		$desc = "";
 	}
 
+	# Select all emails which has same subject as specified email, do not have in-reply-to header and are send before specified email
 	$statement = qq(
 		SELECT DISTINCT e2.id, e2.messageid
 			FROM emails AS e1
@@ -908,6 +926,7 @@ sub delete($$) {
 
 	my $count = ${${$ret}[0]}[0];
 
+	# Remove email from database or mark it as implicit (if some other email reference it)
 	if ( $count > 0 ) {
 
 		$statement = qq(
@@ -951,6 +970,7 @@ sub delete($$) {
 		return 0;
 	};
 
+	# Add message id of email to file deleted
 	seek($fh, 0, 2);
 	print $fh "$id\n";
 	close($fh);
