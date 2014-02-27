@@ -223,35 +223,8 @@ sub index_tree_get($$) {
 		print "Subject: $subject\n";
 	}
 
-	my %tree = ( root => [] );
-	my @stack1 = (["root", $id]);
-	my @stack2;
-
-	while ( scalar @stack1 or scalar @stack2 ) {
-
-		my $m;
-		if ( scalar @stack1 ) {
-			$m = pop(@stack1);
-		} else {
-			$m = pop(@stack2);
-		}
-
-		my ($up, $tid) = @{$m};
-
-		next if $tree{$tid};
-
-		$tree{$tid} = [];
-		push(@{$tree{$up}}, $tid);
-
-		my ($reply, $references) = $index->db_replies($tid, 0, 0, 1);
-
-		push(@stack1, [$tid, ${$_}[0]]) foreach ( @{$reply} );
-		push(@stack2, [$tid, ${$_}[0]]) foreach ( @{$references} );
-
-	}
-
-	delete $tree{root};
-	my @keys = sort { $a <=> $b } keys %tree;
+	my $tree = $index->db_tree($id, 0, 1);
+	my @keys = sort { $a <=> $b } keys %{$tree};
 	my $len = length(pop(@keys))+1;
 	my $space = " " x $len;
 
@@ -268,7 +241,7 @@ sub index_tree_get($$) {
 
 		my $size = scalar @stack;
 
-		my $down = $tree{$tid};
+		my $down = $tree->{$tid};
 
 		if ( $down ) {
 			foreach ( @{$down} ) {

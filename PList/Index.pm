@@ -795,6 +795,54 @@ sub db_replies($$;$$$) {
 
 }
 
+sub db_tree($$) {
+
+	my ($priv, $id, $desc, $rid) = @_;
+
+	my %tree = ( root => [] );
+	my @stack1 = (["root", $id]);
+	my @stack2;
+
+	my $arri = 1;
+	$arri = 0 if $rid;
+
+	while ( scalar @stack1 or scalar @stack2 ) {
+
+		my $m;
+		if ( scalar @stack1 ) {
+			$m = pop(@stack1);
+		} else {
+			$m = pop(@stack2);
+		}
+
+		my ($up, $tid) = @{$m};
+
+		next if $tree{$tid};
+
+		$tree{$tid} = [];
+		push(@{$tree{$up}}, $tid);
+
+		my ($reply, $references) = $priv->db_replies($tid, 0, $desc, $rid);
+
+		push(@stack1, [$tid, ${$_}[$arri]]) foreach ( @{$reply} );
+		push(@stack2, [$tid, ${$_}[$arri]]) foreach ( @{$references} );
+
+	}
+
+	delete $tree{root};
+
+	return \%tree;
+
+}
+
+sub db_trees($$) {
+
+	my ($priv, $descroot, $desctree) = @_;
+
+	# TODO
+
+}
+
 sub email($$) {
 
 	my ($priv, $id) = @_;
