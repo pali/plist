@@ -676,6 +676,17 @@ sub db_emails($;%) {
 
 	$statement =~ s/AND$//;
 
+	if ( exists $args{limit} ) {
+		$statement .= " LIMIT ?";
+		push(@args, $args{limit});
+	}
+
+	# NOTE: OFFSET can be specified only if LIMIT was specified
+	if ( exists $args{limit} and exists $args{offset} ) {
+		$statement .= " OFFSET ?";
+		push(@args, $args{offset});
+	}
+
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute(@args);
