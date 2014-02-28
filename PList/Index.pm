@@ -939,9 +939,90 @@ sub db_tree($$$$) {
 
 sub db_roots($$$$) {
 
-	my ($priv, $date1, $date2, $desc) = @_;
+	my ($priv, $desc, $date1, $date2) = @_;
 
-	# TODO
+	my $dbh = $priv->{dbh};
+
+	my $statement;
+	my $ret;
+
+	if ( $desc ) {
+		$desc = "DESC";
+	} else {
+		$desc = "";
+	}
+
+	my @args;
+
+	my $date = "";
+
+	if ( $date1 ) {
+		$date .= "AND e1.date >= ?";
+		push(@args, $date1);
+	}
+
+	if ( $date2 ) {
+		$date .= "AND e1.date < ?";
+		push(@args, $date2);
+	}
+
+	# Select all emails:
+	# * which do not have in-reply-to or references headers (hasreply = 0)
+	# * or are implicit and exist some email which has in-reply-to header for it
+	# and
+	# * there is no email with no empty same (normalized) subject with date before
+	# These emails are roots of separate email threads
+	$statement = qq(
+		SELECT DISTINCT e1.id, e1.messageid, e1.implicit
+			FROM emails AS e1
+			LEFT OUTER JOIN replies AS r1 ON r1.emailid2 = e1.id
+			LEFT OUTER JOIN emails AS e2 ON e2.id = r1.emailid1
+			WHERE
+				NOT EXISTS (
+					SELECT *
+						FROM emails AS e3
+						WHERE
+							e1.subjectid = e3.subjectid AND
+							e1.id != e3.id AND
+							e1.implicit = 0 AND
+							e3.implicit = 0 AND
+							e1.date IS NOT NULL AND
+							e3.date IS NOT NULL AND
+							e1.date >= e3.date
+				) AND (
+					e1.hasreply = 0
+					OR (
+						e1.implicit = 1
+						AND
+						EXISTS (
+							SELECT *
+								FROM replies AS r2
+								WHERE r2.emailid2 = e1.id AND r2.type = 0
+						)
+					)
+				)
+				$date
+			ORDER BY
+				CASE
+					WHEN e1.date IS NULL THEN e2.date
+					ELSE e1.date
+				END
+				$desc
+		;
+	);
+
+	eval {
+		my $sth = $dbh->prepare_cached($statement);
+		$sth->execute(@args);
+		$ret = $sth->fetchall_arrayref();
+	} or do {
+		eval { $dbh->rollback(); };
+		return undef;
+	};
+
+	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
+
+	return $ret;
 
 }
 
