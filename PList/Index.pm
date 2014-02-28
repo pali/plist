@@ -60,21 +60,9 @@ sub new($$) {
 
 	close($fh);
 
-	my $datasource = "DBI:$driver:$params";
-
-	my $dbh = DBI->connect($datasource, $username, $password, { RaiseError => 1, AutoCommit => 0 });
+	my $dbh = db_connect($driver, $params, $username, $password);
 	if ( not $dbh ) {
 		return undef;
-	}
-
-	if ( $driver eq "SQLite" ) {
-		$dbh->{sqlite_unicode} = 1; # By default utf8 is turned off
-		$dbh->{AutoCommit} = 1; # NOTE: AutoCommit must be disabled when changing pragmas, otherwise foreign_keys will not be changed
-		$dbh->do("PRAGMA synchronous = OFF;"); # This will dramatically speed up SQLite inserts (60-120 times) at cost of possible corruption if kernel crash
-		$dbh->do("PRAGMA foreign_keys = ON;"); # By default foreign keys constraints are turned off
-		$dbh->{AutoCommit} = 0;
-	} elsif ( $driver eq "mysql" ) {
-		$dbh->{mysql_enable_utf8} = 1; # by default utf8 is turned off
 	}
 
 	my $priv = {
@@ -93,6 +81,37 @@ sub DESTROY($) {
 
 	my $dbh = $priv->{dbh};
 	$dbh->disconnect();
+
+}
+
+sub db_connect($$$$) {
+
+	my ($driver, $params, $username, $password) = @_;
+
+	my $dbh;
+
+	eval {
+		$dbh = DBI->connect("DBI:$driver:$params", $username, $password, { RaiseError => 1, AutoCommit => 0 });
+	} or do {
+		warn $@;
+		return undef;
+	};
+
+	if ( not $dbh ) {
+		return undef;
+	}
+
+	if ( $driver eq "SQLite" ) {
+		$dbh->{sqlite_unicode} = 1; # By default utf8 is turned off
+		$dbh->{AutoCommit} = 1; # NOTE: AutoCommit must be disabled when changing pragmas, otherwise foreign_keys will not be changed
+		$dbh->do("PRAGMA synchronous = OFF;"); # This will dramatically speed up SQLite inserts (60-120 times) at cost of possible corruption if kernel crash
+		$dbh->do("PRAGMA foreign_keys = ON;"); # By default foreign keys constraints are turned off
+		$dbh->{AutoCommit} = 0;
+	} elsif ( $driver eq "mysql" ) {
+		$dbh->{mysql_enable_utf8} = 1; # by default utf8 is turned off
+	}
+
+	return $dbh;
 
 }
 
@@ -120,6 +139,8 @@ sub create_tables($$) {
 	my $ignoreconflict = "";
 	$ignoreconflict = "ON CONFLICT IGNORE" if $driver eq "SQLite";
 
+	# NOTE: MySQL does not support transaction for CREATE TABLE, so rollback will not work
+
 	$statement = qq(
 		CREATE TABLE subjects (
 			id		INTEGER PRIMARY KEY NOT NULL $autoincrement,
@@ -127,7 +148,7 @@ sub create_tables($$) {
 			UNIQUE (subject $uniquesize) $ignoreconflict
 		);
 	);
-	return 0 unless $dbh->do($statement);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE TABLE emails (
@@ -142,7 +163,7 @@ sub create_tables($$) {
 			UNIQUE (messageid $uniquesize) $ignoreconflict
 		);
 	);
-	return 0 unless $dbh->do($statement);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE TABLE replies (
@@ -153,7 +174,7 @@ sub create_tables($$) {
 			UNIQUE (emailid1, emailid2, type) $ignoreconflict
 		);
 	);
-	return 0 unless $dbh->do($statement);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE TABLE address (
@@ -163,7 +184,7 @@ sub create_tables($$) {
 			UNIQUE (email $uniquehalfsize, name $uniquehalfsize) $ignoreconflict
 		);
 	);
-	return 0 unless $dbh->do($statement);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE TABLE addressess (
@@ -174,14 +195,16 @@ sub create_tables($$) {
 			UNIQUE (emailid, addressid, type) $ignoreconflict
 		);
 	);
-	return 0 unless $dbh->do($statement);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		INSERT INTO subjects (id, subject)
 			VALUES (1, NULL)
 		;
 	);
-	return 0 unless $dbh->do($statement);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	return 1;
 
@@ -191,40 +214,34 @@ sub create($$$;$$) {
 
 	my ($dir, $driver, $params, $username, $password) = @_;
 
-	my $dbh;
-	my $ret;
-
 	if ( not make_path($dir) ) {
 		warn "Cannot create dir $dir\n";
-		return 0;
-	}
-
-	my $datasource = "DBI:$driver:$params";
-
-	$dbh = DBI->connect($datasource, $username, $password);
-	if ( not $dbh ) {
-		return 0;
-	}
-
-	if ( $driver eq "SQLite" ) {
-		$dbh->{sqlite_unicode} = 1;
-		$dbh->do("PRAGMA synchronous = OFF;");
-		$dbh->do("PRAGMA foreign_keys = ON;");
-	} elsif ( $driver eq "mysql" ) {
-		$dbh->{mysql_enable_utf8} = 1;
-	}
-
-	$ret = create_tables($dbh, $driver);
-
-	$dbh->disconnect();
-
-	if ( not $ret ) {
 		return 0;
 	}
 
 	my $fh;
 	if ( not open($fh, ">", $dir . "/config") ) {
 		warn "Cannot create config file\n";
+		rmdir($dir);
+		return 0;
+	}
+
+	my $dbh = db_connect($driver, $params, $username, $password);
+	if ( not $dbh ) {
+		close($fh);
+		unlink($dir . "/config");
+		rmdir($dir);
+		return 0;
+	}
+
+	my $ret = create_tables($dbh, $driver);
+
+	$dbh->disconnect();
+
+	if ( not $ret ) {
+		close($fh);
+		unlink($dir . "/config");
+		rmdir($dir);
 		return 0;
 	}
 
