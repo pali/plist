@@ -948,9 +948,9 @@ sub db_tree($$$$) {
 
 }
 
-sub db_roots($$$$) {
+sub db_roots($$;%) {
 
-	my ($priv, $desc, $date1, $date2) = @_;
+	my ($priv, $desc, %args) = @_;
 
 	my $dbh = $priv->{dbh};
 
@@ -966,15 +966,27 @@ sub db_roots($$$$) {
 	my @args;
 
 	my $date = "";
+	my $limit = "";
 
-	if ( $date1 ) {
+	if ( exists $args{date1} ) {
 		$date .= "AND e1.date >= ?";
-		push(@args, $date1);
+		push(@args, $args{date1});
 	}
 
-	if ( $date2 ) {
+	if ( exists $args{date2} ) {
 		$date .= "AND e1.date < ?";
-		push(@args, $date2);
+		push(@args, $args{date2});
+	}
+
+	if ( exists $args{limit} ) {
+		$limit .= "LIMIT ?";
+		push(@args, $args{limit});
+	}
+
+	# NOTE: OFFSET can be specified only if LIMIT was specified
+	if ( exists $args{limit} and exists $args{offset} ) {
+		$limit .= " OFFSET ?";
+		push(@args, $args{offset});
 	}
 
 	# Select all emails:
@@ -1019,6 +1031,7 @@ sub db_roots($$$$) {
 					ELSE e1.date
 				END
 				$desc
+			$limit
 		;
 	);
 
