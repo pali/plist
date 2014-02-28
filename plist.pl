@@ -286,6 +286,8 @@ if ( not $mod or not $command ) {
 
 	if ( $command eq "view" ) {
 
+		help() if @ARGV;
+
 		my $list = open_list($listfile, 0);
 
 		my $count = 0;
@@ -309,6 +311,8 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "add-mbox" ) {
 
 		my $mboxfile = shift @ARGV;
+
+		help() if @ARGV;
 
 		my $mbox = open_mbox($mboxfile);
 		my $list = open_list($listfile, 1);
@@ -341,6 +345,8 @@ if ( not $mod or not $command ) {
 
 		my $binfile = shift @ARGV;
 
+		help() if @ARGV;
+
 		my $pemail = open_bin($binfile);
 		my $list = open_list($listfile, 1);
 
@@ -358,6 +364,8 @@ if ( not $mod or not $command ) {
 
 		my $file = shift @ARGV;
 
+		help() if @ARGV;
+
 		my ($pemail, $fh) = bin_get($listfile, $file, $offset);
 		PList::Email::Binary::to_fh($pemail, $fh);
 
@@ -370,6 +378,8 @@ if ( not $mod or not $command ) {
 		help() unless $part;
 
 		my $file = shift @ARGV;
+
+		help() if @ARGV;
 
 		my ($pemail, $fh) = bin_get($listfile, $file, $offset);
 
@@ -384,6 +394,8 @@ if ( not $mod or not $command ) {
 		help() unless defined $offset;
 
 		my $file = shift @ARGV;
+
+		help() if @ARGV;
 
 		my ($pemail, $fh) = bin_get($listfile, $file, $offset);
 
@@ -408,6 +420,7 @@ if ( not $mod or not $command ) {
 	if ( $command eq "view" ) {
 
 		my $binfile = shift @ARGV;
+		help() if @ARGV;
 		my $pemail = open_bin($binfile);
 		bin_view($pemail);
 
@@ -415,6 +428,7 @@ if ( not $mod or not $command ) {
 
 		my $mimefile = shift @ARGV;
 		my $binfile = shift @ARGV;
+		help() if @ARGV;
 
 		my $input = open_input($mimefile, ":raw");
 		my $output = open_output($binfile, ":raw");
@@ -444,6 +458,8 @@ if ( not $mod or not $command ) {
 		my $binfile = shift @ARGV;
 		my $file = shift @ARGV;
 
+		help() if @ARGV;
+
 		my $pemail = open_bin($binfile);
 		my $output = open_output($file, ":raw");
 
@@ -456,6 +472,7 @@ if ( not $mod or not $command ) {
 
 		my $binfile = shift @ARGV;
 		my $file = shift @ARGV;
+		help() if @ARGV;
 
 		my $pemail = open_bin($binfile);
 		my $output = open_output($file, ":raw:utf8");
@@ -490,6 +507,8 @@ if ( not $mod or not $command ) {
 		my $username = shift @ARGV;
 		my $password = shift @ARGV;
 
+		help() if @ARGV;
+
 		print "Creating index dir '$indexdir'...\n";
 		die "Failed\n" unless PList::Index::create($indexdir, $driver, $params, $username, $password);
 		print "Done\n";
@@ -500,10 +519,13 @@ if ( not $mod or not $command ) {
 
 	if ( $command eq "view" or $command eq "create" ) {
 
+		help() if @ARGV;
+
 		# TODO
 
 	} elsif ( $command eq "regenerate" ) {
 
+		help() if @ARGV;
 		print "Regenerating index dir '$indexdir'...\n";
 		die "Failed\n" unless $index->regenerate();
 		print "Done\n"
@@ -511,6 +533,7 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "add-list" ) {
 
 		my $listfile = shift @ARGV;
+		help() if @ARGV;
 		my $list = open_list($listfile, 0);
 		$listfile = "STDIN" unless $listfile;
 
@@ -521,6 +544,7 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "add-mbox" ) {
 
 		my $mboxfile = shift @ARGV;
+		help() if @ARGV;
 		my $mbox = open_mbox($mboxfile);
 		$mboxfile = "STDIN" unless $mboxfile;
 
@@ -531,6 +555,7 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "add-mime" ) {
 
 		my $mimefile = shift @ARGV;
+		help() if @ARGV;
 		my $input = open_input($mimefile, ":raw");
 		$mimefile = "STDIN" unless $mimefile;
 
@@ -551,6 +576,8 @@ if ( not $mod or not $command ) {
 		print "Done\n";
 
 	} elsif ( $command eq "get-roots" ) {
+
+		help() if @ARGV;
 
 		my $roots = $index->db_roots();
 
@@ -579,6 +606,7 @@ if ( not $mod or not $command ) {
 		$mode = ":raw" if ( $command eq "get-bin" );
 
 		my $outputfile = shift @ARGV;
+		help() if @ARGV;
 		my $fh = open_output($outputfile, $mode);
 
 		if ( $command eq "get-bin" ) {
@@ -603,6 +631,7 @@ if ( not $mod or not $command ) {
 		help() unless $part;
 
 		my $file = shift @ARGV;
+		help() if @ARGV;
 		my $fh = open_output($file, ":raw");
 
 		my $str = $index->data($id, $part);
@@ -614,6 +643,7 @@ if ( not $mod or not $command ) {
 
 		my $id = shift @ARGV;
 		help() unless $id;
+		help() if @ARGV;
 
 		print "Deleting email with $id...\n";
 		die "Failed\n" unless $index->delete($id);
