@@ -242,6 +242,8 @@ sub regenerate($) {
 
 	my ($priv) = @_;
 
+	# TODO
+
 }
 
 # Remove all leadings strings RE: FW: FWD: and mailinglist name in square brackets
@@ -806,7 +808,7 @@ sub db_replies($$;$$$) {
 
 }
 
-sub db_subtree($$$$) {
+sub db_subtree($$;$$) {
 
 	my ($priv, $id, $desc, $rid) = @_;
 
@@ -873,7 +875,7 @@ sub db_subtree($$$$) {
 
 }
 
-sub db_tree($$$$) {
+sub db_tree($$;$$) {
 
 	my ($priv, $id, $desc, $rid) = @_;
 
