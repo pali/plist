@@ -800,33 +800,62 @@ sub db_tree($$) {
 	my ($priv, $id, $desc, $rid) = @_;
 
 	my %tree = ( root => [] );
+	my %treerev;
+	my %tree2;
+	my %processed = ( root => 1 );
 	my @stack1 = (["root", $id]);
 	my @stack2;
+	my @stack3;
 
 	my $arri = 1;
 	$arri = 0 if $rid;
 
-	while ( scalar @stack1 or scalar @stack2 ) {
+	while ( scalar @stack1 or scalar @stack2 or scalar @stack3 ) {
 
 		my $m;
+		my $s3;
 		if ( scalar @stack1 ) {
 			$m = pop(@stack1);
-		} else {
+		} elsif ( scalar @stack2 ) {
 			$m = pop(@stack2);
+		} else {
+			$m = pop(@stack3);
+			$s3 = 1;
 		}
 
 		my ($up, $tid) = @{$m};
 
-		next if $tree{$tid};
+		next if $processed{$tid};
 
-		$tree{$tid} = [];
-		push(@{$tree{$up}}, $tid);
+		$tree{$tid} = [] unless $tree{$tid};
+
+		if ( $s3 ) {
+			$tree2{$up} = [] unless $tree2{$up};
+			push(@{$tree2{$up}}, $tid);
+		} else {
+			$treerev{$tid} = [] unless $treerev{$tid};
+			$processed{$tid} = 1;
+			push(@{$tree{$up}}, $tid);
+			push(@{$treerev{$tid}}, $up);
+		}
 
 		my ($reply, $references) = $priv->db_replies($tid, 0, $desc, $rid);
 
-		push(@stack1, [$tid, ${$_}[$arri]]) foreach ( @{$reply} );
-		push(@stack2, [$tid, ${$_}[$arri]]) foreach ( @{$references} );
+		if ( scalar @{$reply} ) {
+			push(@stack1, [$tid, ${$_}[$arri]]) foreach ( @{$reply} );
+			push(@stack2, [$tid, ${$_}[$arri]]) foreach ( @{$references} );
+		} else {
+			push(@stack3, [$tid, ${$_}[$arri]]) foreach ( @{$references} );
+		}
 
+	}
+
+	foreach my $up ( keys %tree2 ) {
+		foreach my $tid ( @{$tree2{$up}} ) {
+			if ( not exists $treerev{$tid} ) {
+				push(@{$tree{$up}}, $tid);
+			}
+		}
 	}
 
 	delete $tree{root};
