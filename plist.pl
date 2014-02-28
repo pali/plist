@@ -28,6 +28,7 @@ sub help() {
 	print "index add-mime <dir> [<mime>]\n";
 	print "index get-bin <dir> <id> [<bin>]\n";
 	print "index get-part <dir> <id> <part> [<file>]\n";
+	print "index get-roots <dir>\n";
 	print "index get-tree <dir> <id> [<file]\n";
 	print "index gen-html <dir> <id> [<html>]\n";
 	print "index gen-txt <dir> <id> [<txt>]\n";
@@ -548,6 +549,23 @@ if ( not $mod or not $command ) {
 
 		die "Failed (Cannot add email)\n" unless $index->add_email($pemail);
 		print "Done\n";
+
+	} elsif ( $command eq "get-roots" ) {
+
+		my $roots = $index->db_roots();
+
+		print "Roots:\n";
+		print "i      id messageid\n";
+		if ( $roots ) {
+			foreach ( @{$roots} ) {
+				if ( $_ ) {
+					print ${$_}[2];
+					printf(" %7d ", @{$_}[0]);
+					print @{$_}[1];
+					print "\n";
+				}
+			}
+		}
 
 	} elsif ( $command eq "get-bin" or $command eq "get-tree" or $command eq "gen-html" or $command eq "gen-txt" ) {
 
