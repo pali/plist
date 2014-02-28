@@ -587,8 +587,8 @@ if ( not $mod or not $command ) {
 			foreach ( @{$roots} ) {
 				if ( $_ ) {
 					print ${$_}[2];
-					printf(" %7d ", @{$_}[0]);
-					print @{$_}[1];
+					printf(" %7d ", ${$_}[0]);
+					print ${$_}[1];
 					print "\n";
 				}
 			}
