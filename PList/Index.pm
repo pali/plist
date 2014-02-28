@@ -771,7 +771,7 @@ sub db_replies($$;$$$) {
 		SELECT DISTINCT e2.id, e2.messageid, e2.implicit
 			FROM emails AS e1
 			JOIN emails AS e2 ON e2.subjectid = e1.subjectid
-			WHERE e1.id != e2.id AND e$id1.hasreply = 0 AND e1.date IS NOT NULL AND e2.date IS NOT NULL AND e$id1.date >= e$id2.date AND e1.$where = ?
+			WHERE e1.id != e2.id AND e1.implicit = 0 AND e2.implicit = 0 AND e$id1.hasreply = 0 AND e1.date IS NOT NULL AND e2.date IS NOT NULL AND e$id1.date >= e$id2.date AND e1.$where = ?
 			ORDER BY e2.date $desc
 			$limit
 		;
