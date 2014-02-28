@@ -224,12 +224,16 @@ sub index_tree_get($$) {
 	}
 
 	my $tree = $index->db_tree($id, 0, 1);
+	my $root = ${$tree->{root}}[0];
+
+	delete $tree->{root};
+
 	my @keys = sort { $a <=> $b } keys %{$tree};
 	my $len = length(pop(@keys))+1;
 	my $space = " " x $len;
 
-	my %processed = ( $id => 1 );
-	my @stack = ($id);
+	my %processed = ( $root => 1 );
+	my @stack = ($root);
 	my @len = ();
 	my $linelen = 0;
 

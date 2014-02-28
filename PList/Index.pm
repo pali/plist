@@ -720,7 +720,7 @@ sub db_replies($$;$$$) {
 
 	# Select all emails which are in-reply-to or references (up or down) to specified email
 	$statement = qq(
-		SELECT DISTINCT e2.id, e2.messageid, r.type
+		SELECT DISTINCT e2.id, e2.messageid, r.type, e2.implicit
 			FROM emails AS e1
 			JOIN replies AS r ON r.emailid$id1 = e1.id
 			JOIN emails AS e2 ON e2.id = r.emailid$id2
@@ -744,7 +744,7 @@ sub db_replies($$;$$$) {
 	my @references;
 
 	foreach ( @{$ret} ) {
-		my $mid = [${$_}[0], ${$_}[1]];
+		my $mid = [${$_}[0], ${$_}[1], ${$_}[3]];
 		my $type = ${$_}[2];
 		if ( $type == 0 ) {
 			push(@reply, $mid);
@@ -768,7 +768,7 @@ sub db_replies($$;$$$) {
 
 	# Select all emails which has same subject as specified email, do not have in-reply-to header and are send before specified email
 	$statement = qq(
-		SELECT DISTINCT e2.id, e2.messageid
+		SELECT DISTINCT e2.id, e2.messageid, e2.implicit
 			FROM emails AS e1
 			JOIN emails AS e2 ON e2.subjectid = e1.subjectid
 			WHERE e1.id != e2.id AND e$id1.hasreply = 0 AND e1.date IS NOT NULL AND e2.date IS NOT NULL AND e$id1.date >= e$id2.date AND e1.$where = ?
@@ -795,7 +795,7 @@ sub db_replies($$;$$$) {
 
 }
 
-sub db_tree($$) {
+sub db_subtree($$$$) {
 
 	my ($priv, $id, $desc, $rid) = @_;
 
@@ -858,15 +858,88 @@ sub db_tree($$) {
 		}
 	}
 
-	delete $tree{root};
-
 	return \%tree;
 
 }
 
-sub db_trees($$) {
+sub db_tree($$$$) {
 
-	my ($priv, $descroot, $desctree) = @_;
+	my ($priv, $id, $desc, $rid) = @_;
+
+	my $tid = $id;
+
+	my %processed;
+
+	my $arri = 1;
+	$arri = 0 if $rid;
+
+	while ( 1 ) {
+
+		my ($reply, $references) = $priv->db_replies($tid, 1, 0, $rid);
+
+		$processed{$tid} = 1;
+
+		my $newtid;
+
+		foreach ( @{$reply} ) {
+			if ( not ${$_}[2] and not $processed{${$_}[$arri]} ) {
+				$newtid = ${$_}[$arri];
+				last;
+			}
+		}
+
+		if ( $newtid ) {
+			$tid = $newtid;
+			redo;
+		}
+
+		foreach ( @{$references} ) {
+			if ( not ${$_}[2] and not $processed{${$_}[$arri]} ) {
+				$newtid = ${$_}[$arri];
+				last;
+			}
+		}
+
+		if ( $newtid ) {
+			$tid = $newtid;
+			redo;
+		}
+
+		foreach ( @{$reply} ) {
+			if ( not $processed{${$_}[$arri]} ) {
+				$newtid = ${$_}[$arri];
+				last;
+			}
+		}
+
+		if ( $newtid ) {
+			$tid = $newtid;
+			redo;
+		}
+
+		foreach ( @{$references} ) {
+			if ( not $processed{${$_}[$arri]} ) {
+				$newtid = ${$_}[$arri];
+				last;
+			}
+		}
+
+		if ( $newtid ) {
+			$tid = $newtid;
+			redo;
+		}
+
+		last;
+
+	}
+
+	return $priv->db_subtree($tid, $desc, $rid);
+
+}
+
+sub db_roots($$$$) {
+
+	my ($priv, $date1, $date2, $desc) = @_;
 
 	# TODO
 
