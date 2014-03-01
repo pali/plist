@@ -28,7 +28,7 @@ my @disabled_mime_types_default = qw(application/pgp-signature);
 my $base_template_default = <<END;
 <html>
 <head>
-<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
+<meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
 <TMPL_IF NAME=TITLE><title><TMPL_VAR ESCAPE=HTML NAME=TITLE></title>
 </TMPL_IF></head>
 <body>
@@ -39,6 +39,13 @@ END
 
 my $address_template_default = <<END;
 <a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>
+END
+
+my $subject_template_default = <<END;
+<TMPL_VAR ESCAPE=HTML NAME=SUBJECT>
+END
+
+my $download_template_default = <<END;
 END
 
 my $message_template_default = <<END;
@@ -68,8 +75,7 @@ my $attachment_template_default = <<END;
 </TMPL_IF><TMPL_IF NAME=DESCRIPTION><br><b>Description:</b> <TMPL_VAR ESCAPE=HTML NAME=DESCRIPTION>
 </TMPL_IF><TMPL_IF NAME=MIMETYPE><b>Mimetype:</b> <TMPL_VAR ESCAPE=HTML NAME=MIMETYPE><br>
 </TMPL_IF><TMPL_IF NAME=SIZE><b>Size:</b> <TMPL_VAR ESCAPE=HTML NAME=SIZE><br>
-</TMPL_IF><TMPL_IF NAME=URL><b><a href='<TMPL_VAR ESCAPE=URL NAME=URL><TMPL_VAR ESCAPE=URL NAME=PART>'>Download attachment</a></b><br>
-</TMPL_IF>
+</TMPL_IF><TMPL_VAR NAME=DOWNLOAD>
 END
 
 sub addressees_data($$) {
@@ -95,6 +101,7 @@ sub part_to_str($$$$) {
 
 	my ($pemail, $partid, $nodes, $config) = @_;
 
+	my $id = $pemail->header("0")->{id};
 	my $part = $pemail->part($partid);
 	my $type = $part->{type};
 
@@ -129,6 +136,8 @@ sub part_to_str($$$$) {
 			return part_to_str($pemail, $plain_i, $nodes, $config);
 		} else {
 			my $template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0);
+			$template->param(ID => $id);
+			$template->param(PART => $partid);
 			$template->param(BODY => "Viewing html part is disabled.");
 			return $template->output();
 		}
@@ -136,6 +145,7 @@ sub part_to_str($$$$) {
 	} else {
 
 		my $template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0);
+		$template->param(ID => $id);
 		$template->param(PART => $partid);
 
 		if ( $type eq "message" or $type eq "multipart" ) {
@@ -146,12 +156,20 @@ sub part_to_str($$$$) {
 			if ( $type eq "message" ) {
 				my $view_template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0);
 				my $message_template = HTML::Template->new(scalarref => ${$config}{message_template}, die_on_bad_params => 0);
+				my $subject_template = HTML::Template->new(scalarref => ${$config}{subject_template}, die_on_bad_params => 0);
 				my $header = $pemail->header($partid);
+				$subject_template->param(ID => $id);
+				$subject_template->param(PART => $partid);
+				$subject_template->param(SUBJECT => $header->{subject});
+				$message_template->param(ID => $id);
+				$message_template->param(PART => $partid);
 				$message_template->param(FROM => addressees_data($header->{from}, $config));
 				$message_template->param(TO => addressees_data($header->{to}, $config));
 				$message_template->param(CC => addressees_data($header->{cc}, $config));
 				$message_template->param(DATE => $header->{date});
-				$message_template->param(SUBJECT => $header->{subject});
+				$message_template->param(SUBJECT => $subject_template->output());
+				$view_template->param(ID => $id);
+				$view_template->param(PART => $partid);
 				$view_template->param(BODY => $message_template->output());
 				my %hash = (PART => $view_template->output());
 				push(@data, \%hash);
@@ -189,6 +207,8 @@ sub part_to_str($$$$) {
 				my $data = $pemail->data($partid);
 				$data = decode_utf8(${$data});
 				my $plaintext_template = HTML::Template->new(scalarref => ${$config}{plaintext_template}, die_on_bad_params => 0);
+				$plaintext_template->param(ID => $id);
+				$plaintext_template->param(PART => $partid);
 				$plaintext_template->param(BODY => $data);
 				$template->param(BODY => $plaintext_template->output());
 			} else {
@@ -198,12 +218,16 @@ sub part_to_str($$$$) {
 		} elsif ( $type eq "attachment" ) {
 
 			my $attachment_template = HTML::Template->new(scalarref => ${$config}{attachment_template}, die_on_bad_params => 0);
-			$attachment_template->param(URL => ${$config}{download_url});
-			$attachment_template->param(PART => $part->{part});
+			my $download_template = HTML::Template->new(scalarref => ${$config}{download_template}, die_on_bad_params => 0);
+			$download_template->param(ID => $id);
+			$download_template->param(PART => $partid);
+			$attachment_template->param(ID => $id);
+			$attachment_template->param(PART => $partid);
 			$attachment_template->param(SIZE => format_bytes($part->{size}));
 			$attachment_template->param(MIMETYPE => $part->{mimetype});
 			$attachment_template->param(FILENAME => $part->{filename});
 			$attachment_template->param(DESCRIPTION => $part->{description});
+			$attachment_template->param(DOWNLOAD => $download_template->output());
 			$template->param(BODY => $attachment_template->output());
 
 		} else {
@@ -224,11 +248,12 @@ sub part_to_str($$$$) {
 # html_policy always(4) allow(3) strip(2) plain(1) never(0)
 # time_zone origin
 # date_format default
-# download_url
 # enabled_mime_types
 # disabled_mime_types application/pgp-signature
 # base_template
 # address_template
+# subject_template
+# download_template
 # message_template
 # view_template
 # plaintext_template
@@ -251,6 +276,8 @@ sub to_str($;%) {
 	$config{disabled_mime_types} = \@disabled_mime_types_default unless $config{disabled_mime_types};
 	$config{base_template} = \$base_template_default unless $config{base_template};
 	$config{address_template} = \$address_template_default unless $config{address_template};
+	$config{subject_template} = \$subject_template_default unless $config{subject_template};
+	$config{download_template} = \$download_template_default unless $config{download_template};
 	$config{message_template} = \$message_template_default unless $config{message_template};
 	$config{view_template} = \$view_template_default unless $config{view_template};
 	$config{plaintext_template} = \$plaintext_template_default unless $config{plaintext_template};
