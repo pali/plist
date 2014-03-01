@@ -6,7 +6,7 @@ use warnings;
 use PList::Index;
 use PList::Email::Binary;
 
-use CGI;
+use CGI qw(-no_xhtml -utf8);
 use Time::Piece;
 
 binmode(\*STDOUT, ":utf8");
