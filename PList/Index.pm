@@ -11,6 +11,7 @@ use PList::List::Binary;
 use Time::Piece;
 use File::Path qw(make_path);
 use DBI;
+use Cwd;
 
 # directory structure:
 #
@@ -60,7 +61,7 @@ sub new($$) {
 
 	close($fh);
 
-	my $dbh = db_connect($driver, $params, $username, $password);
+	my $dbh = db_connect($dir, $driver, $params, $username, $password);
 	if ( not $dbh ) {
 		return undef;
 	}
@@ -84,18 +85,24 @@ sub DESTROY($) {
 
 }
 
-sub db_connect($$$$) {
+sub db_connect($$$$$) {
 
-	my ($driver, $params, $username, $password) = @_;
+	my ($dir, $driver, $params, $username, $password) = @_;
 
 	my $dbh;
+
+	my $cwd = cwd();
+	chdir($dir);
 
 	eval {
 		$dbh = DBI->connect("DBI:$driver:$params", $username, $password, { RaiseError => 1, AutoCommit => 0 });
 	} or do {
 		warn $@;
+		chdir($cwd);
 		return undef;
 	};
+
+	chdir($cwd);
 
 	if ( not $dbh ) {
 		return undef;
@@ -226,7 +233,7 @@ sub create($$$;$$) {
 		return 0;
 	}
 
-	my $dbh = db_connect($driver, $params, $username, $password);
+	my $dbh = db_connect($dir, $driver, $params, $username, $password);
 	if ( not $dbh ) {
 		close($fh);
 		unlink($dir . "/config");
