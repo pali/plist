@@ -661,7 +661,7 @@ sub db_emails($;%) {
 	$statement .= " JOIN subjects AS s ON s.id = e.subjectid";
 
 	if ( exists $args{email} or exists $args{name} ) {
-		$statement .= " JOIN addressess AS as ON as.emailid = e.id JOIN address AS a ON a.id = as.addressid";
+		$statement .= " JOIN addressess AS ss ON ss.emailid = e.id JOIN address AS a ON a.id = ss.addressid";
 	}
 
 	if ( exists $args{date1} or exists $args{date2} or exists $args{subject} or exists $args{email} or exists $args{name} ) {
@@ -679,18 +679,18 @@ sub db_emails($;%) {
 	}
 
 	if ( exists $args{subject} ) {
-		$statement .= " s.subject LIKE %?% AND";
-		push(@args, $args{subject});
+		$statement .= " s.subject LIKE ? AND";
+		push(@args, "%" . $args{subject} . "%");
 	}
 
 	if ( exists $args{email} ) {
-		$statement .= " a.email LIKE %?% AND";
-		push(@args, $args{email});
+		$statement .= " a.email LIKE ? AND";
+		push(@args, "%" . $args{email} . "%");
 	}
 
 	if ( exists $args{name} ) {
-		$statement .= " a.name LIKE %?% AND";
-		push(@args, $args{name});
+		$statement .= " a.name LIKE ? AND";
+		push(@args, "%" . $args{name} . "%");
 	}
 
 	$statement =~ s/AND$//;
@@ -717,8 +717,7 @@ sub db_emails($;%) {
 
 	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
 
-	return undef unless $ret;
-	return map { ${$_}[0] } @{$ret};
+	return $ret;
 
 }
 
