@@ -718,6 +718,12 @@ sub db_emails($;%) {
 
 	$statement =~ s/AND$//;
 
+	$statement .= " ORDER BY e.date";
+
+	if ( $args{desc} ) {
+		$statement .= " DESC";
+	}
+
 	if ( exists $args{limit} ) {
 		$statement .= " LIMIT ?";
 		push(@args, $args{limit});
