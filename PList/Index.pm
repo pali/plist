@@ -822,15 +822,15 @@ sub db_replies($$;$$$) {
 
 }
 
-sub db_subtree($$;$$) {
+sub db_subtree($$;$$$) {
 
-	my ($priv, $id, $desc, $rid) = @_;
+	my ($priv, $id, $desc, $rid, $limit) = @_;
 
 	my %tree = ( root => [] );
 	my %treerev;
 	my %tree2;
 	my %processed = ( root => 1 );
-	my @stack1 = (["root", $id]);
+	my @stack1 = (["root", $id, 0]);
 	my @stack2;
 	my @stack3;
 
@@ -850,9 +850,11 @@ sub db_subtree($$;$$) {
 			$s3 = 1;
 		}
 
-		my ($up, $tid) = @{$m};
+		my ($up, $tid, $len) = @{$m};
 
 		next if $processed{$tid};
+
+		next if defined $limit and $len > $limit;
 
 		$tree{$tid} = [] unless $tree{$tid};
 
@@ -869,10 +871,12 @@ sub db_subtree($$;$$) {
 		my ($reply, $references) = $priv->db_replies($tid, 0, $desc, $rid);
 
 		if ( scalar @{$reply} ) {
-			push(@stack1, [$tid, ${$_}[$arri]]) foreach ( @{$reply} );
-			push(@stack2, [$tid, ${$_}[$arri]]) foreach ( @{$references} );
+			push(@stack1, [$tid, ${$_}[$arri], $len+1]) foreach ( @{$reply} );
+			if ( not defined $limit ) {
+				push(@stack2, [$tid, ${$_}[$arri], $len+1]) foreach ( @{$references} );
+			}
 		} else {
-			push(@stack3, [$tid, ${$_}[$arri]]) foreach ( @{$references} );
+			push(@stack3, [$tid, ${$_}[$arri], $len+1]) foreach ( @{$references} );
 		}
 
 	}
@@ -889,9 +893,9 @@ sub db_subtree($$;$$) {
 
 }
 
-sub db_tree($$;$$) {
+sub db_tree($$;$$$$) {
 
-	my ($priv, $id, $desc, $rid) = @_;
+	my ($priv, $id, $desc, $rid, $limitup, $limitdown) = @_;
 
 	my $tid = $id;
 
@@ -900,7 +904,11 @@ sub db_tree($$;$$) {
 	my $arri = 1;
 	$arri = 0 if $rid;
 
+	my $count = 0;
+
 	while ( 1 ) {
+
+		last if defined $limitup and ++$count > $limitup;
 
 		my ($reply, $references) = $priv->db_replies($tid, 1, 0, $rid);
 
@@ -960,7 +968,15 @@ sub db_tree($$;$$) {
 
 	}
 
-	return $priv->db_subtree($tid, $desc, $rid);
+	my $limit;
+
+	if ( defined $limitup and $limitdown ) {
+		$limit = $limitup + $limitdown;
+	} elsif ( defined $limitdown ) {
+		$limit = $limitdown;
+	}
+
+	return $priv->db_subtree($tid, $desc, $rid, $limit);
 
 }
 
