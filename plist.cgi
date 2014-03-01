@@ -110,7 +110,7 @@ if ( $action eq "get-bin" ) {
 	delete $tree->{root};
 
 	print $q->header();
-	print $q->start_html(-title => "Tree for $id");
+	print $q->start_html(-title => "Tree for " . $email->{messageid});
 
 	print "<ul class='tree'>\n";
 
@@ -135,7 +135,7 @@ if ( $action eq "get-bin" ) {
 		my $from = "unknown";
 
 		if ( @{$email->{from}} ) {
-			$from = $q->escapeHTML(${${$email->{from}}[0]}[1] . " <" . ${${$email->{from}}[0]}[0] . ">");
+			$from = "<a href='?indexdir=$indexdir&action=search&name=" . $q->escapeHTML(${${$email->{from}}[0]}[1]) . "'>" . $q->escapeHTML(${${$email->{from}}[0]}[1]) . "</a>" . " <a href='?indexdir=$indexdir&action=search&email=" . $q->escapeHTML(${${$email->{from}}[0]}[0]) . "'>&lt" . $q->escapeHTML(${${$email->{from}}[0]}[0]) . "&gt</a>";
 		}
 
 		print "<li>";
