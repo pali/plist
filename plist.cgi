@@ -35,7 +35,7 @@ if ( not $indexdir ) {
 	while ( defined (my $name = readdir($dh)) ) {
 		next unless -d $name;
 		next if $name eq "." or $name eq "..";
-		$name = $q->escapeHTML($name);
+		$name = $q->escape($name);
 		print "<li><a href='?indexdir=$name'>$name</a></li>\n";
 	}
 
@@ -48,7 +48,7 @@ if ( not $indexdir ) {
 
 }
 
-my $eindexdir = $q->escapeHTML($indexdir);
+my $eindexdir = $q->escape($indexdir);
 
 my $action = $q->param("action");
 
@@ -176,7 +176,7 @@ if ( $action eq "get-bin" ) {
 		}
 
 		my $email = $index->db_email($tid, 1);
-		my $mid = $q->escapeHTML($email->{messageid});
+		my $mid = $q->escape($email->{messageid});
 		my $subject = $q->escapeHTML($email->{subject});
 		my $date;
 		my $from;
@@ -186,7 +186,7 @@ if ( $action eq "get-bin" ) {
 		}
 
 		if ( @{$email->{from}} ) {
-			$from = "<a href='?indexdir=$eindexdir&amp;action=search&amp;name=" . $q->escapeHTML(${${$email->{from}}[0]}[1]) . "'>" . $q->escapeHTML(${${$email->{from}}[0]}[1]) . "</a> <a href='?indexdir=$eindexdir&amp;action=search&amp;email=" . $q->escapeHTML(${${$email->{from}}[0]}[0]) . "'>&lt;" . $q->escapeHTML(${${$email->{from}}[0]}[0]) . "&gt;</a>";
+			$from = "<a href='?indexdir=$eindexdir&amp;action=search&amp;name=" . $q->escape(${${$email->{from}}[0]}[1]) . "'>" . $q->escapeHTML(${${$email->{from}}[0]}[1]) . "</a> <a href='?indexdir=$eindexdir&amp;action=search&amp;email=" . $q->escape(${${$email->{from}}[0]}[0]) . "'>&lt;" . $q->escapeHTML(${${$email->{from}}[0]}[0]) . "&gt;</a>";
 		}
 
 		print "<li>";
@@ -261,7 +261,7 @@ if ( $action eq "get-bin" ) {
 	print "<ul>\n";
 
 	foreach ( @{$roots} ) {
-		print "<li><a href='?indexdir=$eindexdir&amp;action=get-tree&amp;id=" . $q->escapeHTML(${$_}[1]) . "'>" . $q->escapeHTML(${$_}[1]) . "</a></li>\n";
+		print "<li><a href='?indexdir=$eindexdir&amp;action=get-tree&amp;id=" . $q->escape(${$_}[1]) . "'>" . $q->escapeHTML(${$_}[1]) . "</a></li>\n";
 	}
 
 	print "</ul>";
@@ -346,7 +346,7 @@ if ( $action eq "get-bin" ) {
 		my $date = ${$_}[2];
 		my $subject = ${$_}[3];
 		print "<li>";
-		print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=" . $q->escapeHTML($id) . "'>" . $q->escapeHTML($subject) . "</a> - ";
+		print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=" . $q->escape($id) . "'>" . $q->escapeHTML($subject) . "</a> - ";
 		print $q->escapeHTML(localtime($date)->strftime("%Y-%m-%d %H:%M:%S %z"));
 		print "</li>\n";
 	}
