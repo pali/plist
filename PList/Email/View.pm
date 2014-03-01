@@ -37,10 +37,14 @@ my $base_template_default = <<END;
 </html>
 END
 
+my $address_template_default = <<END;
+<a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>
+END
+
 my $message_template_default = <<END;
-<TMPL_IF NAME=FROM><b>From:</b><TMPL_LOOP NAME=FROM> <a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a></TMPL_LOOP><br>
-</TMPL_IF><TMPL_IF NAME=TO><b>To:</b><TMPL_LOOP NAME=TO> <a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a></TMPL_LOOP><br>
-</TMPL_IF><TMPL_IF NAME=CC><b>Cc:</b><TMPL_LOOP NAME=CC> <a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a></TMPL_LOOP><br>
+<TMPL_IF NAME=FROM><b>From:</b><TMPL_LOOP NAME=FROM> <TMPL_VAR NAME=BODY></TMPL_LOOP><br>
+</TMPL_IF><TMPL_IF NAME=TO><b>To:</b><TMPL_LOOP NAME=TO> <TMPL_VAR NAME=BODY></TMPL_LOOP><br>
+</TMPL_IF><TMPL_IF NAME=CC><b>Cc:</b><TMPL_LOOP NAME=CC> <TMPL_VAR NAME=BODY></TMPL_LOOP><br>
 </TMPL_IF><TMPL_IF NAME=DATE><b>Date:</b> <TMPL_VAR ESCAPE=HTML NAME=DATE><br>
 </TMPL_IF><TMPL_IF NAME=SUBJECT><b>Subject:</b> <TMPL_VAR ESCAPE=HTML NAME=SUBJECT><br>
 </TMPL_IF>
@@ -68,15 +72,17 @@ my $attachment_template_default = <<END;
 </TMPL_IF>
 END
 
-sub addressees_data($) {
+sub addressees_data($$) {
 
-	my ($ref) = @_;
+	my ($ref, $config) = @_;
 	my @data = ();
 	if ($ref) {
 		foreach (@{$ref}) {
 			$_ =~ /^(\S*) (.*)$/;
-			my %hash = (EMAIL => $1, NAME => $2);
-			push(@data, \%hash);
+			my $address_template = HTML::Template->new(scalarref => ${$config}{address_template}, die_on_bad_params => 0);
+			$address_template->param(EMAIL => $1);
+			$address_template->param(NAME => $2);
+			push(@data, {BODY => $address_template->output()});
 		}
 	}
 	return \@data;
@@ -141,9 +147,9 @@ sub part_to_str($$$$) {
 				my $view_template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0);
 				my $message_template = HTML::Template->new(scalarref => ${$config}{message_template}, die_on_bad_params => 0);
 				my $header = $pemail->header($partid);
-				$message_template->param(FROM => addressees_data($header->{from}));
-				$message_template->param(TO => addressees_data($header->{to}));
-				$message_template->param(CC => addressees_data($header->{cc}));
+				$message_template->param(FROM => addressees_data($header->{from}, $config));
+				$message_template->param(TO => addressees_data($header->{to}, $config));
+				$message_template->param(CC => addressees_data($header->{cc}, $config));
 				$message_template->param(DATE => $header->{date});
 				$message_template->param(SUBJECT => $header->{subject});
 				$view_template->param(BODY => $message_template->output());
@@ -222,6 +228,7 @@ sub part_to_str($$$$) {
 # enabled_mime_types
 # disabled_mime_types application/pgp-signature
 # base_template
+# address_template
 # message_template
 # view_template
 # plaintext_template
@@ -243,6 +250,7 @@ sub to_str($;%) {
 	# TODO: Add support for $html_output == 0
 	$config{disabled_mime_types} = \@disabled_mime_types_default unless $config{disabled_mime_types};
 	$config{base_template} = \$base_template_default unless $config{base_template};
+	$config{address_template} = \$address_template_default unless $config{address_template};
 	$config{message_template} = \$message_template_default unless $config{message_template};
 	$config{view_template} = \$view_template_default unless $config{view_template};
 	$config{plaintext_template} = \$plaintext_template_default unless $config{plaintext_template};
