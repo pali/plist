@@ -557,9 +557,9 @@ sub add_list($$) {
 
 }
 
-sub db_email($$) {
+sub db_email($$;$) {
 
-	my ($priv, $id) = @_;
+	my ($priv, $id, $rid) = @_;
 
 	my $dbh = $priv->{dbh};
 
@@ -567,12 +567,15 @@ sub db_email($$) {
 	my $email = { from => [], to => [], cc => [] };
 	my $ret;
 
+	my $where = "messageid";
+	$where = "id" if $rid;
+
 	# Select email with messageid
 	$statement = qq(
 		SELECT e.id, e.messageid, e.date, s.subject, e.list, e.offset, e.implicit, e.hasreply
 			FROM emails AS e
 			JOIN subjects AS s ON s.id = e.subjectid
-			WHERE e.messageid = ?
+			WHERE e.$where = ?
 			LIMIT 1
 		;
 	);
@@ -580,7 +583,7 @@ sub db_email($$) {
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute($id);
-		$ret = $sth->fetchall_hashref("messageid");
+		$ret = $sth->fetchall_hashref($where);
 	} or do {
 		eval { $dbh->rollback(); };
 		return undef;
