@@ -42,7 +42,6 @@ if ( not $indexdir ) {
 	closedir($dh);
 
 	print "</ul>";
-
 	print $q->end_html();
 
 	exit;
@@ -59,7 +58,11 @@ if ( not $action ) {
 
 	print $q->header();
 	print $q->start_html(-title => $indexdir);
-	print "<a href='?indexdir=$eindexdir&amp;action=get-roots'>Show roots</a>";
+	print "<ul>\n";
+	print "<li><a href='?indexdir=$eindexdir&amp;action=get-roots'>Show all roots</a></li>\n";
+	print "<li><a href='?indexdir=$eindexdir&amp;action=search&amp;limit=100&amp;desc=1'>Show last 100 emails</a></li>\n";
+	print "<li><a href='?indexdir=$eindexdir&amp;action=search'>Search</a></li>\n";
+	print "</ul>";
 	print $q->end_html();
 
 	exit;
@@ -225,7 +228,6 @@ if ( $action eq "get-bin" ) {
 	}
 
 	print "</ul>";
-
 	print $q->end_html();
 
 } elsif ( $action eq "get-roots" ) {
@@ -262,7 +264,7 @@ if ( $action eq "get-bin" ) {
 		print "<li><a href='?indexdir=$eindexdir&amp;action=get-tree&amp;id=" . $q->escapeHTML(${$_}[1]) . "'>" . $q->escapeHTML(${$_}[1]) . "</a></li>\n";
 	}
 
-	print "</ul>\n";
+	print "</ul>";
 	print $q->end_html();
 
 } elsif ( $action eq "gen-html" ) {
