@@ -654,14 +654,11 @@ sub db_emails($;%) {
 	}
 
 	# Select all email messageids which match conditions
-	$statement = "SELECT DISTINCT e.messageid FROM emails AS e";
-
-	if ( exists $args{subject} ) {
-		$statement .= " JOIN subjects AS s ON s.id = e.subjectid";
-	}
+	$statement = "SELECT DISTINCT e.id, e.messageid, e.date, s.subject, e.list, e.offset, e.implicit, e.hasreply FROM emails AS e";
+	$statement .= " JOIN subjects AS s ON s.id = e.subjectid";
 
 	if ( exists $args{email} or exists $args{name} ) {
-		$statement .= " JOIN addressess AS s ON s.emailid = e.id JOIN address AS a ON a.id = s.addressid";
+		$statement .= " JOIN addressess AS as ON as.emailid = e.id JOIN address AS a ON a.id = as.addressid";
 	}
 
 	if ( exists $args{date1} or exists $args{date2} or exists $args{subject} or exists $args{email} or exists $args{name} ) {
