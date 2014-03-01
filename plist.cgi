@@ -16,11 +16,51 @@ my $q = new CGI;
 $q->charset("utf-8");
 
 my $indexdir = $q->param("indexdir");
+
+if ( not $indexdir ) {
+
+	# List all directories in current directory
+
+	my $dh;
+	if ( not opendir($dh, ".") ) {
+		print $q->header(-status => 404);
+		exit;
+	}
+
+	print $q->header();
+	print $q->start_html(-title => "PList");
+
+	print "<ul>\n";
+
+	while ( defined (my $name = readdir($dh)) ) {
+		next unless -d $name;
+		next if $name eq "." or $name eq "..";
+		print "<li><a href='?indexdir=$name'>$name</a></li>\n";
+	}
+
+	closedir($dh);
+
+	print "</ul>";
+
+	print $q->end_html();
+
+	exit;
+
+}
+
 my $action = $q->param("action");
 
-if ( not $indexdir or not $action ) {
-	print $q->header(-status => 404);
+if ( not $action ) {
+
+	# Show info page
+
+	print $q->header();
+	print $q->start_html(-title => $indexdir);
+	print "<a href='?indexdir=$indexdir&action=get-roots'>Show roots</a>";
+	print $q->end_html();
+
 	exit;
+
 }
 
 my $index = new PList::Index($indexdir);
@@ -245,6 +285,18 @@ if ( $action eq "get-bin" ) {
 	$args{limit} = $limit if defined $limit;
 	$args{offset} = $offset if defined $offset;
 	$args{desc} = $desc if defined $desc;
+
+	if ( not keys %args ) {
+
+		# Show search formular
+
+		print $q->header();
+		print $q->start_html(-title => "Search");
+		print "TODO: show search formular";
+		print $q->end_html();
+
+		exit;
+	}
 
 	my $ret = $index->db_emails(%args);
 	if ( not $ret ) {
