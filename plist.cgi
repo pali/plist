@@ -295,15 +295,15 @@ if ( $action eq "get-bin" ) {
 	my $desc = $q->param("desc");
 
 	my %args;
-	$args{subject} = $subject if $subject;
-	$args{email} = $email if $email;
-	$args{name} = $name if $name;
-	$args{type} = $type if defined $type;
-	$args{date1} = $date1 if defined $date1;
-	$args{date2} = $date2 if defined $date2;
-	$args{limit} = $limit if defined $limit;
-	$args{offset} = $offset if defined $offset;
-	$args{desc} = $desc if defined $desc;
+	$args{subject} = $subject if length $subject;
+	$args{email} = $email if length $email;
+	$args{name} = $name if length $name;
+	$args{type} = $type if length $type;
+	$args{date1} = $date1 if length $date1;
+	$args{date2} = $date2 if length $date2;
+	$args{limit} = $limit if length $limit;
+	$args{offset} = $offset if length $offset;
+	$args{desc} = $desc if length $desc;
 
 	if ( not keys %args ) {
 
@@ -311,7 +311,19 @@ if ( $action eq "get-bin" ) {
 
 		print $q->header();
 		print $q->start_html(-title => "Search");
-		print "TODO: show search formular";
+		print $q->start_form(-method => "GET", -action => "?");
+		print $q->hidden(-name => "indexdir", -default => $indexdir) . "\n";
+		print "subject: " . $q->textfield(-name => "subject") . "<br>\n";
+		print "email: " . $q->textfield(-name => "email") . "<br>\n";
+		print "name: " . $q->textfield(-name => "name") . "<br>\n";
+		print "type: " . $q->textfield(-name => "type") . "<br>\n";
+		print "date1: " . $q->textfield(-name => "date1") . "<br>\n";
+		print "date2: " . $q->textfield(-name => "date2") . "<br>\n";
+		print "limit: " . $q->textfield(-name => "limit") . "<br>\n";
+		print "offset: " . $q->textfield(-name => "offset") . "<br>\n";
+		print "desc: " . $q->textfield(-name => "desc") . "<br>\n";
+		print $q->submit(-name => "action", -value => "search") . "<br>\n";
+		print $q->end_form();
 		print $q->end_html();
 
 		exit;
