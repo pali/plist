@@ -297,15 +297,15 @@ if ( $action eq "get-bin" ) {
 	my $desc = $q->param("desc");
 
 	my %args;
-	$args{subject} = $subject if length $subject;
-	$args{email} = $email if length $email;
-	$args{name} = $name if length $name;
-	$args{type} = $type if length $type;
-	$args{date1} = $date1 if length $date1;
-	$args{date2} = $date2 if length $date2;
-	$args{limit} = $limit if length $limit;
-	$args{offset} = $offset if length $offset;
-	$args{desc} = $desc if length $desc;
+	$args{subject} = $subject if defined $subject and length $subject;
+	$args{email} = $email if defined $email and length $email;
+	$args{name} = $name if defined $name and length $name;
+	$args{type} = $type if defined $type and length $type;
+	$args{date1} = $date1 if defined $date1 and length $date1;
+	$args{date2} = $date2 if defined $date2 and length $date2;
+	$args{limit} = $limit if defined $limit and length $limit;
+	$args{offset} = $offset if defined $offset and length $offset;
+	$args{desc} = $desc if defined $desc and length $desc;
 
 	if ( not keys %args ) {
 
