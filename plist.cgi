@@ -35,6 +35,7 @@ if ( not $indexdir ) {
 	while ( defined (my $name = readdir($dh)) ) {
 		next unless -d $name;
 		next if $name eq "." or $name eq "..";
+		$name = $q->escapeHTML($name);
 		print "<li><a href='?indexdir=$name'>$name</a></li>\n";
 	}
 
@@ -48,6 +49,8 @@ if ( not $indexdir ) {
 
 }
 
+my $eindexdir = $q->escapeHTML($indexdir);
+
 my $action = $q->param("action");
 
 if ( not $action ) {
@@ -56,7 +59,7 @@ if ( not $action ) {
 
 	print $q->header();
 	print $q->start_html(-title => $indexdir);
-	print "<a href='?indexdir=$indexdir&action=get-roots'>Show roots</a>";
+	print "<a href='?indexdir=$eindexdir&amp;action=get-roots'>Show roots</a>";
 	print $q->end_html();
 
 	exit;
@@ -70,15 +73,15 @@ if ( not $index ) {
 }
 
 my $address_template = <<END;
-<a href='?indexdir=$indexdir&action=search&name=<TMPL_VAR ESCAPE=URL NAME=NAME>'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='?indexdir=$indexdir&action=search&email=<TMPL_VAR ESCAPE=URL NAME=EMAIL>'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>
+<a href='?indexdir=$eindexdir&amp;action=search&amp;name=<TMPL_VAR ESCAPE=URL NAME=NAME>'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='?indexdir=$eindexdir&amp;action=search&amp;email=<TMPL_VAR ESCAPE=URL NAME=EMAIL>'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>
 END
 
 my $subject_template = <<END;
-<a href='?indexdir=$indexdir&action=get-tree&id=<TMPL_VAR ESCAPE=URL NAME=ID>'><TMPL_VAR ESCAPE=HTML NAME=SUBJECT></a>
+<a href='?indexdir=$eindexdir&amp;action=get-tree&amp;id=<TMPL_VAR ESCAPE=URL NAME=ID>'><TMPL_VAR ESCAPE=HTML NAME=SUBJECT></a>
 END
 
 my $download_template = <<END;
-<b><a href='?indexdir=$indexdir&action=get-part&id=<TMPL_VAR ESCAPE=URL NAME=ID>&part=<TMPL_VAR ESCAPE=URL NAME=PART>'>Download</a></b>
+<b><a href='?indexdir=$eindexdir&amp;action=get-part&amp;id=<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>Download</a></b>
 END
 
 if ( $action eq "get-bin" ) {
@@ -172,14 +175,27 @@ if ( $action eq "get-bin" ) {
 		my $email = $index->db_email($tid, 1);
 		my $mid = $q->escapeHTML($email->{messageid});
 		my $subject = $q->escapeHTML($email->{subject});
-		my $from = "unknown";
+		my $date;
+		my $from;
+
+		if ( $email->{date} ) {
+			$date = $q->escapeHTML(localtime($email->{date})->strftime("%Y-%m-%d %H:%M:%S %z"));
+		}
 
 		if ( @{$email->{from}} ) {
-			$from = "<a href='?indexdir=$indexdir&action=search&name=" . $q->escapeHTML(${${$email->{from}}[0]}[1]) . "'>" . $q->escapeHTML(${${$email->{from}}[0]}[1]) . "</a>" . " <a href='?indexdir=$indexdir&action=search&email=" . $q->escapeHTML(${${$email->{from}}[0]}[0]) . "'>&lt" . $q->escapeHTML(${${$email->{from}}[0]}[0]) . "&gt</a>";
+			$from = "<a href='?indexdir=$eindexdir&amp;action=search&amp;name=" . $q->escapeHTML(${${$email->{from}}[0]}[1]) . "'>" . $q->escapeHTML(${${$email->{from}}[0]}[1]) . "</a> <a href='?indexdir=$eindexdir&amp;action=search&amp;email=" . $q->escapeHTML(${${$email->{from}}[0]}[0]) . "'>&lt;" . $q->escapeHTML(${${$email->{from}}[0]}[0]) . "&gt;</a>";
 		}
 
 		print "<li>";
-		print "<a href='?indexdir=$indexdir&action=gen-html&id=$mid'>$subject</a> - $from";
+
+		if ( not $subject and not $from and not $date ) {
+			print "unknown";
+		} else {
+			$subject = "unknown" unless $subject;
+			$from = "unknown" unless $from;
+			$date = "unknown" unless $date;
+			print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=$mid'>$subject</a> - $from - $date";
+		}
 
 		my $count = 0;
 
@@ -240,10 +256,13 @@ if ( $action eq "get-bin" ) {
 
 	print $q->header();
 	print $q->start_html(-title => "Roots");
-	print $q->start_table();
-	print "\n";
-	print $q->Tr($q->td(["<a href='?indexdir=$indexdir&action=get-tree&id=" . $q->escapeHTML(${$_}[1]) . "'>" . $q->escapeHTML(${$_}[1]) . "</a>"])) . "\n" foreach @{$roots};
-	print $q->end_table();
+	print "<ul>\n";
+
+	foreach ( @{$roots} ) {
+		print "<li><a href='?indexdir=$eindexdir&amp;action=get-tree&amp;id=" . $q->escapeHTML(${$_}[1]) . "'>" . $q->escapeHTML(${$_}[1]) . "</a></li>\n";
+	}
+
+	print "</ul>\n";
 	print $q->end_html();
 
 } elsif ( $action eq "gen-html" ) {
@@ -306,18 +325,19 @@ if ( $action eq "get-bin" ) {
 
 	print $q->header();
 	print $q->start_html(-title => "Search");
-	print $q->start_table();
-	print "\n";
+	print "<ul>\n";
 
 	foreach ( @{$ret} ) {
 		my $id = ${$_}[1];
 		my $date = ${$_}[2];
 		my $subject = ${$_}[3];
-		my $line = "<a href='?indexdir=$indexdir&action=gen-html&id=" . $q->escapeHTML($id) . "'>" . $q->escapeHTML($subject) . "</a> - " . $q->escapeHTML(localtime($date)->strftime("%Y-%m-%d %H:%M:%S %z"));
-		print $q->Tr($q->td($line)) . "\n";
+		print "<li>";
+		print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=" . $q->escapeHTML($id) . "'>" . $q->escapeHTML($subject) . "</a> - ";
+		print $q->escapeHTML(localtime($date)->strftime("%Y-%m-%d %H:%M:%S %z"));
+		print "</li>\n";
 	}
 
-	print $q->end_table();
+	print "</ul>";
 	print $q->end_html();
 
 } else {
