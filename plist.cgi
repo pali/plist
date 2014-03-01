@@ -212,6 +212,39 @@ if ( $action eq "get-bin" ) {
 	print $q->header();
 	print $str;
 
+} elsif ( $action eq "search" ) {
+
+	my $subject = $q->param("subject");
+	my $email = $q->param("email");
+	my $name = $q->param("name");
+	my $date1 = $q->param("date1");
+	my $date2 = $q->param("date2");
+	my $limit = $q->param("limit");
+	my $offset = $q->param("offset");
+
+	my %args;
+	$args{subject} = $subject if $subject;
+	$args{email} = $email if $email;
+	$args{name} = $name if $name;
+	$args{date1} = $date1 if defined $date1;
+	$args{date2} = $date2 if defined $date2;
+	$args{limit} = $limit if defined $limit;
+	$args{offset} = $offset if defined $offset;
+
+	my $ret = $index->db_emails(%args);
+	if ( not $ret ) {
+		print $q->header(-status => 404);
+		exit;
+	}
+
+	print $q->header();
+	print $q->start_html();
+	print $q->start_table();
+	print "\n";
+	print $q->Tr($q->td($_)) . "\n" foreach @{$ret};
+	print $q->end_table();
+	print $q->end_html();
+
 } else {
 
 	print $q->header(-status => 404);
