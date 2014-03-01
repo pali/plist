@@ -28,6 +28,18 @@ if ( not $index ) {
 	exit;
 }
 
+my $address_template = <<END;
+<a href='?indexdir=$indexdir&action=search&name=<TMPL_VAR ESCAPE=URL NAME=NAME>'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='?indexdir=$indexdir&action=search&email=<TMPL_VAR ESCAPE=URL NAME=EMAIL>'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>
+END
+
+my $subject_template = <<END;
+<a href='?indexdir=$indexdir&action=get-tree&id=<TMPL_VAR ESCAPE=URL NAME=ID>'><TMPL_VAR ESCAPE=HTML NAME=SUBJECT></a>
+END
+
+my $download_template = <<END;
+<b><a href='?indexdir=$indexdir&action=get-part&id=<TMPL_VAR ESCAPE=URL NAME=ID>&part=<TMPL_VAR ESCAPE=URL NAME=PART>'>Download</a></b>
+END
+
 if ( $action eq "get-bin" ) {
 
 	my $id = $q->param("id");
@@ -199,12 +211,14 @@ if ( $action eq "get-bin" ) {
 
 } elsif ( $action eq "gen-html" ) {
 
+	my %config = (address_template => \$address_template, subject_template => \$subject_template, download_template => \$download_template);
+
 	my $id = $q->param("id");
 	if ( not $id ) {
 		print $q->header(-status => 404);
 		exit;
 	}
-	my $str = $index->view($id);
+	my $str = $index->view($id, %config);
 	if ( not $str ) {
 		print $q->header(-status => 404);
 		exit;
