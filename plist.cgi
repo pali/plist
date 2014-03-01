@@ -12,7 +12,7 @@ binmode(\*STDOUT, ":utf8");
 
 my $q = new CGI;
 
-$q->charset("UTF-8");
+$q->charset("utf-8");
 
 my $indexdir = $q->param("indexdir");
 my $action = $q->param("action");
@@ -138,7 +138,7 @@ if ( $action eq "get-bin" ) {
 		}
 
 		print "<li>";
-		print "<a href='?action=gen-html&id=$mid'>$subject</a> - $from";
+		print "<a href='?indexdir=$indexdir&action=gen-html&id=$mid'>$subject</a> - $from";
 
 		my $count = 0;
 
@@ -192,20 +192,16 @@ if ( $action eq "get-bin" ) {
 	}
 
 	my $roots = $index->db_roots($desc, %args);
+	if ( not $roots ) {
+		print $q->header(-status => 404);
+		exit;
+	}
 
 	print $q->header();
 	print $q->start_html(-title => "Roots");
 	print $q->start_table();
 	print "\n";
-
-	if ( $roots ) {
-		foreach ( @{$roots} ) {
-			if ( $_ ) {
-				print $q->Tr($q->td(["<a href='?action=get-tree&id=" . $q->escapeHTML(${$_}[1]) . "'>" . $q->escapeHTML(${$_}[1]) . "</a>"])) . "\n";
-			}
-		}
-	}
-
+	print $q->Tr($q->td(["<a href='?indexdir=$indexdir&action=get-tree&id=" . $q->escapeHTML(${$_}[1]) . "'>" . $q->escapeHTML(${$_}[1]) . "</a>"])) . "\n" foreach @{$roots};
 	print $q->end_table();
 	print $q->end_html();
 
