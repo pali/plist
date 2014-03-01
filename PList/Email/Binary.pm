@@ -13,22 +13,44 @@ sub lengthbytes($) {
 
 }
 
-sub data($$) {
+sub data($$;$) {
 
-	my ($self, $part) = @_;
+	my ($self, $part, $ofh) = @_;
 
 	my $fh = $self->{fh};
 	my $pemail = $self;
 	my $offsets = $self->{offsets};
-
 	my $str;
+
+	if ( not $pemail->part($part) ) {
+		return undef;
+	}
+
+	my $size = $pemail->part($part)->{size};
 
 	my $pos = tell($fh);
 	seek($fh, $self->{begin} + ${$offsets}{$part}, 0);
-	read $fh, $str, $pemail->part($part)->{size};
+
+	if ( $ofh ) {
+		my $len = 16384;
+		$len = $size if $size < $len;
+		while ( my $ret = read $fh, $str, $len ) {
+			last if not $ret or $ret != $len;
+			print $ofh $str;
+			$size -= $len;
+			$len = $size if $size < $len;
+		}
+	} else {
+		read $fh, $str, $size;
+	}
+
 	seek($fh, $pos, 0);
 
-	return \$str;
+	if ( $ofh ) {
+		return 1;
+	} else {
+		return \$str;
+	}
 
 }
 
@@ -316,8 +338,7 @@ sub to_fh($$) {
 	foreach (sort keys %{$pemail->parts()}) {
 		$_ = ${$pemail->parts()}{$_};
 		if ($_->{size} != 0) {
-			my $data = $pemail->data($_->{part});
-			print $fh ${$data};
+			$pemail->data($_->{part}, $fh);
 		}
 	}
 

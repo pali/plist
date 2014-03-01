@@ -47,7 +47,7 @@ sub headers($) {
 
 }
 
-sub data($$) {
+sub data($$;$) {
 
 	die;
 

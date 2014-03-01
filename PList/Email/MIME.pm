@@ -477,10 +477,14 @@ sub read_email($$$) {
 
 }
 
-sub data($$) {
+sub data($$;$) {
 
-	my ($self, $part) = @_;
-	return ${$self->{datarefs}}{$part};
+	my ($self, $part, $ofh) = @_;
+	if ( $ofh ) {
+		return print $ofh ${$self->{datarefs}->{$part}};
+	} else {
+		return $self->{datarefs}->{$part};
+	}
 
 }
 

@@ -59,7 +59,7 @@ if ( $action eq "get-bin" ) {
 	$filename = "File-$part.bin" unless $filename;
 	print $q->header(-type => "application/octet-stream", -attachment => "$filename", -charset => "");
 	binmode(\*STDOUT, ":raw");
-	print $pemail->data($id, $part);
+	$pemail->data($part, \*STDOUT);
 
 } elsif ( $action eq "get-tree" ) {
 

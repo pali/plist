@@ -383,10 +383,8 @@ if ( not $mod or not $command ) {
 
 		my ($pemail, $fh) = bin_get($listfile, $file, $offset);
 
-		my $data = $pemail->data($part);
-		die "Cannot read part $part from email (at $offset) from list file $listfile\n" unless $data;
-
-		print $fh $data;
+		my $ret = $pemail->data($part, $fh);
+		die "Cannot read part $part from email (at $offset) from list file $listfile\n" unless $ret;
 
 	} elsif ( $command eq "gen-html" or $command eq "gen-txt" ) {
 
@@ -463,10 +461,8 @@ if ( not $mod or not $command ) {
 		my $pemail = open_bin($binfile);
 		my $output = open_output($file, ":raw");
 
-		my $data = $pemail->data($part);
-		die "Cannot read part $part from email bin file $binfile\n" unless $data;
-
-		print $output ${$data};
+		my $ret = $pemail->data($part, $output);
+		die "Cannot read part $part from email bin file $binfile\n" unless $ret;
 
 	} elsif ( $command eq "gen-html" or $command eq "gen-txt" ) {
 
@@ -634,10 +630,8 @@ if ( not $mod or not $command ) {
 		help() if @ARGV;
 		my $fh = open_output($file, ":raw");
 
-		my $str = $index->data($id, $part);
-		die "Failed\n" unless $str;
-
-		print $fh $str;
+		my $ret = $index->data($id, $part, $fh);
+		die "Failed\n" unless $ret;
 
 	} elsif ( $command eq "del" ) {
 

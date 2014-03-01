@@ -1120,14 +1120,14 @@ sub view($$;%) {
 
 }
 
-sub data($$$) {
+sub data($$$;$) {
 
-	my ($priv, $id, $part) = @_;
+	my ($priv, $id, $part, $fh) = @_;
 
 	my $pemail = $priv->email($id);
 	return undef unless $pemail;
 
-	return $pemail->data($part);
+	return $pemail->data($part, $fh);
 
 }
 
