@@ -7,6 +7,7 @@ use PList::Index;
 use PList::Email::Binary;
 
 use CGI;
+use Time::Piece;
 
 binmode(\*STDOUT, ":utf8");
 
@@ -227,19 +228,23 @@ if ( $action eq "get-bin" ) {
 	my $subject = $q->param("subject");
 	my $email = $q->param("email");
 	my $name = $q->param("name");
+	my $type = $q->param("type");
 	my $date1 = $q->param("date1");
 	my $date2 = $q->param("date2");
 	my $limit = $q->param("limit");
 	my $offset = $q->param("offset");
+	my $desc = $q->param("desc");
 
 	my %args;
 	$args{subject} = $subject if $subject;
 	$args{email} = $email if $email;
 	$args{name} = $name if $name;
+	$args{type} = $type if defined $type;
 	$args{date1} = $date1 if defined $date1;
 	$args{date2} = $date2 if defined $date2;
 	$args{limit} = $limit if defined $limit;
 	$args{offset} = $offset if defined $offset;
+	$args{desc} = $desc if defined $desc;
 
 	my $ret = $index->db_emails(%args);
 	if ( not $ret ) {
@@ -248,10 +253,18 @@ if ( $action eq "get-bin" ) {
 	}
 
 	print $q->header();
-	print $q->start_html();
+	print $q->start_html(-title => "Search");
 	print $q->start_table();
 	print "\n";
-	print $q->Tr($q->td($_)) . "\n" foreach @{$ret};
+
+	foreach ( @{$ret} ) {
+		my $id = ${$_}[1];
+		my $date = ${$_}[2];
+		my $subject = ${$_}[3];
+		my $line = "<a href='?indexdir=$indexdir&action=gen-html&id=" . $q->escapeHTML($id) . "'>" . $q->escapeHTML($subject) . "</a> - " . $q->escapeHTML(localtime($date)->strftime("%Y-%m-%d %H:%M:%S %z"));
+		print $q->Tr($q->td($line)) . "\n";
+	}
+
 	print $q->end_table();
 	print $q->end_html();
 
