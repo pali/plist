@@ -8,6 +8,8 @@ use PList::Email::Binary;
 
 use CGI;
 
+binmode(\*STDOUT, ":utf8");
+
 my $q = new CGI;
 
 $q->charset("UTF-8");
@@ -64,12 +66,98 @@ if ( $action eq "get-bin" ) {
 } elsif ( $action eq "get-tree" ) {
 
 	my $id = $q->param("id");
+	my $desc = $q->param("desc");
+	my $limitup = $q->param("limitup");
+	my $limitdown = $q->param("limitdown");
+
 	if ( not $id ) {
 		print $q->header(-status => 404);
 		exit;
 	}
 
-	# TODO
+	if ( $desc and $desc == 1 ) {
+		$desc = 1;
+	} else {
+		$desc = 0;
+	}
+
+	my $email = $index->db_email($id);
+	if ( not $email ) {
+		print $q->header(-status => 404);
+		exit;
+	}
+	$id = $email->{id};
+
+	my $tree = $index->db_tree($id, $desc, 1, $limitup, $limitdown);
+	if ( not $email ) {
+		print $q->header(-status => 404);
+		exit;
+	}
+	my $root = ${$tree->{root}}[0];
+	delete $tree->{root};
+
+	print $q->header();
+	print $q->start_html(-title => "Tree for $id");
+
+	print "<ul class='tree'>\n";
+
+	my %processed = ($root => 1);
+	my @stack = ([$root, 0]);
+	my $prevlen = 0;
+
+	while ( @stack ) {
+
+		my $m = pop(@stack);
+		my ($tid, $len) = @{$m};
+		my $down = $tree->{$tid};
+
+		while ( $prevlen > $len ) {
+			print "</ul>\n</li>\n";
+			--$prevlen;
+		}
+
+		my $email = $index->db_email($tid, 1);
+		my $mid = $q->escapeHTML($email->{messageid});
+		my $subject = $q->escapeHTML($email->{subject});
+		my $from = "unknown";
+
+		if ( @{$email->{from}} ) {
+			$from = $q->escapeHTML(${${$email->{from}}[0]}[1] . " <" . ${${$email->{from}}[0]}[0] . ">");
+		}
+
+		print "<li>";
+		print "<a href='?action=gen-html&id=$mid'>$subject</a> - $from";
+
+		my $count = 0;
+
+		if ( $down ) {
+			foreach ( @{$down} ) {
+				if ( not $processed{$_} ) {
+					++$count;
+					$processed{$_} = 1;
+					push(@stack, [$_, $len+1]);
+				}
+			}
+		}
+
+		if ( $count ) {
+			print "\n<ul>\n";
+		} else {
+			print "</li>\n";
+		}
+
+		$prevlen = $len;
+
+	}
+
+	while ( $prevlen ) {
+		print "</ul>\n</li>\n";
+		--$prevlen;
+	}
+
+	print "</ul>";
+
+	print $q->end_html();
 
 } elsif ( $action eq "get-roots" ) {
 
