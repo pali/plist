@@ -217,9 +217,23 @@ sub create_tables($$) {
 
 }
 
-sub create($$$;$$) {
+sub create($;$$$$) {
 
 	my ($dir, $driver, $params, $username, $password) = @_;
+
+	if ( not $driver ) {
+		$driver = "SQLite";
+	}
+
+	if ( $driver eq "SQLite" and not $params ) {
+		$params = "sqlite.db";
+	} elsif ( not defined $params ) {
+		$params = "";
+	}
+
+	if ( not defined $username ) {
+		$password = undef;
+	}
 
 	if ( not make_path($dir) ) {
 		warn "Cannot create dir $dir\n";
@@ -254,8 +268,8 @@ sub create($$$;$$) {
 
 	print $fh "$driver\n";
 	print $fh "$params\n";
-	print $fh "$username\n" if $username;
-	print $fh "$password\n" if $password;
+	print $fh "$username\n" if defined $username;
+	print $fh "$password\n" if defined $password;
 	close($fh);
 
 	return 1;

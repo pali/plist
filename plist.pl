@@ -21,7 +21,7 @@ sub help() {
 
 	print "help:\n";
 	print "index view <dir>\n";
-	print "index create <dir> <driver> <params> [<username>] [<password>]\n";
+	print "index create <dir> [<driver>] [<params>] [<username>] [<password>]\n";
 	print "index regenerate <dir>\n";
 	print "index add-list <dir> [<list>]\n";
 	print "index add-mbox <dir> [<mbox>]\n";
@@ -495,11 +495,7 @@ if ( not $mod or not $command ) {
 	if ( $command eq "create" ) {
 
 		my $driver = shift @ARGV;
-		help() unless $driver;
-
 		my $params = shift @ARGV;
-		help() unless $params;
-
 		my $username = shift @ARGV;
 		my $password = shift @ARGV;
 
