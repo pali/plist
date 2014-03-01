@@ -662,6 +662,18 @@ sub db_emails($;%) {
 		$args{subject} = normalize_subject($args{subject});
 	}
 
+	if ( exists $args{type} ) {
+		if ( $args{type} eq "from" ) {
+			$args{type} = 0;
+		} elsif ( $args{type} eq "to" ) {
+			$args{type} = 1;
+		} elsif ( $args{type} eq "cc" ) {
+			$args{type} = 2;
+		} else {
+			delete $args{type};
+		}
+	}
+
 	# Select all email messageids which match conditions
 	$statement = "SELECT DISTINCT e.id, e.messageid, e.date, s.subject, e.list, e.offset, e.implicit, e.hasreply FROM emails AS e";
 	$statement .= " JOIN subjects AS s ON s.id = e.subjectid";
@@ -670,7 +682,7 @@ sub db_emails($;%) {
 		$statement .= " JOIN addressess AS ss ON ss.emailid = e.id JOIN address AS a ON a.id = ss.addressid";
 	}
 
-	if ( exists $args{date1} or exists $args{date2} or exists $args{subject} or exists $args{email} or exists $args{name} ) {
+	if ( exists $args{date1} or exists $args{date2} or exists $args{subject} or exists $args{email} or exists $args{name} or exists $args{type} ) {
 		$statement .= " WHERE";
 	}
 
@@ -697,6 +709,11 @@ sub db_emails($;%) {
 	if ( exists $args{name} ) {
 		$statement .= " a.name LIKE ? AND";
 		push(@args, "%" . $args{name} . "%");
+	}
+
+	if ( exists $args{type} ) {
+		$statement .= " ss.type = ? AND";
+		push(@args, $args{type});
 	}
 
 	$statement =~ s/AND$//;
