@@ -33,8 +33,9 @@ if ( not $indexdir ) {
 	print "<ul>\n";
 
 	while ( defined (my $name = readdir($dh)) ) {
+		next if $name =~ /^\./;
 		next unless -d $name;
-		next if $name eq "." or $name eq "..";
+		next unless -f "$name/config";
 		$name = $q->escape($name);
 		print "<li><a href='?indexdir=$name'>$name</a></li>\n";
 	}
