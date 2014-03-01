@@ -261,6 +261,12 @@ sub regenerate($) {
 
 	# TODO
 
+	# drop tables
+	# create tables
+	# rename listfiles
+	# insert emails (ignore removed)
+	# remove old listfiles
+
 }
 
 # Remove all leadings strings RE: FW: FWD: and mailinglist name in square brackets
