@@ -88,6 +88,10 @@ my $download_template = <<END;
 <b><a href='?indexdir=$eindexdir&amp;action=get-part&amp;id=<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>Download</a></b>
 END
 
+my $imagepreview_template = <<END;
+<img src='?indexdir=$eindexdir&amp;action=get-part&amp;id=<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>
+END
+
 if ( $action eq "get-bin" ) {
 
 	my $id = $q->param("id");
@@ -277,7 +281,7 @@ if ( $action eq "get-bin" ) {
 
 } elsif ( $action eq "gen-html" ) {
 
-	my %config = (address_template => \$address_template, subject_template => \$subject_template, download_template => \$download_template);
+	my %config = (address_template => \$address_template, subject_template => \$subject_template, download_template => \$download_template, imagepreview_template => \$imagepreview_template);
 
 	my $id = $q->param("id");
 	if ( not $id ) {
