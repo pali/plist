@@ -15,6 +15,8 @@ my $q = new CGI;
 
 $q->charset("utf-8");
 
+my @html_params = (-lang => "", -head => $q->meta({-http_equiv => "Content-Type", -content => "text/html; charset=utf-8"}));
+
 my $indexdir = $q->param("indexdir");
 
 if ( not $indexdir ) {
@@ -28,7 +30,7 @@ if ( not $indexdir ) {
 	}
 
 	print $q->header();
-	print $q->start_html(-title => "PList");
+	print $q->start_html(@html_params, -title => "PList");
 
 	print "<ul>\n";
 
@@ -58,7 +60,7 @@ if ( not $action ) {
 	# Show info page
 
 	print $q->header();
-	print $q->start_html(-title => $indexdir);
+	print $q->start_html(@html_params, -title => $indexdir);
 	print "<ul>\n";
 	print "<li><a href='?indexdir=$eindexdir&amp;action=get-roots'>Show all roots</a></li>\n";
 	print "<li><a href='?indexdir=$eindexdir&amp;action=search&amp;limit=100&amp;desc=1'>Show last 100 emails</a></li>\n";
@@ -168,7 +170,7 @@ if ( $action eq "get-bin" ) {
 	delete $tree->{root};
 
 	print $q->header();
-	print $q->start_html(-title => "Tree for " . $email->{messageid});
+	print $q->start_html(@html_params, -title => "Tree for " . $email->{messageid});
 
 	print "<ul class='tree'>\n";
 
@@ -269,7 +271,7 @@ if ( $action eq "get-bin" ) {
 	}
 
 	print $q->header();
-	print $q->start_html(-title => "Roots");
+	print $q->start_html(@html_params, -title => "Roots");
 	print "<ul>\n";
 
 	foreach ( @{$roots} ) {
@@ -329,7 +331,7 @@ if ( $action eq "get-bin" ) {
 		# Show search formular
 
 		print $q->header();
-		print $q->start_html(-title => "Search");
+		print $q->start_html(@html_params, -title => "Search");
 		print $q->start_form(-method => "GET", -action => "?");
 		print $q->hidden(-name => "indexdir", -default => $indexdir) . "\n";
 		print "subject: " . $q->textfield(-name => "subject") . "<br>\n";
@@ -355,7 +357,7 @@ if ( $action eq "get-bin" ) {
 	}
 
 	print $q->header();
-	print $q->start_html(-title => "Search");
+	print $q->start_html(@html_params, -title => "Search");
 	print "<ul>\n";
 
 	foreach ( @{$ret} ) {
