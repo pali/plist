@@ -117,9 +117,16 @@ if ( $action eq "get-bin" ) {
 		print $q->header(-status => 404);
 		exit;
 	}
+	my $date = $pemail->header("0")->{date};
+	my $size = $pemail->part($part)->{size};
+	my $mimetype = $pemail->part($part)->{mimetype};
 	my $filename = $pemail->part($part)->{filename};
+	eval { $date = Time::Piece->strptime($date, "%Y-%m-%d %H:%M:%S %z") };
+	$date = $date->strftime("%a, %d %b %Y %H:%M:%S GMT") if $date; # TODO: check if timezone is really converted to GMT by Time::Piece
+	$mimetype = "application/octet-stream" unless $mimetype;
 	$filename = "File-$part.bin" unless $filename;
-	print $q->header(-type => "application/octet-stream", -attachment => "$filename", -charset => "");
+	$q->charset("") unless $mimetype =~ /^text\//;
+	print $q->header(-type => $mimetype, -attachment => $filename, -expires => "+10y", last_modified => $date, -content_length => $size);
 	binmode(\*STDOUT, ":raw");
 	$pemail->data($part, \*STDOUT);
 
