@@ -293,7 +293,12 @@ if ( $action eq "get-bin" ) {
 		print $q->header(-status => 404);
 		exit;
 	}
-	print $q->header();
+	my $size;
+	{
+		use bytes;
+		$size = length($str);
+	}
+	print $q->header(-content_length => $size);
 	print $str;
 
 } elsif ( $action eq "search" ) {
