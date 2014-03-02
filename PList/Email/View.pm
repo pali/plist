@@ -48,6 +48,9 @@ END
 my $download_template_default = <<END;
 END
 
+my $imagepreview_template_default = <<END;
+END
+
 my $message_template_default = <<END;
 <TMPL_IF NAME=FROM><b>From:</b><TMPL_LOOP NAME=FROM> <TMPL_VAR NAME=BODY>,</TMPL_LOOP><br>
 </TMPL_IF><TMPL_IF NAME=TO><b>To:</b><TMPL_LOOP NAME=TO> <TMPL_VAR NAME=BODY>,</TMPL_LOOP><br>
@@ -194,45 +197,87 @@ sub part_to_str($$$$) {
 			$multipart_template->param(BODY => \@data);
 			$template->param(BODY => $multipart_template->output());
 
-		} elsif ( $type eq "view" ) {
-
-			my $html_policy = ${$config}{html_policy};
-
-			my $mimetype = $part->{mimetype};
-			if ( $mimetype eq "text/html" and ( $html_policy == 3 or $html_policy == 2 ) ) {
-				my $data = $pemail->data($partid);
-				$data = decode_utf8(${$data});
-				$template->param(BODY => $data);
-			} elsif ( $mimetype eq "text/plain" or $mimetype eq "text/plain-from-html" ) {
-				my $data = $pemail->data($partid);
-				$data = decode_utf8(${$data});
-				my $plaintext_template = HTML::Template->new(scalarref => ${$config}{plaintext_template}, die_on_bad_params => 0);
-				$plaintext_template->param(ID => $id);
-				$plaintext_template->param(PART => $partid);
-				$plaintext_template->param(BODY => $data);
-				$template->param(BODY => $plaintext_template->output());
-			} else {
-				$template->param(BODY => "Error: This part cannot be shown");
-			}
-
-		} elsif ( $type eq "attachment" ) {
-
-			my $attachment_template = HTML::Template->new(scalarref => ${$config}{attachment_template}, die_on_bad_params => 0);
-			my $download_template = HTML::Template->new(scalarref => ${$config}{download_template}, die_on_bad_params => 0);
-			$download_template->param(ID => $id);
-			$download_template->param(PART => $partid);
-			$attachment_template->param(ID => $id);
-			$attachment_template->param(PART => $partid);
-			$attachment_template->param(SIZE => format_bytes($part->{size}));
-			$attachment_template->param(MIMETYPE => $part->{mimetype});
-			$attachment_template->param(FILENAME => $part->{filename});
-			$attachment_template->param(DESCRIPTION => $part->{description});
-			$attachment_template->param(DOWNLOAD => $download_template->output());
-			$template->param(BODY => $attachment_template->output());
-
 		} else {
 
-			$template->param(BODY => "Error: This part cannot be shown");
+			my $output;
+			my $preview;
+			my $textpreview;
+			my $imagepreview;
+
+			my $mimetype = $part->{mimetype};
+
+			# TODO: Make max size of attachment configurable
+			if ( $type eq "attachment" and $part->{size} <= 100000 ) {
+				$preview = 1;
+				if ( $mimetype ne "text/html" and $mimetype =~ /^text\// ) {
+					$textpreview = 1;
+				}
+				if ( $mimetype =~ /^image\// ) {
+					$imagepreview = 1;
+				}
+			}
+
+			if ( $preview or $type eq "view" ) {
+
+				my $html_policy = ${$config}{html_policy};
+
+				if ( $mimetype eq "text/html" and ( $html_policy == 3 or $html_policy == 2 ) ) {
+					my $data = $pemail->data($partid);
+					$output = decode_utf8(${$data});
+				} elsif ( $mimetype eq "text/plain" or $mimetype eq "text/plain-from-html" or $textpreview ) {
+					my $data = $pemail->data($partid);
+					$data = decode_utf8(${$data});
+					my $plaintext_template = HTML::Template->new(scalarref => ${$config}{plaintext_template}, die_on_bad_params => 0);
+					$plaintext_template->param(ID => $id);
+					$plaintext_template->param(PART => $partid);
+					$plaintext_template->param(BODY => $data);
+					$output = $plaintext_template->output();
+				}
+
+			}
+
+			if ( $imagepreview ) {
+				my $imagepreview_template = HTML::Template->new(scalarref => ${$config}{imagepreview_template}, die_on_bad_params => 0);
+				$imagepreview_template->param(ID => $id);
+				$imagepreview_template->param(PART => $partid);
+				$output = $imagepreview_template->output();
+			}
+
+			if ( $type eq "attachment" ) {
+
+				my $attachment_template = HTML::Template->new(scalarref => ${$config}{attachment_template}, die_on_bad_params => 0);
+				my $download_template = HTML::Template->new(scalarref => ${$config}{download_template}, die_on_bad_params => 0);
+				$download_template->param(ID => $id);
+				$download_template->param(PART => $partid);
+				$attachment_template->param(ID => $id);
+				$attachment_template->param(PART => $partid);
+				$attachment_template->param(SIZE => format_bytes($part->{size}));
+				$attachment_template->param(MIMETYPE => $mimetype);
+				$attachment_template->param(FILENAME => $part->{filename});
+				$attachment_template->param(DESCRIPTION => $part->{description});
+				$attachment_template->param(DOWNLOAD => $download_template->output());
+
+				if ( $preview and $output and length $output ) {
+					my $view1_template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0);
+					$view1_template->param(ID => $id);
+					$view1_template->param(PART => $partid);
+					$view1_template->param(BODY => $attachment_template->output());
+					my $view2_template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0);
+					$view2_template->param(ID => $id);
+					$view2_template->param(PART => $partid);
+					$view2_template->param(BODY => $output);
+					$output = $view1_template->output() . $view2_template->output();
+				} else {
+					$output = $attachment_template->output();
+				}
+
+			}
+
+			if ( not $output or not length $output ) {
+				$output = "Error: This part cannot be shown";
+			}
+
+			$template->param(BODY => $output);
 
 		}
 
@@ -254,6 +299,7 @@ sub part_to_str($$$$) {
 # address_template
 # subject_template
 # download_template
+# imagepreview_template
 # message_template
 # view_template
 # plaintext_template
@@ -278,6 +324,7 @@ sub to_str($;%) {
 	$config{address_template} = \$address_template_default unless $config{address_template};
 	$config{subject_template} = \$subject_template_default unless $config{subject_template};
 	$config{download_template} = \$download_template_default unless $config{download_template};
+	$config{imagepreview_template} = \$imagepreview_template_default unless $config{imagepreview_template};
 	$config{message_template} = \$message_template_default unless $config{message_template};
 	$config{view_template} = \$view_template_default unless $config{view_template};
 	$config{plaintext_template} = \$plaintext_template_default unless $config{plaintext_template};
