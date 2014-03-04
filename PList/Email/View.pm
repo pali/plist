@@ -60,6 +60,7 @@ my $message_template_default = <<END;
 </TMPL_IF><TMPL_IF NAME=CC><b>Cc:</b><TMPL_LOOP NAME=CC> <TMPL_VAR NAME=BODY>,</TMPL_LOOP><br>
 </TMPL_IF><TMPL_IF NAME=DATE><b>Date:</b> <TMPL_VAR ESCAPE=HTML NAME=DATE><br>
 </TMPL_IF><TMPL_IF NAME=SUBJECT><b>Subject:</b> <TMPL_VAR NAME=SUBJECT><br>
+</TMPL_IF><TMPL_IF NAME=ID><b>Message-Id:</b> <TMPL_VAR ESCAPE=HTML NAME=ID><br>
 </TMPL_IF>
 END
 
