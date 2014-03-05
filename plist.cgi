@@ -314,6 +314,7 @@ if ( $action eq "get-bin" ) {
 	my $limit = $q->param("limit");
 	my $offset = $q->param("offset");
 	my $desc = $q->param("desc");
+	my $showtree = $q->param("showtree");
 
 	my %args;
 	$args{subject} = $subject if defined $subject and length $subject;
@@ -343,6 +344,7 @@ if ( $action eq "get-bin" ) {
 		print "limit: " . $q->textfield(-name => "limit") . "<br>\n";
 		print "offset: " . $q->textfield(-name => "offset") . "<br>\n";
 		print "desc: " . $q->textfield(-name => "desc") . "<br>\n";
+		print "showtree: " . $q->textfield(-name => "showtree") . "<br>\n";
 		print $q->submit(-name => "action", -value => "search") . "<br>\n";
 		print $q->end_form();
 		print $q->end_html();
@@ -360,14 +362,106 @@ if ( $action eq "get-bin" ) {
 	print $q->start_html(@html_params, -title => "Search");
 	print "<ul>\n";
 
-	foreach ( @{$ret} ) {
-		my $id = ${$_}[1];
-		my $date = ${$_}[2];
-		my $subject = ${$_}[3];
-		print "<li>";
-		print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=" . $q->escape($id) . "'>" . $q->escapeHTML($subject) . "</a> - ";
-		print $q->escapeHTML(localtime($date)->strftime("%Y-%m-%d %H:%M:%S %z"));
-		print "</li>\n";
+	if ( $showtree ) {
+
+		my %processed;
+
+		foreach ( @{$ret} ) {
+			my $rid = ${$_}[0];
+			next if $processed{$rid};
+			$processed{$rid} = 1;
+			my $tree = $index->db_tree($rid, $desc, 1, 1, 1);
+
+			my $root = ${$tree->{root}}[0];
+			delete $tree->{root};
+
+			print "<ul class='tree'>\n";
+
+			my %processed = ($root => 1);
+#			$processed{$root} = 1;
+			my @stack = ([$root, 0]);
+			my $prevlen = 0;
+
+			while ( @stack ) {
+
+				my $m = pop(@stack);
+				my ($tid, $len) = @{$m};
+				my $down = $tree->{$tid};
+
+				while ( $prevlen > $len ) {
+					print "</ul>\n</li>\n";
+					--$prevlen;
+				}
+
+				my $email = $index->db_email($tid, 1);
+				my $mid = $q->escape($email->{messageid});
+				my $subject = $q->escapeHTML($email->{subject});
+				my $date;
+				my $from;
+
+				if ( $email->{date} ) {
+					$date = $q->escapeHTML(localtime($email->{date})->strftime("%Y-%m-%d %H:%M:%S %z"));
+				}
+
+				if ( @{$email->{from}} ) {
+					$from = "<a href='?indexdir=$eindexdir&amp;action=search&amp;name=" . $q->escape(${${$email->{from}}[0]}[1]) . "'>" . $q->escapeHTML(${${$email->{from}}[0]}[1]) . "</a> <a href='?indexdir=$eindexdir&amp;action=search&amp;email=" . $q->escape(${${$email->{from}}[0]}[0]) . "'>&lt;" . $q->escapeHTML(${${$email->{from}}[0]}[0]) . "&gt;</a>";
+				}
+
+				print "<li>";
+
+				if ( not $subject and not $from and not $date ) {
+					print "unknown";
+				} else {
+					$subject = "unknown" unless $subject;
+					$from = "unknown" unless $from;
+					$date = "unknown" unless $date;
+					print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=$mid'>$subject</a> - $from - $date";
+				}
+
+				my $count = 0;
+
+				if ( $down ) {
+					foreach ( @{$down} ) {
+						if ( not $processed{$_} ) {
+							++$count;
+							$processed{$_} = 1;
+							push(@stack, [$_, $len+1]);
+						}
+					}
+				}
+
+				if ( $count ) {
+					print "\n<ul>\n";
+				} else {
+					print "</li>\n";
+				}
+
+				$prevlen = $len;
+
+			}
+
+			while ( $prevlen ) {
+				print "</ul>\n</li>\n";
+				--$prevlen;
+			}
+
+			print "</ul>";
+
+
+		}
+
+	} else {
+
+		foreach ( @{$ret} ) {
+			my $id = ${$_}[1];
+			my $date = ${$_}[2];
+			my $subject = ${$_}[3];
+			print "<li>";
+			print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=" . $q->escape($id) . "'>" . $q->escapeHTML($subject) . "</a> - ";
+			print $q->escapeHTML(localtime($date)->strftime("%Y-%m-%d %H:%M:%S %z"));
+			print "</li>\n";
+		}
+
 	}
 
 	print "</ul>";
