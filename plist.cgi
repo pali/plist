@@ -162,7 +162,7 @@ if ( $action eq "get-bin" ) {
 	$id = $email->{id};
 
 	my $tree = $index->db_tree($id, $desc, 1, $limitup, $limitdown);
-	if ( not $email ) {
+	if ( not $tree ) {
 		print $q->header(-status => 404);
 		exit;
 	}
