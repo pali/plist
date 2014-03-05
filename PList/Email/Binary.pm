@@ -36,6 +36,7 @@ sub data($$;$) {
 		$len = $size if $size < $len;
 		while ( my $ret = read $fh, $str, $len ) {
 			last if not $ret or $ret != $len;
+			no warnings "utf8";
 			print $ofh $str;
 			$size -= $len;
 			$len = $size if $size < $len;
@@ -332,8 +333,6 @@ sub to_fh($$) {
 
 	# Data are binary raw (no utf8)
 	binmode $fh, ":raw";
-
-	no warnings "utf8";
 
 	foreach (sort keys %{$pemail->parts()}) {
 		$_ = ${$pemail->parts()}{$_};

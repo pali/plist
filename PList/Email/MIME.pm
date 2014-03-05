@@ -482,6 +482,7 @@ sub data($$;$) {
 
 	my ($self, $part, $ofh) = @_;
 	if ( $ofh ) {
+		no warnings "utf8";
 		return print $ofh ${$self->{datarefs}->{$part}};
 	} else {
 		return $self->{datarefs}->{$part};
