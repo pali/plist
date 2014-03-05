@@ -950,6 +950,7 @@ sub db_tree($$;$$$$) {
 	my ($priv, $id, $desc, $rid, $limitup, $limitdown) = @_;
 
 	my $tid = $id;
+	my $impl = 0;
 
 	my %processed;
 
@@ -967,6 +968,7 @@ sub db_tree($$;$$$$) {
 		$processed{$tid} = 1;
 
 		my $newtid;
+		my $newimpl = 0;
 
 		foreach ( @{$reply} ) {
 			if ( not ${$_}[2] and not $processed{${$_}[$arri]} ) {
@@ -977,6 +979,7 @@ sub db_tree($$;$$$$) {
 
 		if ( $newtid ) {
 			$tid = $newtid;
+			$impl = $newimpl;
 			redo;
 		}
 
@@ -989,8 +992,11 @@ sub db_tree($$;$$$$) {
 
 		if ( $newtid ) {
 			$tid = $newtid;
+			$impl = $newimpl;
 			redo;
 		}
+
+		$newimpl = 1;
 
 		foreach ( @{$reply} ) {
 			if ( not $processed{${$_}[$arri]} ) {
@@ -1001,6 +1007,7 @@ sub db_tree($$;$$$$) {
 
 		if ( $newtid ) {
 			$tid = $newtid;
+			$impl = $newimpl;
 			redo;
 		}
 
@@ -1013,6 +1020,7 @@ sub db_tree($$;$$$$) {
 
 		if ( $newtid ) {
 			$tid = $newtid;
+			$impl = $newimpl;
 			redo;
 		}
 
@@ -1028,7 +1036,17 @@ sub db_tree($$;$$$$) {
 		$limit = $limitdown;
 	}
 
-	return $priv->db_subtree($tid, $desc, $rid, $limit);
+	my $tree = $priv->db_subtree($tid, $desc, $rid, $limit);
+
+	if ( $impl ) {
+		my $root = ${$tree->{root}}[0];
+		if ( $id ne $root and scalar @{$tree->{$root}} == 1 ) {
+			$tree->{root} = $tree->{$root};
+			delete $tree->{$root};
+		}
+	}
+
+	return $tree;
 
 }
 
