@@ -32,12 +32,27 @@ my $base_template_default = <<END;
 <html>
 <head>
 <meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
-<TMPL_IF NAME=TITLE><title><TMPL_VAR ESCAPE=HTML NAME=TITLE></title>
+<TMPL_IF NAME=STYLE><TMPL_VAR NAME=STYLE>
+</TMPL_IF><TMPL_IF NAME=TITLE><title><TMPL_VAR ESCAPE=HTML NAME=TITLE></title>
 </TMPL_IF></head>
 <body>
 <TMPL_IF NAME=BODY><TMPL_VAR NAME=BODY>
 </TMPL_IF></body>
 </html>
+END
+
+my $style_template_default = <<END;
+<style type='text/css'>
+div.view {
+	margin: 5px;
+	padding: 5px;
+	border: 1px solid;
+}
+span.plaintext {
+	white-space: pre-wrap;
+	font-family: monospace;
+}
+</style>
 END
 
 my $address_template_default = <<END;
@@ -65,12 +80,12 @@ my $message_template_default = <<END;
 END
 
 my $view_template_default = <<END;
-<TMPL_IF NAME=BODY><div style='margin:5px; padding:5px; border:1px solid'>
+<TMPL_IF NAME=BODY><div class='view'>
 <TMPL_VAR NAME=BODY></div></TMPL_IF>
 END
 
 my $plaintext_template_default = <<END;
-<TMPL_IF NAME=BODY><span style='white-space:pre-wrap; font-family:monospace'><TMPL_VAR ESCAPE=HTML NAME=BODY></span></TMPL_IF>
+<TMPL_IF NAME=BODY><span class='plaintext'><TMPL_VAR ESCAPE=HTML NAME=BODY></span></TMPL_IF>
 END
 
 my $multipart_template_default = <<END;
@@ -300,6 +315,7 @@ sub part_to_str($$$$) {
 # enabled_mime_types
 # disabled_mime_types application/pgp-signature
 # base_template
+# style_template
 # address_template
 # subject_template
 # download_template
@@ -325,6 +341,7 @@ sub to_str($;%) {
 	# TODO: Add support for $html_output == 0
 	$config{disabled_mime_types} = \@disabled_mime_types_default unless $config{disabled_mime_types};
 	$config{base_template} = \$base_template_default unless $config{base_template};
+	$config{style_template} = \$style_template_default unless $config{style_template};
 	$config{address_template} = \$address_template_default unless $config{address_template};
 	$config{subject_template} = \$subject_template_default unless $config{subject_template};
 	$config{download_template} = \$download_template_default unless $config{download_template};
@@ -362,10 +379,14 @@ sub to_str($;%) {
 
 	}
 
+	my $style_template = HTML::Template->new(scalarref => $config{style_template}, die_on_bad_params => 0);
+	my $style = $style_template->output();
+
 	my $title = $pemail->header("0")->{subject};
 	my $body = part_to_str($pemail, "0", \%nodes, \%config);
 
 	my $base_template = HTML::Template->new(scalarref => $config{base_template}, die_on_bad_params => 0);
+	$base_template->param(STYLE => $style);
 	$base_template->param(TITLE => $title);
 	$base_template->param(BODY => $body);
 	return $base_template->output();
