@@ -438,8 +438,6 @@ if ( not $mod or not $command ) {
 			$str = <$input>;
 		}
 
-		$str =~ s/^From .*\n//;
-
 		my $pemail = PList::Email::MIME::from_str(\$str);
 		die "Cannot read email\n" unless $pemail;
 
@@ -557,8 +555,6 @@ if ( not $mod or not $command ) {
 			local $/=undef;
 			$str = <$input>;
 		}
-
-		$str =~ s/^From .*\n//;
 
 		print "Adding MIME email file '$mimefile' to index dir '$indexdir'...\n";
 		my $pemail = PList::Email::MIME::from_str(\$str);
