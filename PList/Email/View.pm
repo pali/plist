@@ -7,6 +7,8 @@ use Encode qw(decode_utf8);
 
 use PList::Email;
 
+use DateTime;
+
 use HTML::FromText;
 use HTML::Template;
 
@@ -117,6 +119,19 @@ sub addressees_data($$) {
 
 }
 
+sub date($$) {
+
+	my ($epoch, $config) = @_;
+	eval {
+		my $dt = DateTime->from_epoch(epoch => $epoch);
+		$dt->set_time_zone(${$config}{time_zone});
+		return $dt->strftime(${$config}{date_format});
+	} or do {
+		return $epoch;
+	};
+
+}
+
 sub part_to_str($$$$);
 
 sub part_to_str($$$$) {
@@ -188,7 +203,7 @@ sub part_to_str($$$$) {
 				$message_template->param(FROM => addressees_data($header->{from}, $config));
 				$message_template->param(TO => addressees_data($header->{to}, $config));
 				$message_template->param(CC => addressees_data($header->{cc}, $config));
-				$message_template->param(DATE => $header->{date});
+				$message_template->param(DATE => date($header->{date}, $config));
 				$message_template->param(SUBJECT => $subject_template->output());
 				$view_template->param(ID => $id);
 				$view_template->param(PART => $partid);
@@ -310,8 +325,8 @@ sub part_to_str($$$$) {
 # config:
 # html_output 0 or 1
 # html_policy always(4) allow(3) strip(2) plain(1) never(0)
-# time_zone origin
-# date_format default
+# time_zone local
+# date_format "%a, %d %b %Y %T %z"
 # enabled_mime_types
 # disabled_mime_types application/pgp-signature
 # base_template
@@ -335,7 +350,9 @@ sub to_str($;%) {
 	$config{html_policy} = 1 unless $config{html_policy};
 	$config{html_policy} = 1 if ( $config{html_policy} < 0 || $config{html_policy} > 4 );
 
-	# TODO: Time zone & Date format
+	# Time zone & Date format
+	$config{time_zone} = "local" unless $config{time_zone};
+	$config{date_format} = "%a, %d %b %Y %T %z" unless $config{date_format};
 
 	# TODO: Set default templates based on $html_output
 	# TODO: Add support for $html_output == 0
