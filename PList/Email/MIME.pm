@@ -65,11 +65,11 @@ sub find_dates_received(@) {
 
 # date(email)
 # email - Email::MIME
-# return - string
-sub date($) {
+# date - int
+# return - int
+sub date($$) {
 
-	my ($email) = @_;
-	my $date;
+	my ($email, $date) = @_;
 
 	my @headers;
 
@@ -79,14 +79,18 @@ sub date($) {
 
 	foreach ( reverse @headers ) {
 		next unless $_;
-		eval { $date = DateTime::Format::Mail->new(loose => 1)->parse_datetime($_); };
-		last if $date;
-		# TODO: Check if date is not in future
+		my $datetime;
+		eval { $datetime = DateTime::Format::Mail->new(loose => 1)->parse_datetime($_); };
+		next unless $datetime;
+		$datetime = $datetime->epoch();
+		return $datetime unless $date;
+		# Skip if datetime is in future or difference is more than 5 days
+		next if $datetime > $date or $date - $datetime > 60*60*24*5;
+		return $datetime;
 	}
 
-	return "" unless $date;
-
-	return $date->strftime("%Y-%m-%d %H:%M:%S %z");
+	# Fallback to specified received date
+	return $date;
 
 }
 
@@ -473,9 +477,10 @@ sub read_multipart($$$$) {
 # pemail - PList::Email
 # email - Email::MIME
 # prefix - string
-sub read_email($$$) {
+# date - int
+sub read_email($$$;$) {
 
-	my ($pemail, $email, $prefix) = @_;
+	my ($pemail, $email, $prefix, $date) = @_;
 
 	my @from = addresses($email, "From");
 	my @to = addresses($email, "To");
@@ -491,7 +496,7 @@ sub read_email($$$) {
 		reply => \@reply,
 		references => \@references,
 		id => messageid($email),
-		date => date($email),
+		date => date($email, $date),
 		subject => subject($email),
 	};
 
@@ -525,6 +530,21 @@ sub from_str($) {
 
 	my ($str) = @_;
 
+	my $date;
+
+	# Check if email contains MBox header line and use received date
+	if ( ${$str} =~ /^From ([^\n]*)\n/ ) {
+		my $line = $1;
+		$str =~ s/^From [^\n]*\n//;
+		# MBox line format: from date info
+		if ( $line =~ /^\s*\S+\s*(.{24})/ ) {
+			$date = $1;
+			# NOTE: date must be in asctime format
+			eval { $date = Time::Piece->strptime($date, "%a %b %d %T %Y"); } or do { $date = undef; };
+			$date = $date->epoch() if $date;
+		}
+	}
+
 	my %datarefs;
 
 	my $email;
@@ -550,7 +570,7 @@ sub from_str($) {
 
 	$pemail->add_part($part);
 
-	$pemail->read_email($email, "$first_prefix");
+	$pemail->read_email($email, "$first_prefix", $date);
 	return $pemail;
 
 }
