@@ -158,6 +158,29 @@ sub address($) {
 
 }
 
+# piper_address(email_address)
+# email_address - string
+# return - string
+sub piper_address($) {
+
+	my ($email_address) = @_;
+
+	if ( $email_address =~ /^(\S+) at (\S+) \((.*)\)$/ ) {
+		my $user = $1;
+		my $host = $2;
+		my $name = $3;
+		$user =~ s/\s//g;
+		$host =~ s/\s//g;
+		$name =~ s/\s/ /g;
+		$name =~ s/^\s+//;
+		$name =~ s/\s+$//;
+		return "$user\@$host $name";
+	}
+
+	return "nobody\@nohost";
+
+}
+
 # addresses(email, header)
 # email - Email::MIME
 # header - email header name
@@ -166,6 +189,7 @@ sub addresses($$) {
 
 	my ($email, $header) = @_;
 	my @addresses = $email->header($header);
+	return piper_address($addresses[0]) if ( scalar @addresses == 1 and $addresses[0] =~ /^.+ at .+ \(.*\)$/ );
 	return map { address($_) } Email::Address->parse($_) foreach(@addresses);
 
 }
