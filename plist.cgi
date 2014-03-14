@@ -127,8 +127,8 @@ if ( $action eq "get-bin" ) {
 	my $size = $pemail->part($part)->{size};
 	my $mimetype = $pemail->part($part)->{mimetype};
 	my $filename = $pemail->part($part)->{filename};
-	eval { $date = Time::Piece->strptime($date, "%Y-%m-%d %H:%M:%S %z") };
-	$date = $date->strftime("%a, %d %b %Y %H:%M:%S GMT") if $date; # TODO: check if timezone is really converted to GMT by Time::Piece
+	$date = gmtime($date) if $date;
+	$date = $date->strftime("%a, %d %b %Y %H:%M:%S GMT") if $date;
 	$mimetype = "application/octet-stream" unless $mimetype;
 	$filename = "File-$part.bin" unless $filename;
 	$q->charset("") unless $mimetype =~ /^text\//;
@@ -196,7 +196,7 @@ if ( $action eq "get-bin" ) {
 		my $from;
 
 		if ( $email->{date} ) {
-			$date = $q->escapeHTML(localtime($email->{date})->strftime("%Y-%m-%d %H:%M:%S %z"));
+			$date = $q->escapeHTML(scalar gmtime($email->{date})); # TODO: format date
 		}
 
 		if ( @{$email->{from}} ) {
@@ -400,7 +400,7 @@ if ( $action eq "get-bin" ) {
 				my $from;
 
 				if ( $email->{date} ) {
-					$date = $q->escapeHTML(localtime($email->{date})->strftime("%Y-%m-%d %H:%M:%S %z"));
+					$date = $q->escapeHTML(scalar gmtime($email->{date})); # TODO: format date
 				}
 
 				if ( @{$email->{from}} ) {
@@ -458,7 +458,7 @@ if ( $action eq "get-bin" ) {
 			my $subject = ${$_}[3];
 			print "<li>";
 			print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=" . $q->escape($id) . "'>" . $q->escapeHTML($subject) . "</a> - ";
-			print $q->escapeHTML(localtime($date)->strftime("%Y-%m-%d %H:%M:%S %z"));
+			print $q->escapeHTML(scalar gmtime($date)); # TODO: format date
 			print "</li>\n";
 		}
 
