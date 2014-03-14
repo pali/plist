@@ -373,12 +373,8 @@ sub add_email($$) {
 	my $cc = $header->{cc};
 	my $reply = $header->{reply};
 	my $references = $header->{references};
+	my $date = $header->{date};
 	my $subject = normalize_subject($header->{subject});
-	my $date;
-
-	eval { $date = Time::Piece->strptime($header->{date}, "%Y-%m-%d %H:%M:%S %z") };
-	$date = $date->epoch() if $date;
-	$date = undef unless $date;
 
 	# NOTE: SQLite has conflict action directly in CREATE TABLE
 	my $ignoreconflict = "";
