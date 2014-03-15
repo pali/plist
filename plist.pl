@@ -28,7 +28,7 @@ sub help() {
 	print "index add-mime <dir> [<mime>]\n";
 	print "index get-bin <dir> <id> [<bin>]\n";
 	print "index get-part <dir> <id> <part> [<file>]\n";
-	print "index get-roots <dir>\n";
+	print "index get-roots <dir> [desc] [date1] [date2] [limit] [offset]\n";
 	print "index get-tree <dir> <id> [<file]\n";
 	print "index gen-html <dir> <id> [<html>]\n";
 	print "index gen-txt <dir> <id> [<txt>]\n";
@@ -565,19 +565,27 @@ if ( not $mod or not $command ) {
 
 	} elsif ( $command eq "get-roots" ) {
 
+		my $desc = shift @ARGV;
+		my $date1 = shift @ARGV;
+		my $date2 = shift @ARGV;
+		my $limit = shift @ARGV;
+		my $offset = shift @ARGV;
 		help() if @ARGV;
 
-		my $roots = $index->db_roots();
+		my %args;
+		$args{date1} = $date1 if defined $date1;
+		$args{date2} = $date2 if defined $date2 and $date2 != -1;
+		$args{limit} = $limit if defined $limit;
+		$args{offset} = $offset if defined $offset;
+
+		my $roots = $index->db_roots($desc, %args);
 
 		print "Roots:\n";
-		print "i      id messageid\n";
+		printf("%2s %7s %12s %60s %7s\n", "i", "id", "date", "messageid", "subject");
 		if ( $roots ) {
 			foreach ( @{$roots} ) {
 				if ( $_ ) {
-					print ${$_}[2];
-					printf(" %7d ", ${$_}[0]);
-					print ${$_}[1];
-					print "\n";
+					printf("%2d %7d %12d %60s %7s\n", ${$_}[4], ${$_}[0], ${$_}[2], ${$_}[1], ${$_}[3]);
 				}
 			}
 		}
