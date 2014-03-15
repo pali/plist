@@ -1064,15 +1064,27 @@ sub db_roots($$;%) {
 	my @args;
 
 	my $date = "";
+	my $havingdate = "";
 	my $limit = "";
 
 	if ( exists $args{date1} ) {
-		$date .= "AND e1.date >= ?";
+		$date .= "AND realdate >= ?";
 		push(@args, $args{date1});
 	}
 
 	if ( exists $args{date2} ) {
-		$date .= "AND e1.date < ?";
+		$date .= "AND realdate < ?";
+		push(@args, $args{date2});
+	}
+
+	if ( exists $args{date1} and exists $args{date2} ) {
+		$havingdate = "HAVING realdate >= ? AND realdate < ?";
+		push(@args, $args{date1}, $args{date2});
+	} elsif ( exists $args{date1} ) {
+		$havingdate = "HAVING realdate >= ?";
+		push(@args, $args{date1});
+	} elsif ( exists $args{date2} ) {
+		$havingdate = "HAVING realdate < ?";
 		push(@args, $args{date2});
 	}
 
@@ -1087,49 +1099,37 @@ sub db_roots($$;%) {
 		push(@args, $args{offset});
 	}
 
-	# Select all emails:
-	# * which do not have in-reply-to or references headers (hasreply = 0)
-	# * or are implicit and exist some email which has in-reply-to header for it
-	# and
-	# * there is no email with no empty same (normalized) subject with date before
-	# These emails are roots of separate email threads
 	$statement = qq(
-		SELECT DISTINCT e1.id, e1.messageid, e1.implicit
+		SELECT e1.id, e1.messageid, e1.date AS realdate, s.subject, e1.implicit
+			FROM emails AS e1,
+				(
+					SELECT subjectid, MIN(date) AS date2
+						FROM emails
+						WHERE hasreply = 0 AND subjectid != 0
+						GROUP BY subjectid
+				) AS e2
+			JOIN subjects AS s ON s.id = e1.subjectid
+			WHERE
+				e1.subjectid = e2.subjectid AND
+				e1.date = e2.date2
+				$date
+		UNION
+		SELECT e1.id, e1.messageid, MIN(e2.date) AS realdate, s.subject, e1.implicit
 			FROM emails AS e1
 			LEFT OUTER JOIN replies AS r1 ON r1.emailid2 = e1.id
 			LEFT OUTER JOIN emails AS e2 ON e2.id = r1.emailid1
+			JOIN subjects AS s ON s.id = e2.subjectid
 			WHERE
-				NOT EXISTS (
-					SELECT *
-						FROM emails AS e3
-						WHERE
-							e1.subjectid = e3.subjectid AND
-							e1.id != e3.id AND
-							e1.implicit = 0 AND
-							e3.implicit = 0 AND
-							e1.date IS NOT NULL AND
-							e3.date IS NOT NULL AND
-							e1.date >= e3.date
-				) AND (
-					e1.hasreply = 0
-					OR (
-						e1.implicit = 1
-						AND
-						EXISTS (
-							SELECT *
-								FROM replies AS r2
-								WHERE r2.emailid2 = e1.id AND r2.type = 0
-						)
-					)
+				e1.implicit = 1 AND
+				e2.implicit = 0 AND
+				EXISTS (
+					SELECT * FROM replies AS r2
+						WHERE r2.emailid2 = e1.id AND r2.type = 0
 				)
-				$date
-			ORDER BY
-				CASE
-					WHEN e1.date IS NULL THEN e2.date
-					ELSE e1.date
-				END
-				$desc
-			$limit
+			GROUP BY e1.id
+			$havingdate
+		ORDER BY realdate $desc
+		$limit
 		;
 	);
 
