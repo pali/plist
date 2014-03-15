@@ -1101,19 +1101,22 @@ sub db_roots($$;%) {
 	}
 
 	$statement = qq(
-		SELECT e1.id, e1.messageid, e1.date AS realdate, s.subject, e1.implicit
-			FROM emails AS e1,
-				(
-					SELECT subjectid, MIN(date) AS date2
-						FROM emails
-						WHERE hasreply = 0 AND subjectid != 0
-						GROUP BY subjectid
-				) AS e2
+		SELECT e1.id, e1.messageid, e1.realdate, s.subject, e1.implicit
+			FROM (
+				SELECT e1.id, e1.messageid, e1.date AS realdate, e1.subjectid, e1.implicit
+					FROM emails AS e1,
+						(
+							SELECT subjectid, MIN(date) AS date2
+								FROM emails
+								WHERE hasreply = 0 AND subjectid != 0
+								GROUP BY subjectid
+						) AS e2
+					WHERE
+						e1.subjectid = e2.subjectid AND
+						e1.date = e2.date2
+						$date
+			) AS e1
 			JOIN subjects AS s ON s.id = e1.subjectid
-			WHERE
-				e1.subjectid = e2.subjectid AND
-				e1.date = e2.date2
-				$date
 		UNION
 		SELECT e1.id, e1.messageid, MIN(e2.date) AS realdate, s.subject, e1.implicit
 			FROM emails AS e1
