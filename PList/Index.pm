@@ -174,6 +174,26 @@ sub create_tables($$) {
 	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
+		CREATE INDEX emailsdate ON emails(date);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
+		CREATE INDEX emailssubjectid ON emails(subjectid);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
+		CREATE INDEX emailsimplicit ON emails(implicit);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
+		CREATE INDEX emailshasreply ON emails(hasreply);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
 		CREATE TABLE replies (
 			id		INTEGER PRIMARY KEY NOT NULL $autoincrement,
 			emailid1	INTEGER NOT NULL REFERENCES emails(id) ON UPDATE CASCADE ON DELETE CASCADE,
@@ -181,6 +201,16 @@ sub create_tables($$) {
 			type		INTEGER NOT NULL,
 			UNIQUE (emailid1, emailid2, type) $ignoreconflict
 		);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
+		CREATE INDEX repliesemailid1 ON replies(emailid1);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
+		CREATE INDEX repliesemailid2 ON replies(emailid2);
 	);
 	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
@@ -202,6 +232,16 @@ sub create_tables($$) {
 			type		INTEGER NOT NULL,
 			UNIQUE (emailid, addressid, type) $ignoreconflict
 		);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
+		CREATE INDEX addressessemailid ON addressess(emailid);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
+		CREATE INDEX addressessaddressid ON addressess(addressid);
 	);
 	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
