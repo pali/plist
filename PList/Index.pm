@@ -49,17 +49,26 @@ sub new($$) {
 		return undef;
 	}
 
-	my $driver = <$fh>;
-	my $params = <$fh>;
-	my $username = <$fh>;
-	my $password = <$fh>;
+	my $driver;
+	my $params = "";
+	my $username;
+	my $password;
 
-	chop($driver) if $driver;
-	chop($params) if $params;
-	chop($username) if $username;
-	chop($password) if $password;
+	while (<$fh>) {
+		next if $_ =~ /^\s*#/;
+		next unless $_ =~ /^\s*([^=]+)=(.*)$/;
+		$driver = $2 if $1 eq "driver";
+		$params = $2 if $1 eq "params";
+		$username = $2 if $1 eq "username";
+		$password = $2 if $1 eq "password";
+	}
 
 	close($fh);
+
+	if ( not defined $driver ) {
+		warn "Driver was not specified in config file\n";
+		return undef;
+	}
 
 	my $dbh = db_connect($dir, $driver, $params, $username, $password);
 	if ( not $dbh ) {
@@ -268,12 +277,6 @@ sub create($;$$$$) {
 
 	if ( $driver eq "SQLite" and not $params ) {
 		$params = "sqlite.db";
-	} elsif ( not defined $params ) {
-		$params = "";
-	}
-
-	if ( not defined $username ) {
-		$password = undef;
 	}
 
 	if ( not make_path($dir) ) {
@@ -307,10 +310,10 @@ sub create($;$$$$) {
 		return 0;
 	}
 
-	print $fh "$driver\n";
-	print $fh "$params\n";
-	print $fh "$username\n" if defined $username;
-	print $fh "$password\n" if defined $password;
+	print $fh "driver=$driver\n";
+	print $fh "params=$params\n" if defined $params;
+	print $fh "username=$username\n" if defined $username;
+	print $fh "password=$password\n" if defined $password;
 	close($fh);
 
 	return 1;
