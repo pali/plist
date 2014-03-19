@@ -275,7 +275,9 @@ if ( $action eq "get-bin" ) {
 	print "<ul>\n";
 
 	foreach ( @{$roots} ) {
-		print "<li><a href='?indexdir=$eindexdir&amp;action=get-tree&amp;id=" . $q->escape(${$_}[1]) . "'>" . $q->escapeHTML(${$_}[1]) . "</a></li>\n";
+		my $date = ${$_}[2];
+		$date = scalar gmtime($date) if $date; # TODO: format date
+		print "<li><a href='?indexdir=$eindexdir&amp;action=get-tree&amp;id=" . $q->escape(${$_}[1]) . "'>" . $q->escapeHTML(${$_}[3]) . "</a> - " . $q->escapeHTML($date). "</li>\n";
 	}
 
 	print "</ul>";
