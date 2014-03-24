@@ -188,11 +188,11 @@ sub part_to_str($$$$) {
 		if ( $type eq "message" or $type eq "multipart" ) {
 
 			my @data = ();
-			my $multipart_template = HTML::Template->new(scalarref => ${$config}{multipart_template}, die_on_bad_params => 0, utf8 => 1);
+			my $multipart_template = HTML::Template->new(scalarref => ${$config}{multipart_template}, die_on_bad_params => 0, utf8 => 1, loop_context_vars => 1);
 
 			if ( $type eq "message" ) {
 				my $view_template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0, utf8 => 1);
-				my $message_template = HTML::Template->new(scalarref => ${$config}{message_template}, die_on_bad_params => 0, utf8 => 1);
+				my $message_template = HTML::Template->new(scalarref => ${$config}{message_template}, die_on_bad_params => 0, utf8 => 1, loop_context_vars => 1);
 				my $subject_template = HTML::Template->new(scalarref => ${$config}{subject_template}, die_on_bad_params => 0, utf8 => 1);
 				my $header = $pemail->header($partid);
 				$subject_template->param(ID => $id);
