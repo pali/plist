@@ -155,6 +155,8 @@ sub address($) {
 		$name =~ s/\s/ /g;
 		$name =~ s/^\s+//;
 		$name =~ s/\s+$//;
+		$name =~ s/^'(.*)'$/$1/;
+		$name =~ s/^"(.*)"$/$1/;
 		return $address . " " . $name;
 	} else {
 		return $address;
@@ -178,6 +180,8 @@ sub piper_address($) {
 		$name =~ s/\s/ /g;
 		$name =~ s/^\s+//;
 		$name =~ s/\s+$//;
+		$name =~ s/^'(.*)'$/$1/;
+		$name =~ s/^"(.*)"$/$1/;
 		return "$user\@$host $name";
 	}
 
