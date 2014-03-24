@@ -109,7 +109,7 @@ sub addressees_data($$) {
 	if ($ref) {
 		foreach (@{$ref}) {
 			$_ =~ /^(\S*) (.*)$/;
-			my $address_template = HTML::Template->new(scalarref => ${$config}{address_template}, die_on_bad_params => 0);
+			my $address_template = HTML::Template->new(scalarref => ${$config}{address_template}, die_on_bad_params => 0, utf8 => 1);
 			$address_template->param(EMAIL => $1);
 			$address_template->param(NAME => $2);
 			push(@data, {BODY => $address_template->output()});
@@ -172,7 +172,7 @@ sub part_to_str($$$$) {
 		} elsif ( $plain_i ) {
 			return part_to_str($pemail, $plain_i, $nodes, $config);
 		} else {
-			my $template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0);
+			my $template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0, utf8 => 1);
 			$template->param(ID => $id);
 			$template->param(PART => $partid);
 			$template->param(BODY => "Viewing html part is disabled.");
@@ -181,19 +181,19 @@ sub part_to_str($$$$) {
 
 	} else {
 
-		my $template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0);
+		my $template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0, utf8 => 1);
 		$template->param(ID => $id);
 		$template->param(PART => $partid);
 
 		if ( $type eq "message" or $type eq "multipart" ) {
 
 			my @data = ();
-			my $multipart_template = HTML::Template->new(scalarref => ${$config}{multipart_template}, die_on_bad_params => 0);
+			my $multipart_template = HTML::Template->new(scalarref => ${$config}{multipart_template}, die_on_bad_params => 0, utf8 => 1);
 
 			if ( $type eq "message" ) {
-				my $view_template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0);
-				my $message_template = HTML::Template->new(scalarref => ${$config}{message_template}, die_on_bad_params => 0);
-				my $subject_template = HTML::Template->new(scalarref => ${$config}{subject_template}, die_on_bad_params => 0);
+				my $view_template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0, utf8 => 1);
+				my $message_template = HTML::Template->new(scalarref => ${$config}{message_template}, die_on_bad_params => 0, utf8 => 1);
+				my $subject_template = HTML::Template->new(scalarref => ${$config}{subject_template}, die_on_bad_params => 0, utf8 => 1);
 				my $header = $pemail->header($partid);
 				$subject_template->param(ID => $id);
 				$subject_template->param(PART => $partid);
@@ -261,7 +261,7 @@ sub part_to_str($$$$) {
 				} elsif ( $mimetype eq "text/plain" or $mimetype eq "text/plain-from-html" or $textpreview ) {
 					my $data = $pemail->data($partid);
 					$data = decode_utf8(${$data});
-					my $plaintext_template = HTML::Template->new(scalarref => ${$config}{plaintext_template}, die_on_bad_params => 0);
+					my $plaintext_template = HTML::Template->new(scalarref => ${$config}{plaintext_template}, die_on_bad_params => 0, utf8 => 1);
 					$plaintext_template->param(ID => $id);
 					$plaintext_template->param(PART => $partid);
 					$plaintext_template->param(BODY => $data);
@@ -271,7 +271,7 @@ sub part_to_str($$$$) {
 			}
 
 			if ( $imagepreview ) {
-				my $imagepreview_template = HTML::Template->new(scalarref => ${$config}{imagepreview_template}, die_on_bad_params => 0);
+				my $imagepreview_template = HTML::Template->new(scalarref => ${$config}{imagepreview_template}, die_on_bad_params => 0, utf8 => 1);
 				$imagepreview_template->param(ID => $id);
 				$imagepreview_template->param(PART => $partid);
 				$output = $imagepreview_template->output();
@@ -279,8 +279,8 @@ sub part_to_str($$$$) {
 
 			if ( $type eq "attachment" ) {
 
-				my $attachment_template = HTML::Template->new(scalarref => ${$config}{attachment_template}, die_on_bad_params => 0);
-				my $download_template = HTML::Template->new(scalarref => ${$config}{download_template}, die_on_bad_params => 0);
+				my $attachment_template = HTML::Template->new(scalarref => ${$config}{attachment_template}, die_on_bad_params => 0, utf8 => 1);
+				my $download_template = HTML::Template->new(scalarref => ${$config}{download_template}, die_on_bad_params => 0, utf8 => 1);
 				$download_template->param(ID => $id);
 				$download_template->param(PART => $partid);
 				$attachment_template->param(ID => $id);
@@ -292,11 +292,11 @@ sub part_to_str($$$$) {
 				$attachment_template->param(DOWNLOAD => $download_template->output());
 
 				if ( $preview and $output and length $output ) {
-					my $view1_template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0);
+					my $view1_template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0, utf8 => 1);
 					$view1_template->param(ID => $id);
 					$view1_template->param(PART => $partid);
 					$view1_template->param(BODY => $attachment_template->output());
-					my $view2_template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0);
+					my $view2_template = HTML::Template->new(scalarref => ${$config}{view_template}, die_on_bad_params => 0, utf8 => 1);
 					$view2_template->param(ID => $id);
 					$view2_template->param(PART => $partid);
 					$view2_template->param(BODY => $output);
@@ -396,13 +396,13 @@ sub to_str($;%) {
 
 	}
 
-	my $style_template = HTML::Template->new(scalarref => $config{style_template}, die_on_bad_params => 0);
+	my $style_template = HTML::Template->new(scalarref => $config{style_template}, die_on_bad_params => 0, utf8 => 1);
 	my $style = $style_template->output();
 
 	my $title = $pemail->header("0")->{subject};
 	my $body = part_to_str($pemail, "0", \%nodes, \%config);
 
-	my $base_template = HTML::Template->new(scalarref => $config{base_template}, die_on_bad_params => 0);
+	my $base_template = HTML::Template->new(scalarref => $config{base_template}, die_on_bad_params => 0, utf8 => 1);
 	$base_template->param(STYLE => $style);
 	$base_template->param(TITLE => $title);
 	$base_template->param(BODY => $body);
