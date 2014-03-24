@@ -3,7 +3,7 @@ package PList::Email::View;
 use strict;
 use warnings;
 
-use Encode qw(decode_utf8);
+use Encode qw(decode_utf8 encode_utf8);
 
 use PList::Email;
 
@@ -58,7 +58,7 @@ span.plaintext {
 END
 
 my $address_template_default = <<END;
-<a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAIL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>
+<a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAILURL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>
 END
 
 my $subject_template_default = <<END;
@@ -110,8 +110,12 @@ sub addressees_data($$) {
 		foreach (@{$ref}) {
 			$_ =~ /^(\S*) (.*)$/;
 			my $address_template = HTML::Template->new(scalarref => ${$config}{address_template}, die_on_bad_params => 0, utf8 => 1);
+			# NOTE: Bug in HTML::Template: Attribute ESCAPE=URL working only on encoded utf8 string. But attribute ESCAPE=HTML working on normal utf8 string
+			# NOTE: So for each ESCAPE=URL we need new template param
 			$address_template->param(EMAIL => $1);
+			$address_template->param(EMAILURL => encode_utf8($1));
 			$address_template->param(NAME => $2);
+			$address_template->param(NAMEURL => encode_utf8($2));
 			push(@data, {BODY => $address_template->output()});
 		}
 	}
