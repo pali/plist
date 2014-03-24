@@ -143,20 +143,29 @@ sub address($) {
 
 	my ($email_address) = @_;
 
-	my $address = "nobody\@nohost";
+	my $address;
 
 	if ( $email_address->address ) {
 		$address = $email_address->address;
 		$address =~ s/\s//g;
 	}
 
+	if ( not $address ) {
+		$address = "nobody\@nohost";
+	}
+
+	my $name;
+
 	if ( $email_address->name ) {
-		my $name = $email_address->name;
+		$name = $email_address->name;
 		$name =~ s/\s/ /g;
 		$name =~ s/^\s+//;
 		$name =~ s/\s+$//;
 		$name =~ s/^'(.*)'$/$1/;
 		$name =~ s/^"(.*)"$/$1/;
+	}
+
+	if ( $name ) {
 		return $address . " " . $name;
 	} else {
 		return $address;
@@ -171,10 +180,13 @@ sub piper_address($) {
 
 	my ($email_address) = @_;
 
+	my $address;
+	my $name;
+
 	if ( $email_address =~ /^(\S+) at (\S+) \((.*)\)$/ ) {
 		my $user = $1;
 		my $host = $2;
-		my $name = $3;
+		$name = $3;
 		$user =~ s/\s//g;
 		$host =~ s/\s//g;
 		$name =~ s/\s/ /g;
@@ -182,10 +194,20 @@ sub piper_address($) {
 		$name =~ s/\s+$//;
 		$name =~ s/^'(.*)'$/$1/;
 		$name =~ s/^"(.*)"$/$1/;
-		return "$user\@$host $name";
+		if ( not $user ) {
+			$user = "nobody";
+		}
+		if ( not $host ) {
+			$host = "nohost";
+		}
+		$address = "$user\@$host";
 	}
 
-	return "nobody\@nohost";
+	if ( $name ) {
+		return $address . " " . $name;
+	} else {
+		return $address;
+	}
 
 }
 
