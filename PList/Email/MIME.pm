@@ -561,7 +561,10 @@ sub from_str($) {
 	# Check if email contains MBox header line and use received date
 	if ( ${$str} =~ /^From ([^\n]*)\n/ ) {
 		my $line = $1;
-		$str =~ s/^From [^\n]*\n//;
+		# Remove first MBox header line
+		${$str} =~ s/^From [^\n]*\n//;
+		# Remove leading '>' in each From line
+		${$str} =~ s/^>(>*From )/$1/gm;
 		# MBox line format: from date info
 		if ( $line =~ /^\s*\S+\s*(.{24})/ ) {
 			$date = $1;
