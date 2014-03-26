@@ -78,21 +78,13 @@ if ( not $index ) {
 	exit;
 }
 
-my $address_template = <<END;
-<a href='?indexdir=$eindexdir&amp;action=search&amp;name=<TMPL_VAR ESCAPE=URL NAME=NAMEURL>'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='?indexdir=$eindexdir&amp;action=search&amp;email=<TMPL_VAR ESCAPE=URL NAME=EMAILURL>'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>
-END
+my $address_template = "<a href='?indexdir=$eindexdir&amp;action=search&amp;name=<TMPL_VAR ESCAPE=URL NAME=NAMEURL>'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='?indexdir=$eindexdir&amp;action=search&amp;email=<TMPL_VAR ESCAPE=URL NAME=EMAILURL>'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
 
-my $subject_template = <<END;
-<a href='?indexdir=$eindexdir&amp;action=get-tree&amp;id=<TMPL_VAR ESCAPE=URL NAME=ID>'><TMPL_VAR ESCAPE=HTML NAME=SUBJECT></a>
-END
+my $subject_template = "<a href='?indexdir=$eindexdir&amp;action=get-tree&amp;id=<TMPL_VAR ESCAPE=URL NAME=ID>'><TMPL_VAR ESCAPE=HTML NAME=SUBJECT></a>";
 
-my $download_template = <<END;
-<b><a href='?indexdir=$eindexdir&amp;action=get-part&amp;id=<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>Download</a></b>
-END
+my $download_template = "<b><a href='?indexdir=$eindexdir&amp;action=get-part&amp;id=<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>Download</a></b>\n";
 
-my $imagepreview_template = <<END;
-<img src='?indexdir=$eindexdir&amp;action=get-part&amp;id=<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>
-END
+my $imagepreview_template = "<img src='?indexdir=$eindexdir&amp;action=get-part&amp;id=<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>\n";
 
 if ( $action eq "get-bin" ) {
 
