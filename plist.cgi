@@ -335,7 +335,7 @@ if ( $action eq "get-bin" ) {
 
 		print $q->header();
 		print $q->start_html(@html_params, -title => "Search");
-		print $q->start_form(-method => "GET", -action => "?");
+		print $q->start_form(-method => "GET", -action => "?", -accept_charset => "utf-8");
 		print $q->hidden(-name => "indexdir", -default => $indexdir) . "\n";
 		print "subject: " . $q->textfield(-name => "subject") . "<br>\n";
 		print "email: " . $q->textfield(-name => "email") . "<br>\n";
