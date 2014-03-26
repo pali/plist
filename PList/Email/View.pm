@@ -38,8 +38,7 @@ my $base_template_default = <<END;
 </TMPL_IF><TMPL_IF NAME=TITLE><title><TMPL_VAR ESCAPE=HTML NAME=TITLE></title>
 </TMPL_IF></head>
 <body>
-<TMPL_IF NAME=BODY><TMPL_VAR NAME=BODY>
-</TMPL_IF></body>
+<TMPL_IF NAME=BODY><TMPL_VAR NAME=BODY></TMPL_IF></body>
 </html>
 END
 
@@ -56,20 +55,15 @@ span.plaintext {
 }
 </style>
 END
+chomp($style_template_default);
 
-my $address_template_default = <<END;
-<a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAILURL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>
-END
+my $address_template_default = "<a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAILURL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
 
-my $subject_template_default = <<END;
-<TMPL_VAR ESCAPE=HTML NAME=SUBJECT>
-END
+my $subject_template_default = "<TMPL_VAR ESCAPE=HTML NAME=SUBJECT>";
 
-my $download_template_default = <<END;
-END
+my $download_template_default = "";
 
-my $imagepreview_template_default = <<END;
-END
+my $imagepreview_template_default = "";
 
 my $message_template_default = <<END;
 <TMPL_IF NAME=FROM><b>From:</b><TMPL_LOOP NAME=FROM> <TMPL_VAR NAME=BODY><TMPL_UNLESS NAME=__last__>,</TMPL_UNLESS></TMPL_LOOP><br>
@@ -80,6 +74,7 @@ my $message_template_default = <<END;
 </TMPL_IF><TMPL_IF NAME=ID><b>Message-Id:</b> <TMPL_VAR ESCAPE=HTML NAME=ID><br>
 </TMPL_IF>
 END
+chomp($message_template_default);
 
 my $view_template_default = <<END;
 <TMPL_IF NAME=BODY><div class='view'>
@@ -87,12 +82,12 @@ my $view_template_default = <<END;
 END
 
 my $plaintext_template_default = <<END;
-<TMPL_IF NAME=BODY><span class='plaintext'><TMPL_VAR ESCAPE=HTML NAME=BODY></span></TMPL_IF>
+<TMPL_IF NAME=BODY><span class='plaintext'><TMPL_VAR ESCAPE=HTML NAME=BODY></span>
+</TMPL_IF>
 END
+chomp($plaintext_template_default);
 
-my $multipart_template_default = <<END;
-<TMPL_IF NAME=BODY><TMPL_LOOP NAME=BODY><TMPL_VAR NAME=PART></TMPL_LOOP></TMPL_IF>
-END
+my $multipart_template_default = "<TMPL_IF NAME=BODY><TMPL_LOOP NAME=BODY><TMPL_VAR NAME=PART></TMPL_LOOP></TMPL_IF>";
 
 my $attachment_template_default = <<END;
 <TMPL_IF NAME=FILENAME><b>Filename:</b> <TMPL_VAR ESCAPE=HTML NAME=FILENAME><br>
@@ -101,6 +96,7 @@ my $attachment_template_default = <<END;
 </TMPL_IF><TMPL_IF NAME=SIZE><b>Size:</b> <TMPL_VAR ESCAPE=HTML NAME=SIZE><br>
 </TMPL_IF><TMPL_VAR NAME=DOWNLOAD>
 END
+chomp($attachment_template_default);
 
 sub addressees_data($$) {
 
