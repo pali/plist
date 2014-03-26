@@ -285,9 +285,9 @@ if ( $action eq "get-bin" ) {
 	print "<ul>\n";
 
 	foreach ( @{$roots} ) {
-		my $date = ${$_}[2];
+		my $date = $_->{date};
 		$date = scalar gmtime($date) if $date; # TODO: format date
-		print "<li><a href='?indexdir=$eindexdir&amp;action=get-tree&amp;id=" . $q->escape(${$_}[1]) . "'>" . $q->escapeHTML(${$_}[3]) . "</a> - " . $q->escapeHTML($date). "</li>\n";
+		print "<li><a href='?indexdir=$eindexdir&amp;action=get-tree&amp;id=" . $q->escape($_->{messageid}) . "'>" . $q->escapeHTML($_->{subject}) . "</a> - " . $q->escapeHTML($date). "</li>\n";
 	}
 
 	print "</ul>";
@@ -377,7 +377,7 @@ if ( $action eq "get-bin" ) {
 
 		my %processed;
 		foreach ( @{$ret} ) {
-			my $rid = ${$_}[0];
+			my $rid = $_->{id};
 			next if $processed{$rid};
 			$processed{$rid} = 1;
 			print_tree($index, $rid, $desc, 1, 1, \%processed);
@@ -387,9 +387,9 @@ if ( $action eq "get-bin" ) {
 
 		print "<ul>\n";
 		foreach ( @{$ret} ) {
-			my $id = ${$_}[1];
-			my $date = ${$_}[2];
-			my $subject = ${$_}[3];
+			my $id = $_->{id};
+			my $date = $_->{date}
+			my $subject = $_->{subject};
 			print "<li>";
 			print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=" . $q->escape($id) . "'>" . $q->escapeHTML($subject) . "</a> - ";
 			print $q->escapeHTML(scalar gmtime($date)); # TODO: format date

@@ -691,18 +691,17 @@ sub db_email($$;$) {
 	return $email unless $ret;
 
 	foreach ( @{$ret} ) {
-		my $type = $_->[2];
-		my $array;
+		my @data = @{$_};
+		my $type = pop(@data);
 		if ( $type == 0 ) {
-			$array = $email->{from};
+			push(@{$email->{from}}, \@data);
 		} elsif ( $type == 1 ) {
-			$array = $email->{to};
+			push(@{$email->{to}}, \@data);
 		} elsif ( $type == 2 ) {
-			$array = $email->{cc};
+			push(@{$email->{cc}}, \@data);
 		} else {
 			next;
 		}
-		push(@{$array}, [$_->[0], $_->[1]]);
 	}
 
 	return $email;
@@ -804,7 +803,7 @@ sub db_emails($;%) {
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute(@args);
-		$ret = $sth->fetchall_arrayref();
+		$ret = $sth->fetchall_arrayref({});
 	} or do {
 		eval { $dbh->rollback(); };
 		return undef;
@@ -844,7 +843,7 @@ sub db_replies($$;$$$) {
 
 	# Select all emails which are in-reply-to or references (up or down) to specified email
 	$statement = qq(
-		SELECT DISTINCT e2.id, e2.messageid, r.type, e2.implicit
+		SELECT DISTINCT e2.id, e2.messageid, e2.implicit, r.type
 			FROM emails AS e1
 			JOIN replies AS r ON r.emailid$id1 = e1.id
 			JOIN emails AS e2 ON e2.id = r.emailid$id2
@@ -868,12 +867,12 @@ sub db_replies($$;$$$) {
 	my @references;
 
 	foreach ( @{$ret} ) {
-		my $mid = [${$_}[0], ${$_}[1], ${$_}[3]];
-		my $type = ${$_}[2];
+		my @data = @{$_};
+		my $type = pop(@data);
 		if ( $type == 0 ) {
-			push(@reply, $mid);
+			push(@reply, \@data);
 		} elsif ( $type == 1 ) {
-			push(@references, $mid);
+			push(@references, \@data);
 		} else {
 			next;
 		}
@@ -1188,7 +1187,7 @@ sub db_roots($$;%) {
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute(@args);
-		$ret = $sth->fetchall_arrayref();
+		$ret = $sth->fetchall_arrayref(\{ 0 => "id", 1 => "messageid", 2 => "date", 3 => "subject", 4 => "implicit" });
 	} or do {
 		eval { $dbh->rollback(); };
 		return undef;

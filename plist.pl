@@ -585,7 +585,7 @@ if ( not $mod or not $command ) {
 		if ( $roots ) {
 			foreach ( @{$roots} ) {
 				if ( $_ ) {
-					printf("%2d %7d %12d %60s %7s\n", ${$_}[4], ${$_}[0], ${$_}[2], ${$_}[1], ${$_}[3]);
+					printf("%2d %7d %12d %60s %7s\n", $_->{implicit}, $_->{id}, $_->{date}, $_->{messageid}, $_->{subject});
 				}
 			}
 		}
