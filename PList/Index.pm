@@ -743,7 +743,7 @@ sub db_emails($;%) {
 		$statement .= " JOIN addressess AS ss ON ss.emailid = e.id JOIN address AS a ON a.id = ss.addressid";
 	}
 
-	if ( exists $args{date1} or exists $args{date2} or exists $args{subject} or exists $args{email} or exists $args{name} or exists $args{type} ) {
+	if ( exists $args{date1} or exists $args{date2} or exists $args{implicit} or exists $args{subject} or exists $args{email} or exists $args{name} or exists $args{type} ) {
 		$statement .= " WHERE";
 	}
 
@@ -755,6 +755,11 @@ sub db_emails($;%) {
 	if ( exists $args{date2} ) {
 		$statement .= " e.date < ? AND";
 		push(@args, $args{date2});
+	}
+
+	if ( exists $args{implicit} ) {
+		$statement .= " e.implicit = ? AND";
+		push(@args, $args{implicit});
 	}
 
 	if ( exists $args{subject} ) {
