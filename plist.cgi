@@ -86,6 +86,96 @@ my $download_template = "<b><a href='?indexdir=$eindexdir&amp;action=get-part&am
 
 my $imagepreview_template = "<img src='?indexdir=$eindexdir&amp;action=get-part&amp;id=<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>\n";
 
+sub print_tree($$$$$$) {
+
+	my ($index, $id, $desc, $limitup, $limitdown, $processed) = @_;
+
+	my $count = 0;
+
+	my $tree = $index->db_tree($id, $desc, 1, $limitup, $limitdown);
+	if ( not $tree ) {
+		return 0;
+	}
+	my $root = ${$tree->{root}}[0];
+	delete $tree->{root};
+
+	print "<ul class='tree'>\n";
+
+	$processed->{$root} = 1;
+	my @stack = ([$root, 0]);
+	my $prevlen = 0;
+
+	while ( @stack ) {
+
+		my $m = pop(@stack);
+		my ($tid, $len) = @{$m};
+		my $down = $tree->{$tid};
+
+		while ( $prevlen > $len ) {
+			print "</ul>\n</li>\n";
+			--$prevlen;
+		}
+
+		my $email = $index->db_email($tid, 1);
+		my $mid = $q->escape($email->{messageid});
+		my $subject = $q->escapeHTML($email->{subject});
+		my $date;
+		my $from;
+
+		$count++;
+
+		if ( $email->{date} ) {
+			$date = $q->escapeHTML(scalar gmtime($email->{date})); # TODO: format date
+		}
+
+		if ( @{$email->{from}} ) {
+			$from = "<a href='?indexdir=$eindexdir&amp;action=search&amp;name=" . $q->escape(${${$email->{from}}[0]}[1]) . "'>" . $q->escapeHTML(${${$email->{from}}[0]}[1]) . "</a> <a href='?indexdir=$eindexdir&amp;action=search&amp;email=" . $q->escape(${${$email->{from}}[0]}[0]) . "'>&lt;" . $q->escapeHTML(${${$email->{from}}[0]}[0]) . "&gt;</a>";
+		}
+
+		print "<li>";
+
+		if ( not $subject and not $from and not $date ) {
+			print "unknown";
+		} else {
+			$subject = "unknown" unless $subject;
+			$from = "unknown" unless $from;
+			$date = "unknown" unless $date;
+			print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=$mid'>$subject</a> - $from - $date";
+		}
+
+		my $count = 0;
+
+		if ( $down ) {
+			foreach ( @{$down} ) {
+				if ( not $processed->{$_} ) {
+					++$count;
+					$processed->{$_} = 1;
+					push(@stack, [$_, $len+1]);
+				}
+			}
+		}
+
+		if ( $count ) {
+			print "\n<ul>\n";
+		} else {
+			print "</li>\n";
+		}
+
+		$prevlen = $len;
+
+	}
+
+	while ( $prevlen ) {
+		print "</ul>\n</li>\n";
+		--$prevlen;
+	}
+
+	print "</ul>";
+
+	return $count;
+
+}
+
 if ( $action eq "get-bin" ) {
 
 	my $id = $q->param("id");
@@ -153,87 +243,15 @@ if ( $action eq "get-bin" ) {
 	}
 	$id = $email->{id};
 
-	my $tree = $index->db_tree($id, $desc, 1, $limitup, $limitdown);
-	if ( not $tree ) {
-		print $q->header(-status => 404);
-		exit;
-	}
-	my $root = ${$tree->{root}}[0];
-	delete $tree->{root};
-
 	print $q->header();
 	print $q->start_html(@html_params, -title => "Tree for " . $email->{messageid});
+	my %processed;
+	my $count = print_tree($index, $id, $desc, $limitup, $limitdown, \%processed);
 
-	print "<ul class='tree'>\n";
-
-	my %processed = ($root => 1);
-	my @stack = ([$root, 0]);
-	my $prevlen = 0;
-
-	while ( @stack ) {
-
-		my $m = pop(@stack);
-		my ($tid, $len) = @{$m};
-		my $down = $tree->{$tid};
-
-		while ( $prevlen > $len ) {
-			print "</ul>\n</li>\n";
-			--$prevlen;
-		}
-
-		my $email = $index->db_email($tid, 1);
-		my $mid = $q->escape($email->{messageid});
-		my $subject = $q->escapeHTML($email->{subject});
-		my $date;
-		my $from;
-
-		if ( $email->{date} ) {
-			$date = $q->escapeHTML(scalar gmtime($email->{date})); # TODO: format date
-		}
-
-		if ( @{$email->{from}} ) {
-			$from = "<a href='?indexdir=$eindexdir&amp;action=search&amp;name=" . $q->escape(${${$email->{from}}[0]}[1]) . "'>" . $q->escapeHTML(${${$email->{from}}[0]}[1]) . "</a> <a href='?indexdir=$eindexdir&amp;action=search&amp;email=" . $q->escape(${${$email->{from}}[0]}[0]) . "'>&lt;" . $q->escapeHTML(${${$email->{from}}[0]}[0]) . "&gt;</a>";
-		}
-
-		print "<li>";
-
-		if ( not $subject and not $from and not $date ) {
-			print "unknown";
-		} else {
-			$subject = "unknown" unless $subject;
-			$from = "unknown" unless $from;
-			$date = "unknown" unless $date;
-			print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=$mid'>$subject</a> - $from - $date";
-		}
-
-		my $count = 0;
-
-		if ( $down ) {
-			foreach ( @{$down} ) {
-				if ( not $processed{$_} ) {
-					++$count;
-					$processed{$_} = 1;
-					push(@stack, [$_, $len+1]);
-				}
-			}
-		}
-
-		if ( $count ) {
-			print "\n<ul>\n";
-		} else {
-			print "</li>\n";
-		}
-
-		$prevlen = $len;
-
+	if ( $count == 0 ) {
+		print "Empty\n";
 	}
 
-	while ( $prevlen ) {
-		print "</ul>\n</li>\n";
-		--$prevlen;
-	}
-
-	print "</ul>";
 	print $q->end_html();
 
 } elsif ( $action eq "get-roots" ) {
@@ -354,98 +372,20 @@ if ( $action eq "get-bin" ) {
 
 	print $q->header();
 	print $q->start_html(@html_params, -title => "Search");
-	print "<ul>\n";
 
 	if ( $showtree ) {
 
 		my %processed;
-
 		foreach ( @{$ret} ) {
 			my $rid = ${$_}[0];
 			next if $processed{$rid};
 			$processed{$rid} = 1;
-			my $tree = $index->db_tree($rid, $desc, 1, 1, 1);
-
-			my $root = ${$tree->{root}}[0];
-			delete $tree->{root};
-
-			print "<ul class='tree'>\n";
-
-			my %processed = ($root => 1);
-#			$processed{$root} = 1;
-			my @stack = ([$root, 0]);
-			my $prevlen = 0;
-
-			while ( @stack ) {
-
-				my $m = pop(@stack);
-				my ($tid, $len) = @{$m};
-				my $down = $tree->{$tid};
-
-				while ( $prevlen > $len ) {
-					print "</ul>\n</li>\n";
-					--$prevlen;
-				}
-
-				my $email = $index->db_email($tid, 1);
-				my $mid = $q->escape($email->{messageid});
-				my $subject = $q->escapeHTML($email->{subject});
-				my $date;
-				my $from;
-
-				if ( $email->{date} ) {
-					$date = $q->escapeHTML(scalar gmtime($email->{date})); # TODO: format date
-				}
-
-				if ( @{$email->{from}} ) {
-					$from = "<a href='?indexdir=$eindexdir&amp;action=search&amp;name=" . $q->escape(${${$email->{from}}[0]}[1]) . "'>" . $q->escapeHTML(${${$email->{from}}[0]}[1]) . "</a> <a href='?indexdir=$eindexdir&amp;action=search&amp;email=" . $q->escape(${${$email->{from}}[0]}[0]) . "'>&lt;" . $q->escapeHTML(${${$email->{from}}[0]}[0]) . "&gt;</a>";
-				}
-
-				print "<li>";
-
-				if ( not $subject and not $from and not $date ) {
-					print "unknown";
-				} else {
-					$subject = "unknown" unless $subject;
-					$from = "unknown" unless $from;
-					$date = "unknown" unless $date;
-					print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=$mid'>$subject</a> - $from - $date";
-				}
-
-				my $count = 0;
-
-				if ( $down ) {
-					foreach ( @{$down} ) {
-						if ( not $processed{$_} ) {
-							++$count;
-							$processed{$_} = 1;
-							push(@stack, [$_, $len+1]);
-						}
-					}
-				}
-
-				if ( $count ) {
-					print "\n<ul>\n";
-				} else {
-					print "</li>\n";
-				}
-
-				$prevlen = $len;
-
-			}
-
-			while ( $prevlen ) {
-				print "</ul>\n</li>\n";
-				--$prevlen;
-			}
-
-			print "</ul>";
-
-
+			print_tree($index, $rid, $desc, 1, 1, \%processed);
 		}
 
 	} else {
 
+		print "<ul>\n";
 		foreach ( @{$ret} ) {
 			my $id = ${$_}[1];
 			my $date = ${$_}[2];
@@ -455,10 +395,10 @@ if ( $action eq "get-bin" ) {
 			print $q->escapeHTML(scalar gmtime($date)); # TODO: format date
 			print "</li>\n";
 		}
+		print "</ul>";
 
 	}
 
-	print "</ul>";
 	print $q->end_html();
 
 } else {
