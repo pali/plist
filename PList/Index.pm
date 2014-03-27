@@ -708,6 +708,50 @@ sub db_email($$;$) {
 
 }
 
+sub db_date($$;$$) {
+
+	my ($priv, $oformat, $iformat, $value) = @_;
+
+	my $dbh = $priv->{dbh};
+	my $driver = $priv->{driver};
+
+	my $statement;
+	my @args = ($oformat);
+	my $ret;
+
+	my $func = "date";
+	$func = "FROM_UNIXTIME(date, ?)" if $driver eq "mysql";
+	$func = "strftime(?, date, \"unixepoch\")" if $driver eq "SQLite";
+
+	my $cond = "";
+	if ( defined $iformat and defined $value ) {
+		$cond = " AND $func = ?";
+		push(@args, $iformat, $value);
+	}
+
+	$statement = qq(
+		SELECT DISTINCT $func
+			FROM emails
+			WHERE date IS NOT NULL
+			$cond
+		;
+	);
+
+	eval {
+		my $sth = $dbh->prepare_cached($statement);
+		$sth->execute(@args);
+		$ret = $sth->fetchall_arrayref();
+	} or do {
+		eval { $dbh->rollback(); };
+		return undef;
+	};
+
+	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
+
+	return $ret;
+
+}
+
 sub db_emails($;%) {
 
 	my ($priv, %args) = @_;
