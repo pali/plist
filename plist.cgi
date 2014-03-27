@@ -488,7 +488,6 @@ if ( $action eq "get-bin" ) {
 	my $limit = $q->param("limit");
 	my $offset = $q->param("offset");
 	my $desc = $q->param("desc");
-	my $showtree = $q->param("showtree");
 
 	my %args;
 	$args{subject} = $subject if defined $subject and length $subject;
@@ -518,12 +517,15 @@ if ( $action eq "get-bin" ) {
 		print "limit: " . $q->textfield(-name => "limit") . "<br>\n";
 		print "offset: " . $q->textfield(-name => "offset") . "<br>\n";
 		print "desc: " . $q->textfield(-name => "desc") . "<br>\n";
-		print "showtree: " . $q->textfield(-name => "showtree") . "<br>\n";
 		print $q->submit(-name => "action", -value => "search") . "<br>\n";
 		print $q->end_form();
 		print $q->end_html();
 
 		exit;
+	}
+
+	if ( not defined $offset or not length $offset ) {
+		$offset = 0;
 	}
 
 	$args{implicit} = 0;
@@ -537,30 +539,27 @@ if ( $action eq "get-bin" ) {
 	print $q->header();
 	print $q->start_html(@html_params, -title => "Search");
 
-	if ( $showtree ) {
+	my $printnext;
 
-		my %processed;
-		foreach ( @{$ret} ) {
-			my $rid = $_->{id};
-			next if $processed{$rid};
-			$processed{$rid} = 1;
-			print_tree($index, $rid, $desc, 1, 1, \%processed);
-		}
+	print "<ul>\n";
+	foreach ( @{$ret} ) {
+		my $id = $_->{id};
+		my $date = $_->{date};
+		my $subject = $_->{subject};
+		print "<li>";
+		print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=" . $q->escape($id) . "'>" . $q->escapeHTML($subject) . "</a> - ";
+		print $q->escapeHTML(scalar gmtime($date)); # TODO: format date
+		print "</li>\n";
+	}
+	print "</ul>\n";
 
-	} else {
-
+	if ( defined $limit and length $limit ) {
 		print "<ul>\n";
-		foreach ( @{$ret} ) {
-			my $id = $_->{id};
-			my $date = $_->{date};
-			my $subject = $_->{subject};
-			print "<li>";
-			print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=" . $q->escape($id) . "'>" . $q->escapeHTML($subject) . "</a> - ";
-			print $q->escapeHTML(scalar gmtime($date)); # TODO: format date
-			print "</li>\n";
+		print "<li><a href='?indexdir=$eindexdir&amp;subject=" . $q->escape($subject) . "&amp;email=" . $q->escape($email) . "&amp;name=" . $q->escape($name) . "&amp;type=" . $q->escape($type) . "&amp;date1=" . $q->escape($date1) . "&amp;date2=" . $q->escape($date2) . "&amp;limit=" . $q->escape($limit) . "&amp;offset=" . $q->escape($offset + $limit) . "&amp;desc=" . $q->escape($desc) . "&amp;action=search'>Show next page</a></li>\n";
+		if ( $offset >= $limit ) {
+			print "<li><a href='?indexdir=$eindexdir&amp;subject=" . $q->escape($subject) . "&amp;email=" . $q->escape($email) . "&amp;name=" . $q->escape($name) . "&amp;type=" . $q->escape($type) . "&amp;date1=" . $q->escape($date1) . "&amp;date2=" . $q->escape($date2) . "&amp;limit=" . $q->escape($limit) . "&amp;offset=" . $q->escape($offset - $limit) . "&amp;desc=" . $q->escape($desc) . "&amp;action=search'>Show previous page</a></li>\n";
 		}
-		print "</ul>";
-
+		print "</ul>\n";
 	}
 
 	print $q->end_html();
