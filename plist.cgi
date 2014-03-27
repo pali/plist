@@ -390,7 +390,7 @@ if ( $action eq "get-bin" ) {
 		print "<ul>\n";
 		foreach ( @{$ret} ) {
 			my $id = $_->{id};
-			my $date = $_->{date}
+			my $date = $_->{date};
 			my $subject = $_->{subject};
 			print "<li>";
 			print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=" . $q->escape($id) . "'>" . $q->escapeHTML($subject) . "</a> - ";
