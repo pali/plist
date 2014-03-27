@@ -364,6 +364,8 @@ if ( $action eq "get-bin" ) {
 		exit;
 	}
 
+	$args{implicit} = 0;
+
 	my $ret = $index->db_emails(%args);
 	if ( not $ret ) {
 		print $q->header(-status => 404);
