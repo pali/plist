@@ -62,6 +62,7 @@ if ( not $action ) {
 	print $q->header();
 	print $q->start_html(@html_params, -title => $indexdir);
 	print "<ul>\n";
+	print "<li><a href='?indexdir=$eindexdir&amp;action=browse'>Browse</a></li>\n";
 	print "<li><a href='?indexdir=$eindexdir&amp;action=get-roots'>Show all roots</a></li>\n";
 	print "<li><a href='?indexdir=$eindexdir&amp;action=search&amp;limit=100&amp;desc=1'>Show last 100 emails</a></li>\n";
 	print "<li><a href='?indexdir=$eindexdir&amp;action=search'>Search</a></li>\n";
@@ -314,6 +315,167 @@ if ( $action eq "get-bin" ) {
 	}
 	print $q->header(-content_length => $size);
 	print $str;
+
+} elsif ( $action eq "browse" ) {
+
+	my $group = $q->param("group");
+
+	if ( not $group ) {
+		print $q->header();
+		print $q->start_html(@html_params, -title => "Browse");
+		print "<ul>\n";
+		print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=none'>Browse all emails</a></li>\n";
+		print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=year'>Browse years</a></li>\n";
+		print "</ul>";
+		print $q->end_html();
+		exit 0;
+	} elsif ( $group eq "year" ) {
+		my $years = $index->db_date("%Y");
+		if ( not $years ) {
+			print $q->header(-status => 404);
+			exit;
+		}
+		print $q->header();
+		print $q->start_html(@html_params, -title => "Browse years");
+		print "<ul>\n";
+		print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=none'>Browse all emails</a></li>\n";
+		foreach ( @{$years} ) {
+			print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=month&amp;year=" . $q->escape($_->[0]) . "'>Browse year " . $q->escapeHTML($_->[0]) . "</a></li>\n";
+		}
+		print "</ul>";
+		print $q->end_html();
+		exit 0;
+	} elsif ( $group eq "month" ) {
+		my $year = $q->param("year");
+		if ( not defined $year ) {
+			print $q->header(-status => 404);
+			exit;
+		}
+		my $months = $index->db_date("%m", "%Y", $year);
+		if ( not $months ) {
+			print $q->header(-status => 404);
+			exit;
+		}
+		print $q->header();
+		print $q->start_html(@html_params, -title => "Browse year $year");
+		print "<ul>\n";
+		my $date1;
+		eval { $date1 = Time::Piece->strptime("$year", "%Y"); } or do { $date1 = undef; };
+		if ( $date1 ) {
+			my $date2 = $date1->add_years(1)->epoch();
+			$date1 = $date1->epoch();
+			print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=none&amp;date1=$date1&amp;date2=$date2&amp;limit=100'>Browse all emails in year $year</a></li>\n";
+		}
+		foreach ( @{$months} ) {
+			my $month = $_->[0];
+			my $date1;
+			eval { $date1 = Time::Piece->strptime("$year $month", "%Y %m"); } or do { $date1 = undef; };
+			next unless $date1;
+#			$month = $date1->fullmonth();
+			my $date2 = $date1->add_months(1)->epoch();
+			$date1 = $date1->epoch();
+			print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=day&amp;year=$year&amp;month=$month'>Browse " . $q->escapeHTML($month) . " in year $year</a></li>\n";
+		}
+		print "</ul>";
+		print $q->end_html();
+		exit 0;
+	} elsif ( $group eq "day" ) {
+		my $year = $q->param("year");
+		my $month = $q->param("month");
+		if ( not defined $year or not defined $month ) {
+			print $q->header(-status => 404);
+			exit;
+		}
+		my $days = $index->db_date("%d", "%Y %m", "$year $month");
+		if ( not $days ) {
+			print $q->header(-status => 404);
+			exit;
+		}
+		print $q->header();
+		print $q->start_html(@html_params, -title => "Browse month $month in year $year");
+		print "<ul>\n";
+		my $date1;
+		eval { $date1 = Time::Piece->strptime("$year $month", "%Y %m"); } or do { $date1 = undef; };
+		if ( $date1 ) {
+			my $date2 = $date1->add_months(1)->epoch();
+			$date1 = $date1->epoch();
+			print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=none&amp;date1=$date1&amp;date2=$date2&amp;limit=100'>Browse all emails in $month/$year</a></li>\n";
+		}
+		foreach ( @{$days} ) {
+			my $day = $_->[0];
+			my $date1;
+			eval { $date1 = Time::Piece->strptime("$year $month $day", "%Y %m %d"); } or do { $date1 = undef; };
+			next unless $date1;
+			my $date2 = ($date1 + 24*60*60)->epoch();
+			$date1 = $date1->epoch();
+			print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=none&amp;date1=$date1&amp;date2=$date2&amp;limit=100'>Browse $day/$month/$year</a></li>\n";
+		}
+		print "</ul>";
+		print $q->end_html();
+		exit 0;
+	} elsif ( $group ne "none" ) {
+		print $q->header(-status => 404);
+		exit;
+	}
+
+	my $date1 = $q->param("date1");
+	my $date2 = $q->param("date2");
+	my $limit = $q->param("limit");
+	my $offset = $q->param("offset");
+	my $desc = $q->param("desc");
+	my $treedesc = $q->param("treedesc");
+
+	my %args;
+	$args{date1} = $date1 if defined $date1;
+	$args{date2} = $date2 if defined $date2;
+	$args{limit} = $limit if defined $limit;
+	$args{offset} = $offset if defined $offset;
+
+	my $roots = $index->db_roots($desc, %args);
+	if ( not $roots ) {
+		print $q->header(-status => 404);
+		use Data::Dumper;
+		print Dumper($desc);
+		print Dumper(\%args);
+		print Dumper($roots);
+		print "error\n";
+		exit;
+	}
+
+	print $q->header();
+	print $q->start_html(@html_params, -title => "Browse");
+	print "<ul>\n";
+
+	my %processed;
+	my $printnext;
+	my $neednext;
+	my $count = 0;
+	my $iter = -1;
+
+	foreach ( @{$roots} ) {
+
+		++$iter;
+		my $rid = $_->{id};
+		next if $processed{$rid};
+		if ( $neednext ) {
+			print "<ul><li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=none&amp;date1=$date1&amp;date2=$date2&amp;limit=$limit&amp;offset=" . $q->escape($offset + $iter) . "'>Show next page</a></li></ul>\n";
+			$printnext = 1;
+			last;
+		}
+		$processed{$rid} = 1;
+		$count += print_tree($index, $_->{id}, $treedesc, undef, undef, \%processed);
+		if ( defined $limit and length $limit and $count >= $limit ) {
+			$neednext = 1;
+		}
+
+	}
+
+	if ( defined $limit and length $limit and not $printnext and $count >= $limit ) {
+		print "<ul><li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=none&amp;date1=$date1&amp;date2=$date2&amp;limit=$limit&amp;offset=" . $q->escape($offset + $limit) . "'>Show next page</a></li></ul>\n";
+	}
+
+	print "</ul>";
+	print $q->end_html();
 
 } elsif ( $action eq "search" ) {
 
