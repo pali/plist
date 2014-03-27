@@ -1116,23 +1116,23 @@ sub db_roots($$;%) {
 	my $limit = "";
 
 	if ( exists $args{date1} ) {
-		$date .= "AND realdate >= ?";
+		$date .= "AND date >= ?";
 		push(@args, $args{date1});
 	}
 
 	if ( exists $args{date2} ) {
-		$date .= "AND realdate < ?";
+		$date .= "AND date < ?";
 		push(@args, $args{date2});
 	}
 
 	if ( exists $args{date1} and exists $args{date2} ) {
-		$havingdate = "HAVING realdate >= ? AND realdate < ?";
+		$havingdate = "HAVING MIN(e2.date) >= ? AND MIN(e2.date) < ?";
 		push(@args, $args{date1}, $args{date2});
 	} elsif ( exists $args{date1} ) {
-		$havingdate = "HAVING realdate >= ?";
+		$havingdate = "HAVING MIN(e2.date) >= ?";
 		push(@args, $args{date1});
 	} elsif ( exists $args{date2} ) {
-		$havingdate = "HAVING realdate < ?";
+		$havingdate = "HAVING MIN(e2.date) < ?";
 		push(@args, $args{date2});
 	}
 
@@ -1148,9 +1148,9 @@ sub db_roots($$;%) {
 	}
 
 	$statement = qq(
-		SELECT e1.id, e1.messageid, e1.realdate, s.subject, e1.implicit
+		SELECT e1.id AS id, e1.messageid AS messageid, e1.date AS date, s.subject AS subject, e1.implicit AS implicit
 			FROM (
-				SELECT e1.id, e1.messageid, e1.date AS realdate, e1.subjectid, e1.implicit
+				SELECT e1.id, e1.messageid, e1.date AS date, e1.subjectid, e1.implicit
 					FROM emails AS e1,
 						(
 							SELECT subjectid, MIN(date) AS date2
@@ -1165,7 +1165,7 @@ sub db_roots($$;%) {
 			) AS e1
 			JOIN subjects AS s ON s.id = e1.subjectid
 		UNION
-		SELECT e1.id, e1.messageid, MIN(e2.date) AS realdate, s.subject, e1.implicit
+		SELECT e1.id AS id, e1.messageid AS messageid, MIN(e2.date) AS date, s.subject AS subject, e1.implicit AS implicit
 			FROM emails AS e1
 			LEFT OUTER JOIN replies AS r1 ON r1.emailid2 = e1.id
 			LEFT OUTER JOIN emails AS e2 ON e2.id = r1.emailid1
@@ -1179,7 +1179,7 @@ sub db_roots($$;%) {
 				)
 			GROUP BY e1.id
 			$havingdate
-		ORDER BY realdate $desc
+		ORDER BY date $desc
 		$limit
 		;
 	);
@@ -1187,7 +1187,7 @@ sub db_roots($$;%) {
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute(@args);
-		$ret = $sth->fetchall_arrayref(\{ 0 => "id", 1 => "messageid", 2 => "date", 3 => "subject", 4 => "implicit" });
+		$ret = $sth->fetchall_arrayref({});
 	} or do {
 		eval { $dbh->rollback(); };
 		return undef;
