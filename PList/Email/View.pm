@@ -195,9 +195,11 @@ sub part_to_str($$$$) {
 				my $message_template = HTML::Template->new(scalarref => ${$config}{message_template}, die_on_bad_params => 0, utf8 => 1, loop_context_vars => 1);
 				my $subject_template = HTML::Template->new(scalarref => ${$config}{subject_template}, die_on_bad_params => 0, utf8 => 1);
 				my $header = $pemail->header($partid);
+				my $subject = $header->{subject};
+				$subject = "unknown" unless $subject;
 				$subject_template->param(ID => $id);
 				$subject_template->param(PART => $partid);
-				$subject_template->param(SUBJECT => $header->{subject});
+				$subject_template->param(SUBJECT => $subject);
 				$message_template->param(ID => $id);
 				$message_template->param(PART => $partid);
 				$message_template->param(FROM => addressees_data($header->{from}, $config));
