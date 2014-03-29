@@ -254,9 +254,18 @@ sub create_tables($$) {
 	);
 	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
+	# NULL subject for implicit emails
 	$statement = qq(
 		INSERT INTO subjects (id, subject)
 			VALUES (1, NULL)
+		;
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	# empty subject for emails without subject
+	$statement = qq(
+		INSERT INTO subjects (id, subject)
+			VALUES (2, "")
 		;
 	);
 	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
@@ -933,12 +942,22 @@ sub db_replies($$;$$$) {
 		$desc = "";
 	}
 
-	# Select all emails which has same subject as specified email, do not have in-reply-to header and are send before specified email
+	# Select all emails which has same (non empty) subject as specified email, do not have in-reply-to header and are send before specified email
 	$statement = qq(
 		SELECT DISTINCT e2.id, e2.messageid, e2.implicit
 			FROM emails AS e1
 			JOIN emails AS e2 ON e2.subjectid = e1.subjectid
-			WHERE e1.id != e2.id AND e1.implicit = 0 AND e2.implicit = 0 AND e$id1.hasreply = 0 AND e1.date IS NOT NULL AND e2.date IS NOT NULL AND e$id1.date >= e$id2.date AND e1.$where = ?
+			WHERE
+				e1.id != e2.id AND
+				e1.implicit = 0 AND
+				e2.implicit = 0 AND
+				e$id1.hasreply = 0 AND
+				e1.subjectid != 1 AND
+				e1.subjectid != 2 AND
+				e1.date IS NOT NULL AND
+				e2.date IS NOT NULL AND
+				e$id1.date >= e$id2.date AND
+				e1.$where = ?
 			ORDER BY e2.date $desc
 			$limit
 		;
@@ -1199,7 +1218,7 @@ sub db_roots($$;%) {
 						(
 							SELECT subjectid, MIN(date) AS date2
 								FROM emails
-								WHERE hasreply = 0 AND subjectid != 0
+								WHERE hasreply = 0 AND subjectid != 1 AND subjectid != 2
 								GROUP BY subjectid
 						) AS e2
 					WHERE
@@ -1208,6 +1227,14 @@ sub db_roots($$;%) {
 						$date
 			) AS e1
 			JOIN subjects AS s ON s.id = e1.subjectid
+		UNION
+		SELECT e1.id AS id, e1.messageid AS messageid, e1.date AS date, s.subject AS subject, e1.implicit AS implicit
+			FROM emails AS e1
+			JOIN subjects AS s ON s.id = e1.subjectid
+			WHERE
+				e1.hasreply = 0 AND
+				e1.subjectid = 2
+				$date
 		UNION
 		SELECT e1.id AS id, e1.messageid AS messageid, MIN(e2.date) AS date, s.subject AS subject, e1.implicit AS implicit
 			FROM emails AS e1
