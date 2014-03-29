@@ -1188,6 +1188,14 @@ sub db_roots($$;%) {
 		push(@args, $args{date2});
 	}
 
+	if ( exists $args{date1} ) {
+		push(@args, $args{date1});
+	}
+
+	if ( exists $args{date2} ) {
+		push(@args, $args{date2});
+	}
+
 	if ( exists $args{date1} and exists $args{date2} ) {
 		$havingdate = "HAVING MIN(e2.date) >= ? AND MIN(e2.date) < ?";
 		push(@args, $args{date1}, $args{date2});
