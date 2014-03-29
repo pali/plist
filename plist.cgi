@@ -15,7 +15,31 @@ my $q = new CGI;
 
 $q->charset("utf-8");
 
-my @html_params = (-lang => "", -head => $q->meta({-http_equiv => "Content-Type", -content => "text/html; charset=utf-8"}));
+sub print_start_html($;$@) {
+	my ($title, $noh2, @header) = @_;
+	print $q->header(@header);
+	print $q->start_html(-lang => "", -head => $q->meta({-http_equiv => "Content-Type", -content => "text/html; charset=utf-8"}), -title => $title);
+	print $q->h2($q->escapeHTML($title)) . "\n" unless $noh2;
+}
+
+sub print_p($) {
+	my ($text) = @_;
+	print $q->p($q->escapeHTML($text));
+}
+
+sub print_ahref($$;$) {
+	my ($href, $text, $nobr) = @_;
+	print $q->a({href => $href}, $q->escapeHTML($text));
+	print $q->br() . "\n" unless $nobr;
+}
+
+sub error($) {
+	my ($msg) = @_;
+	print_start_html("Error 404", 1, -status => 404);
+	print_p("Error: " . $msg);
+	print $q->end_html();
+	exit;
+}
 
 my $indexdir = $q->param("indexdir");
 
@@ -25,26 +49,26 @@ if ( not $indexdir ) {
 
 	my $dh;
 	if ( not opendir($dh, ".") ) {
-		print $q->header(-status => 404);
-		exit;
+		error("Cannot open directory");
 	}
 
-	print $q->header();
-	print $q->start_html(@html_params, -title => "PList");
+	print_start_html("List of archives");
+	print $q->start_p() . "\n";
 
-	print "<ul>\n";
+	my $count = 0;
 
 	while ( defined (my $name = readdir($dh)) ) {
 		next if $name =~ /^\./;
 		next unless -d $name;
 		next unless -f "$name/config";
-		$name = $q->escape($name);
-		print "<li><a href='?indexdir=$name'>$name</a></li>\n";
+		++$count;
+		print_ahref("?indexdir=" . $q->escape($name), $name);
 	}
-
 	closedir($dh);
 
-	print "</ul>";
+	print "(No archives)\n" unless $count;
+
+	print $q->end_p();
 	print $q->end_html();
 
 	exit;
@@ -58,26 +82,22 @@ my $action = $q->param("action");
 if ( not $action ) {
 
 	# Show info page
-
-	print $q->header();
-	print $q->start_html(@html_params, -title => $indexdir);
-	print "<ul>\n";
-	print "<li><a href='?indexdir=$eindexdir&amp;action=browse'>Browse</a></li>\n";
-	print "<li><a href='?indexdir=$eindexdir&amp;action=get-roots'>Show all roots</a></li>\n";
-	print "<li><a href='?indexdir=$eindexdir&amp;action=search&amp;limit=100&amp;desc=1'>Show last 100 emails</a></li>\n";
-	print "<li><a href='?indexdir=$eindexdir&amp;action=search'>Search</a></li>\n";
-	print "</ul>";
+	print_start_html("Archive $indexdir");
+	print $q->start_p() . "\n";
+	print_ahref("?indexdir=$eindexdir&action=browse&limit=100", "Browse email threads");
+	print_ahref("?indexdir=$eindexdir&action=get-roots&limit=100", "Browse roots of email threads");
+	print_ahref("?indexdir=$eindexdir&action=search&limit=100&desc=1", "Show last 100 emails");
+	print_ahref("?indexdir=$eindexdir&action=search", "Search emails");
+	print $q->br() . "\n";
+	print_ahref("?", "Show list of archives");
+	print $q->end_p();
 	print $q->end_html();
-
 	exit;
 
 }
 
 my $index = new PList::Index($indexdir);
-if ( not $index ) {
-	print $q->header(-status => 404);
-	exit;
-}
+error("Archive $indexdir does not exist") unless $index;
 
 my $address_template = "<a href='?indexdir=$eindexdir&amp;action=search&amp;name=<TMPL_VAR ESCAPE=URL NAME=NAMEURL>'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='?indexdir=$eindexdir&amp;action=search&amp;email=<TMPL_VAR ESCAPE=URL NAME=EMAILURL>'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
 
@@ -100,7 +120,7 @@ sub print_tree($$$$$$) {
 	my $root = ${$tree->{root}}[0];
 	delete $tree->{root};
 
-	print "<ul class='tree'>\n";
+	print $q->start_ul({class => "tree"}) . "\n";
 
 	$processed->{$root} = 1;
 	my @stack = ([$root, 0]);
@@ -113,15 +133,18 @@ sub print_tree($$$$$$) {
 		my $down = $tree->{$tid};
 
 		while ( $prevlen > $len ) {
-			print "</ul>\n</li>\n";
+			print $q->end_ul() . "\n";
+			print $q->end_li() . "\n";
 			--$prevlen;
 		}
 
 		my $email = $index->db_email($tid, 1);
+
+		#TODO: db_email can fail
+
 		my $mid = $q->escape($email->{messageid});
-		my $subject = $q->escapeHTML($email->{subject});
+		my $subject = $email->{subject};
 		my $date;
-		my $from;
 
 		$count++;
 
@@ -129,19 +152,23 @@ sub print_tree($$$$$$) {
 			$date = $q->escapeHTML(scalar gmtime($email->{date})); # TODO: format date
 		}
 
-		if ( @{$email->{from}} ) {
-			$from = "<a href='?indexdir=$eindexdir&amp;action=search&amp;name=" . $q->escape(${${$email->{from}}[0]}[1]) . "'>" . $q->escapeHTML(${${$email->{from}}[0]}[1]) . "</a> <a href='?indexdir=$eindexdir&amp;action=search&amp;email=" . $q->escape(${${$email->{from}}[0]}[0]) . "'>&lt;" . $q->escapeHTML(${${$email->{from}}[0]}[0]) . "&gt;</a>";
-		}
+		print $q->start_li();
 
-		print "<li>";
-
-		if ( not $subject and not $from and not $date ) {
+		if ( not $subject and not @{$email->{from}} and not $date ) {
 			print "unknown";
 		} else {
 			$subject = "unknown" unless $subject;
-			$from = "unknown" unless $from;
 			$date = "unknown" unless $date;
-			print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=$mid'>$subject</a> - $from - $date";
+			print_ahref("?indexdir=$eindexdir&action=gen-html&id=$mid", $subject, 1);
+			print " - ";
+			if ( @{$email->{from}} ) {
+				print_ahref("?indexdir=$eindexdir&action=search&name=" . $q->escape(${${$email->{from}}[0]}[1]), ${${$email->{from}}[0]}[1], 1);
+				print " ";
+				print_ahref("?indexdir=$eindexdir&action=search&email=" . $q->escape(${${$email->{from}}[0]}[0]), "<" . ${${$email->{from}}[0]}[0] . ">", 1);
+			} else {
+				print "unknown";
+			}
+			print " - $date";
 		}
 
 		my $count = 0;
@@ -157,9 +184,9 @@ sub print_tree($$$$$$) {
 		}
 
 		if ( $count ) {
-			print "\n<ul>\n";
+			print "\n" . $q->start_ul() . "\n";
 		} else {
-			print "</li>\n";
+			print $q->end_li() . "\n";
 		}
 
 		$prevlen = $len;
@@ -167,11 +194,12 @@ sub print_tree($$$$$$) {
 	}
 
 	while ( $prevlen ) {
-		print "</ul>\n</li>\n";
+		print $q->end_ul() . "\n";
+		print $q->end_li() . "\n";
 		--$prevlen;
 	}
 
-	print "</ul>\n";
+	print $q->end_ul();
 
 	return $count;
 
@@ -180,15 +208,9 @@ sub print_tree($$$$$$) {
 if ( $action eq "get-bin" ) {
 
 	my $id = $q->param("id");
-	if ( not $id ) {
-		print $q->header(-status => 404);
-		exit;
-	}
+	error("Param id was not specified") unless $id;
 	my $pemail = $index->email($id);
-	if ( not $pemail ) {
-		print $q->header(-status => 404);
-		exit;
-	}
+	error("Email with $id does not exist in archive $indexdir") unless $pemail;
 	print $q->header(-type => "application/octet-stream", -attachment => "$id.bin", -charset => "");
 	binmode(\*STDOUT, ":raw");
 	PList::Email::Binary::to_fh($pemail, \*STDOUT);
@@ -196,16 +218,12 @@ if ( $action eq "get-bin" ) {
 } elsif ( $action eq "get-part" ) {
 
 	my $id = $q->param("id");
+	error("Param id was not specified") unless $id;
 	my $part = $q->param("part");
-	if ( not $id or not $part ) {
-		print $q->header(-status => 404);
-		exit;
-	}
+	error("Param part was not specified") unless $id;
 	my $pemail = $index->email($id);
-	if ( not $pemail or not $pemail->part($part) ) {
-		print $q->header(-status => 404);
-		exit;
-	}
+	error("Email with $id does not exist in archive $indexdir") unless $pemail;
+	error("Part $part of email with $id does not exist in archive $indexdir") unless $pemail->part($part);
 	my $date = $pemail->header("0")->{date};
 	my $size = $pemail->part($part)->{size};
 	my $mimetype = $pemail->part($part)->{mimetype};
@@ -223,36 +241,25 @@ if ( $action eq "get-bin" ) {
 
 	my $id = $q->param("id");
 	my $desc = $q->param("desc");
-	my $limitup = $q->param("limitup");
-	my $limitdown = $q->param("limitdown");
 
-	if ( not $id ) {
-		print $q->header(-status => 404);
-		exit;
-	}
-
-	if ( $desc and $desc == 1 ) {
-		$desc = 1;
-	} else {
-		$desc = 0;
-	}
+	error("Param id was not specified") unless $id;
 
 	my $email = $index->db_email($id);
-	if ( not $email ) {
-		print $q->header(-status => 404);
-		exit;
-	}
-	$id = $email->{id};
+	error("Email with $id does not exist in archive $indexdir") unless $email;
 
-	print $q->header();
-	print $q->start_html(@html_params, -title => "Tree for " . $email->{messageid});
-	my %processed;
-	my $count = print_tree($index, $id, $desc, $limitup, $limitdown, \%processed);
+	print_start_html("Tree for email $id");
 
-	if ( $count == 0 ) {
-		print "Empty\n";
-	}
+	my $order = 0;
+	$order = 1 unless $desc;
+	$order = $q->a({href => "?indexdir=$eindexdir&action=get-tree&id=" . $q->escape($id) . "&desc=$order"}, $order ? "(DESC)" : "(ASC)");
+	print $q->ul($q->li($q->b("Subject - From - Date $order")));
 
+	my $count = print_tree($index, $email->{id}, $desc, undef, undef, {});
+	print_p("(No emails)") unless $count;
+
+	print $q->br() . "\n";
+	print_ahref("?indexdir=$eindexdir", "Show archive $indexdir");
+	print_ahref("?", "Show list of archives");
 	print $q->end_html();
 
 } elsif ( $action eq "get-roots" ) {
@@ -263,56 +270,91 @@ if ( $action eq "get-bin" ) {
 	my $limit = $q->param("limit");
 	my $offset = $q->param("offset");
 
-	my %args;
-	$args{date1} = $date1 if defined $date1;
-	$args{date2} = $date2 if defined $date2;
-	$args{limit} = $limit+1 if defined $limit;
-	$args{offset} = $offset if defined $offset;
+	$desc = 0 unless defined $desc and length $desc;
+	$date1 = "" unless defined $date1;
+	$date2 = "" unless defined $date2;
+	$limit = "" unless defined $limit;
+	$offset = 0 unless defined $offset and length $offset;
 
-	if ( $desc and $desc == 1 ) {
-		$desc = 1;
-	} else {
-		$desc = 0;
-	}
+	my %args;
+	$args{date1} = $date1 if length $date1;
+	$args{date2} = $date2 if length $date2;
+	$args{limit} = $limit+1 if length $limit;
+	$args{offset} = $offset if length $offset;
 
 	my $roots = $index->db_roots($desc, %args);
-	if ( not $roots ) {
-		print $q->header(-status => 404);
-		exit;
-	}
+	error("Database error (db_roots)") unless $roots;
 
-	print $q->header();
-	print $q->start_html(@html_params, -title => "Roots");
-	print "<ul>\n";
+	my $order = 0;
+	$order = 1 unless $desc;
+	$order = $q->a({href => "?indexdir=$eindexdir&action=get-roots&desc=$order&date1=" . $q->escape($date1) . "&date2=" . $q->escape($date2) . "&limit=" . $q->escape($limit) . "&offset=0"}, $order ? "(DESC)" : "(ASC)");
+
+	print_start_html("Roots");
+	print $q->start_table(-style => "white-space:nowrap") . "\n";
+	print $q->Tr($q->th({-align => "left"}, ["Subject", "Date $order"])) . "\n";
+
+	my $neednext;
+	my $printbr = 1;
+	my $count = 0;
 
 	foreach ( @{$roots} ) {
+		if ( $neednext ) {
+			$printbr = 0;
+			print $q->end_table() . "\n";
+			print $q->br() . "\n";
+			print_ahref("?indexdir=$eindexdir&action=get-roots&desc=" . $q->escape($desc) . "&date1=" . $q->escape($date1) . "&date2=" . $q->escape($date2) . "&limit=" . $q->escape($limit) . "&offset=" . $q->escape($offset + $limit), "Show next page");
+			last;
+		}
+		my $id = $q->escape($_->{messageid});
+		my $subject = $_->{subject};
 		my $date = $_->{date};
-		$date = scalar gmtime($date) if $date; # TODO: format date
-		print "<li><a href='?indexdir=$eindexdir&amp;action=get-tree&amp;id=" . $q->escape($_->{messageid}) . "'>" . $q->escapeHTML($_->{subject}) . "</a> - " . $q->escapeHTML($date). "</li>\n";
+		$subject = "unknown" unless $subject;
+		$date = $q->escapeHTML(scalar gmtime($date)) if $date; # TODO: format date
+		print $q->start_Tr();
+		print $q->start_td();
+		print_ahref("?indexdir=$eindexdir&action=get-tree&id=$id", $subject, 1);
+		print $q->end_td();
+		print $q->start_td({style => "white-space:nowrap"});
+		print $date;
+		print $q->end_td();
+		print $q->end_Tr();
+		print "\n";
+		++$count;
+		if ( length $limit and $count >= $limit ) {
+			$neednext = 1;
+		}
 	}
 
-	print "</ul>";
+	print $q->end_table() . "\n" if $printbr;
+
+	print_p("(No emails)") unless $count;
+
+	if ( length $limit and $offset >= $limit ) {
+		print $q->br() . "\n" if $printbr;
+		print_ahref("?indexdir=$eindexdir&action=get-roots&desc=" . $q->escape($desc) . "&date1=" . $q->escape($date1) . "&date2=" . $q->escape($date2) . "&limit=" . $q->escape($limit) . "&offset=" . $q->escape($offset - $limit), "Show previous page");
+	}
+
+	print $q->br() . "\n";
+	print_ahref("?indexdir=$eindexdir", "Show archive $indexdir");
+	print_ahref("?", "Show list of archives");
 	print $q->end_html();
 
 } elsif ( $action eq "gen-html" ) {
 
+	my $id = $q->param("id");
+	error("Param id was not specified") unless $id;
+
 	my %config = (address_template => \$address_template, subject_template => \$subject_template, download_template => \$download_template, imagepreview_template => \$imagepreview_template);
 
-	my $id = $q->param("id");
-	if ( not $id ) {
-		print $q->header(-status => 404);
-		exit;
-	}
 	my $str = $index->view($id, %config);
-	if ( not $str ) {
-		print $q->header(-status => 404);
-		exit;
-	}
+	error("Email with $id does not exist in archive $indexdir") unless $str;
+
 	my $size;
 	{
 		use bytes;
 		$size = length($str);
 	}
+
 	print $q->header(-content_length => $size);
 	print $str;
 
@@ -321,153 +363,133 @@ if ( $action eq "get-bin" ) {
 	my $group = $q->param("group");
 
 	if ( not $group ) {
-		print $q->header();
-		print $q->start_html(@html_params, -title => "Browse");
-		print "<ul>\n";
-		print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=none'>Browse all emails</a></li>\n";
-		print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=year'>Browse years</a></li>\n";
-		print "</ul>";
-		print $q->end_html();
-		exit 0;
-	} elsif ( $group eq "year" ) {
+		print_start_html("Browse email threads");
+		print $q->start_p() . "\n";
+		print_ahref("?indexdir=$eindexdir&action=browse&group=none&limit=100", "Browse all");
+		print $q->br() . "\n";
+		print $q->b("Browse year:") . $q->br() . "\n";
 		my $years = $index->db_date("%Y");
-		if ( not $years ) {
-			print $q->header(-status => 404);
-			exit;
+		if ( $years ) {
+			print_ahref("?indexdir=$eindexdir&action=browse&group=month&year=" . $q->escape($_->[0]), $_->[0]) foreach @{$years};
+		} else {
+			print "(No years)" . $q->br() . "\n";
 		}
-		print $q->header();
-		print $q->start_html(@html_params, -title => "Browse years");
-		print "<ul>\n";
-		print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=none'>Browse all emails</a></li>\n";
-		foreach ( @{$years} ) {
-			print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=month&amp;year=" . $q->escape($_->[0]) . "'>Browse year " . $q->escapeHTML($_->[0]) . "</a></li>\n";
-		}
-		print "</ul>";
-		print $q->end_html();
-		exit 0;
 	} elsif ( $group eq "month" ) {
 		my $year = $q->param("year");
-		if ( not defined $year ) {
-			print $q->header(-status => 404);
-			exit;
-		}
-		my $months = $index->db_date("%m", "%Y", $year);
-		if ( not $months ) {
-			print $q->header(-status => 404);
-			exit;
-		}
-		print $q->header();
-		print $q->start_html(@html_params, -title => "Browse year $year");
-		print "<ul>\n";
+		error("Param year was not specified") unless $year;
+		print_start_html("Browse email threads in year $year");
+		print $q->start_p() . "\n";
 		my $date1;
 		eval { $date1 = Time::Piece->strptime("$year", "%Y"); } or do { $date1 = undef; };
 		if ( $date1 ) {
 			my $date2 = $date1->add_years(1)->epoch();
 			$date1 = $date1->epoch();
-			print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=none&amp;date1=$date1&amp;date2=$date2&amp;limit=100'>Browse all emails in year $year</a></li>\n";
+			print_ahref("?indexdir=$eindexdir&action=browse&group=none&date1=" . $q->escape($date1) . "&date2=" . $q->escape($date2) . "&limit=100", "Browse all in year $year");
+			print $q->br() . "\n";
 		}
-		foreach ( @{$months} ) {
-			my $month = $_->[0];
-			my $date1;
-			eval { $date1 = Time::Piece->strptime("$year $month", "%Y %m"); } or do { $date1 = undef; };
-			next unless $date1;
-#			$month = $date1->fullmonth();
-			my $date2 = $date1->add_months(1)->epoch();
-			$date1 = $date1->epoch();
-			print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=day&amp;year=$year&amp;month=$month'>Browse " . $q->escapeHTML($month) . " in year $year</a></li>\n";
+		print $q->b("Browse month:") . $q->br() . "\n";
+		my $months = $index->db_date("%m", "%Y", $year);
+		if ( $months ) {
+			foreach ( @{$months} ) {
+				my $month = $_->[0];
+				my $date1;
+				eval { $date1 = Time::Piece->strptime("$year $month", "%Y %m"); } or do { $date1 = undef; };
+				next unless $date1;
+				my $fullmonth = $date1->fullmonth();
+				my $date2 = $date1->add_months(1)->epoch();
+				$date1 = $date1->epoch();
+				print_ahref("?indexdir=$eindexdir&action=browse&group=day&year=" . $q->escape($year) . "&month=" . $q->escape($month), $fullmonth);
+			}
+		} else {
+			print "(No months)" . $q->br() . "\n";
 		}
-		print "</ul>";
-		print $q->end_html();
-		exit 0;
 	} elsif ( $group eq "day" ) {
 		my $year = $q->param("year");
+		error("Param year was not specified") unless $year;
 		my $month = $q->param("month");
-		if ( not defined $year or not defined $month ) {
-			print $q->header(-status => 404);
-			exit;
-		}
-		my $days = $index->db_date("%d", "%Y %m", "$year $month");
-		if ( not $days ) {
-			print $q->header(-status => 404);
-			exit;
-		}
-		print $q->header();
-		print $q->start_html(@html_params, -title => "Browse month $month in year $year");
-		print "<ul>\n";
+		error("Param month was not specified") unless $month;
+		print_start_html("Browse emails threads in year $year month $month");
+		print $q->start_p() . "\n";
 		my $date1;
 		eval { $date1 = Time::Piece->strptime("$year $month", "%Y %m"); } or do { $date1 = undef; };
 		if ( $date1 ) {
 			my $date2 = $date1->add_months(1)->epoch();
 			$date1 = $date1->epoch();
-			print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=none&amp;date1=$date1&amp;date2=$date2&amp;limit=100'>Browse all emails in $month/$year</a></li>\n";
+			print_ahref("?indexdir=$eindexdir&action=browse&group=none&date1=" . $q->escape($date1) . "&date2=" . $q->escape($date2) . "&limit=100", "Browse all in year $year month $month");
+			print $q->br() . "\n";
 		}
-		foreach ( @{$days} ) {
-			my $day = $_->[0];
-			my $date1;
-			eval { $date1 = Time::Piece->strptime("$year $month $day", "%Y %m %d"); } or do { $date1 = undef; };
-			next unless $date1;
-			my $date2 = ($date1 + 24*60*60)->epoch();
-			$date1 = $date1->epoch();
-			print "<li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=none&amp;date1=$date1&amp;date2=$date2&amp;limit=100'>Browse $day/$month/$year</a></li>\n";
+		print $q->b("Browse days:") . $q->br() . "\n";
+		my $days = $index->db_date("%d", "%Y %m", "$year $month");
+		if ( $days ) {
+			foreach ( @{$days} ) {
+				my $day = $_->[0];
+				my $date1;
+				eval { $date1 = Time::Piece->strptime("$year $month $day", "%Y %m %d"); } or do { $date1 = undef; };
+				next unless $date1;
+				my $date2 = ($date1 + 24*60*60)->epoch();
+				$date1 = $date1->epoch();
+				print_ahref("?indexdir=$eindexdir&action=browse&group=none&date1=" . $q->escape($date1) . "&date2=" . $q->escape($date2) . "&limit=100", $day);
+			}
+		} else {
+			print "(No days)" . $q->br() . "\n";
 		}
-		print "</ul>";
-		print $q->end_html();
-		exit 0;
-	} elsif ( $group ne "none" ) {
-		print $q->header(-status => 404);
-		exit;
+	} elsif ( $group eq "none" ) {
+		my $date1 = $q->param("date1");
+		my $date2 = $q->param("date2");
+		my $limit = $q->param("limit");
+		my $offset = $q->param("offset");
+		my $desc = $q->param("desc");
+		my $treedesc = $q->param("treedesc");
+
+		$date1 = "" unless defined $date1;
+		$date2 = "" unless defined $date2;
+		$limit = "" unless defined $limit;
+		$offset = 0 unless defined $offset and length $offset;
+		$desc = 0 unless defined $desc and length $desc;
+		$treedesc = 0 unless defined $treedesc and length $treedesc;
+
+		my %args;
+		$args{date1} = $date1 if length $date1;
+		$args{date2} = $date2 if length $date2;
+		$args{limit} = $limit+1 if length $limit;
+		$args{offset} = $offset if $offset;
+
+		my $roots = $index->db_roots($desc, %args);
+		error("Database error (db_roots)") unless $roots;
+
+		print_start_html("Browse");
+		print $q->start_p() . "\n";
+
+		my %processed;
+		my $neednext;
+		my $count = 0;
+		my $iter = -1;
+
+		foreach ( @{$roots} ) {
+			++$iter;
+			my $rid = $_->{id};
+			next if $processed{$rid};
+			if ( $neednext ) {
+				print $q->br() . "\n";
+				print_ahref("?indexdir=$eindexdir&action=browse&group=none&date1=" . $q->escape($date1) . "&date2=". $q->escape($date2) . "&limit=" . $q->escape($limit) . "&offset=" . $q->escape($offset + $iter), "Show next page");
+				last;
+			}
+			$processed{$rid} = 1;
+			my $ret = print_tree($index, $_->{id}, $treedesc, undef, undef, \%processed);
+			print "\n" if $ret > 0;
+			$count += $ret;
+			if ( length $limit and $count >= $limit ) {
+				$neednext = 1;
+			}
+		}
+	} else {
+		error("Unknown value for param group");
 	}
 
-	my $date1 = $q->param("date1");
-	my $date2 = $q->param("date2");
-	my $limit = $q->param("limit");
-	my $offset = $q->param("offset");
-	my $desc = $q->param("desc");
-	my $treedesc = $q->param("treedesc");
-
-	my %args;
-	$args{date1} = $date1 if defined $date1;
-	$args{date2} = $date2 if defined $date2;
-	$args{limit} = $limit+1 if defined $limit;
-	$args{offset} = $offset if defined $offset;
-
-	my $roots = $index->db_roots($desc, %args);
-	if ( not $roots ) {
-		print $q->header(-status => 404);
-		use Data::Dumper;
-		print Dumper($desc);
-		print Dumper(\%args);
-		print Dumper($roots);
-		print "error\n";
-		exit;
-	}
-
-	print $q->header();
-	print $q->start_html(@html_params, -title => "Browse");
-
-	my %processed;
-	my $neednext;
-	my $count = 0;
-	my $iter = -1;
-
-	foreach ( @{$roots} ) {
-
-		++$iter;
-		my $rid = $_->{id};
-		next if $processed{$rid};
-		if ( $neednext ) {
-			print "<br>\n";
-			print "<ul><li><a href='?indexdir=$eindexdir&amp;action=browse&amp;group=none&amp;date1=$date1&amp;date2=$date2&amp;limit=$limit&amp;offset=" . $q->escape($offset + $iter) . "'>Show next page</a></li></ul>\n";
-			last;
-		}
-		$processed{$rid} = 1;
-		$count += print_tree($index, $_->{id}, $treedesc, undef, undef, \%processed);
-		if ( defined $limit and length $limit and $count >= $limit ) {
-			$neednext = 1;
-		}
-
-	}
-
+	print $q->br() . "\n";
+	print_ahref("?indexdir=$eindexdir", "Show archive $indexdir");
+	print_ahref("?", "Show list of archives");
+	print $q->end_p();
 	print $q->end_html();
 
 } elsif ( $action eq "search" ) {
@@ -481,92 +503,114 @@ if ( $action eq "get-bin" ) {
 	my $limit = $q->param("limit");
 	my $offset = $q->param("offset");
 	my $desc = $q->param("desc");
+	my $submit = $q->param("submit");
+
+	$subject = "" unless defined $subject;
+	$email = "" unless defined $email;
+	$name = "" unless defined $name;
+	$type = "" unless defined $type;
+	$date1 = "" unless defined $date1;
+	$date2 = "" unless defined $date2;
+	$limit = "" unless defined $limit;
+	$offset = 0 unless defined $offset and length $offset;
+	$desc = 0 unless defined $desc and length $desc;
 
 	my %args;
-	$args{subject} = $subject if defined $subject and length $subject;
-	$args{email} = $email if defined $email and length $email;
-	$args{name} = $name if defined $name and length $name;
-	$args{type} = $type if defined $type and length $type;
-	$args{date1} = $date1 if defined $date1 and length $date1;
-	$args{date2} = $date2 if defined $date2 and length $date2;
-	$args{limit} = $limit+1 if defined $limit and length $limit;
-	$args{offset} = $offset if defined $offset and length $offset;
-	$args{desc} = $desc if defined $desc and length $desc;
+	$args{subject} = $subject if length $subject;
+	$args{email} = $email if length $email;
+	$args{name} = $name if length $name;
+	$args{type} = $type if length $type;
+	$args{date1} = $date1 if length $date1;
+	$args{date2} = $date2 if length $date2;
+	$args{limit} = $limit+1 if length $limit;
+	$args{offset} = $offset if $offset;
+	$args{desc} = $desc if $desc;
 
-	if ( not keys %args ) {
-
-		# Show search formular
-
-		print $q->header();
-		print $q->start_html(@html_params, -title => "Search");
+	if ( not $submit and not keys %args ) {
+		# Show search form
+		print_start_html("Search");
 		print $q->start_form(-method => "GET", -action => "?", -accept_charset => "utf-8");
 		print $q->hidden(-name => "indexdir", -default => $indexdir) . "\n";
-		print "subject: " . $q->textfield(-name => "subject") . "<br>\n";
-		print "email: " . $q->textfield(-name => "email") . "<br>\n";
-		print "name: " . $q->textfield(-name => "name") . "<br>\n";
-		print "type: " . $q->textfield(-name => "type") . "<br>\n";
-		print "date1: " . $q->textfield(-name => "date1") . "<br>\n";
-		print "date2: " . $q->textfield(-name => "date2") . "<br>\n";
-		print "limit: " . $q->textfield(-name => "limit") . "<br>\n";
-		print "offset: " . $q->textfield(-name => "offset") . "<br>\n";
-		print "desc: " . $q->textfield(-name => "desc") . "<br>\n";
-		print $q->submit(-name => "action", -value => "search") . "<br>\n";
-		print $q->end_form();
+		print $q->hidden(-name => "action", -default => "search") . "\n";
+		print $q->start_table() . "\n";
+		print $q->Tr($q->td(["Subject:", $q->textfield(-name => "subject")])) . "\n";
+		print $q->Tr($q->td(["Header type:", $q->popup_menu("type", ["", "from", "to", "cc"], "", {"" => "(any)"})])) . "\n";
+		print $q->Tr($q->td(["Name:", $q->textfield(-name => "name")])) . "\n";
+		print $q->Tr($q->td(["Email address:", $q->textfield(-name => "email")])) . "\n";
+		# TODO: Add date1 and date2
+		print $q->Tr($q->td(["Limit results:", $q->popup_menu("limit", ["10", "20", "50", "100", "200", ""], "100", {"" => "(unlimited)"})])) . "\n";
+		print $q->Tr($q->td(["Sort order:", $q->popup_menu("desc", ["0", "1"], "0", {"0" => "ascending", "1" => "descending"})])) . "\n";
+		print $q->Tr($q->td($q->submit(-name => "submit", -value => "Search"))) . "\n";
+		print $q->end_table() . "\n";
+		print $q->end_form() . "\n";
+		print $q->start_p() . "\n";
+		print_ahref("?indexdir=$eindexdir", "Show archive $indexdir");
+		print_ahref("?", "Show list of archives");
+		print $q->end_p();
 		print $q->end_html();
-
 		exit;
-	}
-
-	if ( not defined $offset or not length $offset ) {
-		$offset = 0;
 	}
 
 	$args{implicit} = 0;
 
 	my $ret = $index->db_emails(%args);
-	if ( not $ret ) {
-		print $q->header(-status => 404);
-		exit;
-	}
+	error("Database error (db_emails)") unless $ret;
 
-	print $q->header();
-	print $q->start_html(@html_params, -title => "Search");
+	my $order = 0;
+	$order = 1 unless $desc;
+	$order = $q->a({href => "?indexdir=$eindexdir&action=search&subject=" . $q->escape($subject) . "&email=" . $q->escape($email) . "&name=" . $q->escape($name) . "&type=" . $q->escape($type) . "&date1=" . $q->escape($date1) . "&date2=" . $q->escape($date2) . "&limit=" . $q->escape($limit) . "&offset=0&desc=$order"}, $order ? "(DESC)" : "(ASC)");
+
+	print_start_html("Search");
+	print $q->start_table(-style => "white-space:nowrap") . "\n";
+	print $q->Tr($q->th({-align => "left"}, ["Subject", "Date $order"])) . "\n";
 
 	my $neednext;
 	my $printbr = 1;
 	my $count = 0;
-	print "<ul>\n";
 	foreach ( @{$ret} ) {
 		if ( $neednext ) {
 			$printbr = 0;
-			print "<br>\n";
-			print "<li><a href='?indexdir=$eindexdir&amp;subject=" . $q->escape($subject) . "&amp;email=" . $q->escape($email) . "&amp;name=" . $q->escape($name) . "&amp;type=" . $q->escape($type) . "&amp;date1=" . $q->escape($date1) . "&amp;date2=" . $q->escape($date2) . "&amp;limit=" . $q->escape($limit) . "&amp;offset=" . $q->escape($offset + $limit) . "&amp;desc=" . $q->escape($desc) . "&amp;action=search'>Show next page</a></li>\n";
+			print $q->end_table() . "\n";
+			print $q->br() . "\n";
+			print_ahref("?indexdir=$eindexdir&action=search&subject=" . $q->escape($subject) . "&email=" . $q->escape($email) . "&name=" . $q->escape($name) . "&type=" . $q->escape($type) . "&date1=" . $q->escape($date1) . "&date2=" . $q->escape($date2) . "&limit=" . $q->escape($limit) . "&offset=" . $q->escape($offset + $limit) . "&desc=" . $q->escape($desc), "Show next page");
 			last;
 		}
-		my $id = $_->{messageid};
+		my $id = $q->escape($_->{messageid});
 		my $date = $_->{date};
 		my $subject = $_->{subject};
-		print "<li>";
-		print "<a href='?indexdir=$eindexdir&amp;action=gen-html&amp;id=" . $q->escape($id) . "'>" . $q->escapeHTML($subject) . "</a> - ";
-		print $q->escapeHTML(scalar gmtime($date)); # TODO: format date
-		print "</li>\n";
+		$subject = "unknown" unless $subject;
+		$date = $q->escapeHTML(scalar gmtime($date)) if $date; # TODO: format date
+		print $q->start_Tr();
+		print $q->start_td();
+		print_ahref("?indexdir=$eindexdir&action=gen-html&id=$id", $subject, 1);
+		print $q->end_td();
+		print $q->start_td({style => "white-space:nowrap"});
+		print $date;
+		print $q->end_td();
+		print $q->end_Tr();
+		print "\n";
 		++$count;
-		if ( defined $limit and length $limit and $count >= $limit ) {
+		if ( length $limit and $count >= $limit ) {
 			$neednext = 1;
 		}
 	}
 
-	if ( defined $limit and length $limit and defined $offset and length $limit and $offset >= $limit ) {
-		print "<br>\n" if $printbr;
-		print "<li><a href='?indexdir=$eindexdir&amp;subject=" . $q->escape($subject) . "&amp;email=" . $q->escape($email) . "&amp;name=" . $q->escape($name) . "&amp;type=" . $q->escape($type) . "&amp;date1=" . $q->escape($date1) . "&amp;date2=" . $q->escape($date2) . "&amp;limit=" . $q->escape($limit) . "&amp;offset=" . $q->escape($offset - $limit) . "&amp;desc=" . $q->escape($desc) . "&amp;action=search'>Show previous page</a></li>\n";
+	print $q->end_table() . "\n" if $printbr;
+
+	print_p("(No emails)") unless $count;
+
+	if ( length $limit and $offset >= $limit ) {
+		print $q->br() . "\n" if $printbr;
+		print_ahref("?indexdir=$eindexdir&action=search&subject=" . $q->escape($subject) . "&email=" . $q->escape($email) . "&name=" . $q->escape($name) . "&type=" . $q->escape($type) . "&date1=" . $q->escape($date1) . "&date2=" . $q->escape($date2) . "&limit=" . $q->escape($limit) . "&offset=" . $q->escape($offset - $limit) . "&desc=" . $q->escape($desc), "Show previous page");
 	}
 
-	print "</ul>\n";
-
+	print $q->br() . "\n";
+	print_ahref("?indexdir=$eindexdir", "Show archive $indexdir");
+	print_ahref("?", "Show list of archives");
 	print $q->end_html();
 
 } else {
 
-	print $q->header(-status => 404);
+	error("Unknown value for param action");
 
 }
