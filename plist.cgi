@@ -460,6 +460,17 @@ if ( $action eq "get-bin" ) {
 		print_start_html("Browse");
 		print $q->start_p() . "\n";
 
+		my $order = 0;
+		$order = 1 unless $desc;
+
+		my $treeorder = 0;
+		$treeorder = 1 unless $treedesc;
+
+		$order = $q->a({href => "?indexdir=$eindexdir&action=browse&group=none&date1=" . $q->escape($date1) . "&date2=". $q->escape($date2) . "&limit=" . $q->escape($limit) . "&offset=0&desc=$order&treedesc=" . $q->escape($treedesc)}, $order ? "(thr DESC)" : "(thr ASC)");
+		$treeorder = $q->a({href => "?indexdir=$eindexdir&action=browse&group=none&date1=" . $q->escape($date1) . "&date2=". $q->escape($date2) . "&limit=" . $q->escape($limit) . "&offset=" . $q->escape($offset) . "&desc=" . $q->escape($desc) . "&treedesc=$treeorder"}, $treeorder ? "(msg DESC)" : "(msg ASC)");
+
+		print $q->ul($q->li($q->b("Subject - From - Date $order $treeorder")));
+
 		my %processed;
 		my $neednext;
 		my $count = 0;
@@ -471,7 +482,7 @@ if ( $action eq "get-bin" ) {
 			next if $processed{$rid};
 			if ( $neednext ) {
 				print $q->br() . "\n";
-				print_ahref("?indexdir=$eindexdir&action=browse&group=none&date1=" . $q->escape($date1) . "&date2=". $q->escape($date2) . "&limit=" . $q->escape($limit) . "&offset=" . $q->escape($offset + $iter), "Show next page");
+				print_ahref("?indexdir=$eindexdir&action=browse&group=none&date1=" . $q->escape($date1) . "&date2=". $q->escape($date2) . "&limit=" . $q->escape($limit) . "&offset=" . $q->escape($offset + $iter) . "&desc=" . $q->escape($desc) . "&treedesc=" . $q->escape($treedesc), "Show next page");
 				last;
 			}
 			$processed{$rid} = 1;
