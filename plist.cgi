@@ -84,9 +84,9 @@ if ( not $action ) {
 	# Show info page
 	print_start_html("Archive $indexdir");
 	print $q->start_p() . "\n";
-	print_ahref("?indexdir=$eindexdir&action=browse&limit=100", "Browse email threads");
-	print_ahref("?indexdir=$eindexdir&action=get-roots&limit=100", "Browse roots of email threads");
-	print_ahref("?indexdir=$eindexdir&action=search&limit=100&desc=1", "Show last 100 emails");
+	print_ahref("?indexdir=$eindexdir&action=browse&limit=100", "Browse threads");
+	print_ahref("?indexdir=$eindexdir&action=get-roots&limit=100&desc=1", "Browse roots of threads");
+	print_ahref("?indexdir=$eindexdir&action=search&limit=100&desc=1", "Browse emails");
 	print_ahref("?indexdir=$eindexdir&action=search", "Search emails");
 	print $q->br() . "\n";
 	print_ahref("?", "Show list of archives");
@@ -289,7 +289,7 @@ if ( $action eq "get-bin" ) {
 	$order = 1 unless $desc;
 	$order = $q->a({href => "?indexdir=$eindexdir&action=get-roots&desc=$order&date1=" . $q->escape($date1) . "&date2=" . $q->escape($date2) . "&limit=" . $q->escape($limit) . "&offset=0"}, $order ? "(DESC)" : "(ASC)");
 
-	print_start_html("Roots");
+	print_start_html("Roots of threads");
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "Date $order"])) . "\n";
 
@@ -363,7 +363,7 @@ if ( $action eq "get-bin" ) {
 	my $group = $q->param("group");
 
 	if ( not $group ) {
-		print_start_html("Browse email threads");
+		print_start_html("Browse threads");
 		print $q->start_p() . "\n";
 		print_ahref("?indexdir=$eindexdir&action=browse&group=none&limit=100", "Browse all");
 		print $q->br() . "\n";
@@ -377,7 +377,7 @@ if ( $action eq "get-bin" ) {
 	} elsif ( $group eq "month" ) {
 		my $year = $q->param("year");
 		error("Param year was not specified") unless $year;
-		print_start_html("Browse email threads in year $year");
+		print_start_html("Browse threads in year $year");
 		print $q->start_p() . "\n";
 		my $date1;
 		eval { $date1 = Time::Piece->strptime("$year", "%Y"); } or do { $date1 = undef; };
@@ -408,7 +408,7 @@ if ( $action eq "get-bin" ) {
 		error("Param year was not specified") unless $year;
 		my $month = $q->param("month");
 		error("Param month was not specified") unless $month;
-		print_start_html("Browse emails threads in year $year month $month");
+		print_start_html("Browse threads in year $year month $month");
 		print $q->start_p() . "\n";
 		my $date1;
 		eval { $date1 = Time::Piece->strptime("$year $month", "%Y %m"); } or do { $date1 = undef; };
@@ -457,7 +457,7 @@ if ( $action eq "get-bin" ) {
 		my $roots = $index->db_roots($desc, %args);
 		error("Database error (db_roots)") unless $roots;
 
-		print_start_html("Browse");
+		print_start_html("Browse threads");
 		print $q->start_p() . "\n";
 
 		my $order = 0;
