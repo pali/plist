@@ -99,7 +99,7 @@ if ( not $action ) {
 my $index = new PList::Index($indexdir);
 error("Archive $indexdir does not exist") unless $index;
 
-my $address_template = "<a href='?indexdir=$eindexdir&amp;action=search&amp;name=<TMPL_VAR ESCAPE=URL NAME=NAMEURL>'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='?indexdir=$eindexdir&amp;action=search&amp;email=<TMPL_VAR ESCAPE=URL NAME=EMAILURL>'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
+my $address_template = "<a href='?indexdir=$eindexdir&amp;action=search&amp;limit=100&amp;name=<TMPL_VAR ESCAPE=URL NAME=NAMEURL>'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='?indexdir=$eindexdir&amp;action=search&amp;limit=100&amp;email=<TMPL_VAR ESCAPE=URL NAME=EMAILURL>'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
 
 my $subject_template = "<a href='?indexdir=$eindexdir&amp;action=get-tree&amp;id=<TMPL_VAR ESCAPE=URL NAME=ID>'><TMPL_VAR ESCAPE=HTML NAME=SUBJECT></a>";
 
@@ -162,9 +162,9 @@ sub print_tree($$$$$$) {
 			print_ahref("?indexdir=$eindexdir&action=gen-html&id=$mid", $subject, 1);
 			print " - ";
 			if ( @{$email->{from}} ) {
-				print_ahref("?indexdir=$eindexdir&action=search&name=" . $q->escape(${${$email->{from}}[0]}[1]), ${${$email->{from}}[0]}[1], 1);
+				print_ahref("?indexdir=$eindexdir&action=search&limit=100&name=" . $q->escape(${${$email->{from}}[0]}[1]), ${${$email->{from}}[0]}[1], 1);
 				print " ";
-				print_ahref("?indexdir=$eindexdir&action=search&email=" . $q->escape(${${$email->{from}}[0]}[0]), "<" . ${${$email->{from}}[0]}[0] . ">", 1);
+				print_ahref("?indexdir=$eindexdir&action=search&limit=100&email=" . $q->escape(${${$email->{from}}[0]}[0]), "<" . ${${$email->{from}}[0]}[0] . ">", 1);
 			} else {
 				print "unknown";
 			}
