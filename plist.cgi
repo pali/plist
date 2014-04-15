@@ -107,6 +107,17 @@ my $download_template = "<b><a href='?indexdir=$eindexdir&amp;action=get-part&am
 
 my $imagepreview_template = "<img src='?indexdir=$eindexdir&amp;action=get-part&amp;id=<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>\n";
 
+sub format_date($) {
+
+	my ($date) = @_;
+	$date = gmtime($date) if $date;
+	# TODO: configure format
+	$date = $date->strftime("%F %T %z") if $date;
+	return $date if $date;
+	return "";
+
+}
+
 sub print_tree($$$$$$) {
 
 	my ($index, $id, $desc, $limitup, $limitdown, $processed) = @_;
@@ -144,13 +155,9 @@ sub print_tree($$$$$$) {
 
 		my $mid = $q->escape($email->{messageid});
 		my $subject = $email->{subject};
-		my $date;
+		my $date = $q->escapeHTML(format_date($email->{date}));
 
 		$count++;
-
-		if ( $email->{date} ) {
-			$date = $q->escapeHTML(scalar gmtime($email->{date})); # TODO: format date
-		}
 
 		print $q->start_li();
 
@@ -229,7 +236,7 @@ if ( $action eq "get-bin" ) {
 	my $mimetype = $pemail->part($part)->{mimetype};
 	my $filename = $pemail->part($part)->{filename};
 	$date = gmtime($date) if $date;
-	$date = $date->strftime("%a, %d %b %Y %H:%M:%S GMT") if $date;
+	$date = $date->strftime("%a, %d %b %Y %T GMT") if $date;
 	$mimetype = "application/octet-stream" unless $mimetype;
 	$filename = "File-$part.bin" unless $filename;
 	$q->charset("") unless $mimetype =~ /^text\//;
@@ -307,9 +314,8 @@ if ( $action eq "get-bin" ) {
 		}
 		my $id = $q->escape($_->{messageid});
 		my $subject = $_->{subject};
-		my $date = $_->{date};
+		my $date = $q->escapeHTML(format_date($_->{date}));
 		$subject = "unknown" unless $subject;
-		$date = $q->escapeHTML(scalar gmtime($date)) if $date; # TODO: format date
 		print $q->start_Tr();
 		print $q->start_td();
 		print_ahref("?indexdir=$eindexdir&action=get-tree&id=$id", $subject, 1);
@@ -587,10 +593,9 @@ if ( $action eq "get-bin" ) {
 			last;
 		}
 		my $id = $q->escape($_->{messageid});
-		my $date = $_->{date};
+		my $date = $q->escapeHTML(format_date($_->{date}));
 		my $subject = $_->{subject};
 		$subject = "unknown" unless $subject;
-		$date = $q->escapeHTML(scalar gmtime($date)) if $date; # TODO: format date
 		print $q->start_Tr();
 		print $q->start_td();
 		print_ahref("?indexdir=$eindexdir&action=gen-html&id=$id", $subject, 1);
