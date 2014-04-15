@@ -176,9 +176,9 @@ if ( not $action ) {
 	# Show info page
 	print_start_html("Archive $indexdir");
 	print $q->start_p() . "\n";
-	print_ahref(gen_url(action => "browse", limit => 100), "Browse threads");
-	print_ahref(gen_url(action => "get-roots", limit => 100, desc => 1), "Browse roots of threads");
-	print_ahref(gen_url(action => "search", limit => 100, desc => 1), "Browse emails");
+	print_ahref(gen_url(action => "browse"), "Browse threads");
+	print_ahref(gen_url(action => "get-roots", desc => 1), "Browse roots of threads");
+	print_ahref(gen_url(action => "search", desc => 1), "Browse emails");
 	print_ahref(gen_url(action => "search"), "Search emails");
 	print $q->br() . "\n";
 	print_ahref(gen_url(indexdir => ""), "Show list of archives");
@@ -188,7 +188,7 @@ if ( not $action ) {
 
 }
 
-my $address_template = "<a href='" . gen_url(action => "search", limit => 100, -name => "<TMPL_VAR ESCAPE=URL NAME=NAMEURL>") . "'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='" . gen_url(action => "search", limit => 100, -email => "<TMPL_VAR ESCAPE=URL NAME=EMAILURL>") . "'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
+my $address_template = "<a href='" . gen_url(action => "search", -name => "<TMPL_VAR ESCAPE=URL NAME=NAMEURL>") . "'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='" . gen_url(action => "search", -email => "<TMPL_VAR ESCAPE=URL NAME=EMAILURL>") . "'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
 
 my $subject_template = "<a href='" . gen_url(action => "tree", -id => "<TMPL_VAR ESCAPE=URL NAME=ID>") . "'><TMPL_VAR ESCAPE=HTML NAME=SUBJECT></a>";
 
@@ -263,9 +263,9 @@ sub print_tree($$$$$$) {
 		print $q->start_td();
 		if ( @{$email->{from}} ) {
 			# TODO: Fix this code, add needed checks
-			print_ahref(gen_url(action => "search", limit => 100, name => ${${$email->{from}}[0]}[1]), ${${$email->{from}}[0]}[1], 1);
+			print_ahref(gen_url(action => "search", name => ${${$email->{from}}[0]}[1]), ${${$email->{from}}[0]}[1], 1);
 			print " ";
-			print_ahref(gen_url(action => "search", limit => 100, email => ${${$email->{from}}[0]}[0]), "<" . ${${$email->{from}}[0]}[0] . ">", 1);
+			print_ahref(gen_url(action => "search", email => ${${$email->{from}}[0]}[0]), "<" . ${${$email->{from}}[0]}[0] . ">", 1);
 		} else {
 			print "unknown";
 		}
@@ -358,8 +358,10 @@ if ( $action eq "get-bin" ) {
 	$desc = 0 unless defined $desc and length $desc;
 	$date1 = "" unless defined $date1;
 	$date2 = "" unless defined $date2;
-	$limit = "" unless defined $limit;
+	$limit = 100 unless defined $limit and length $limit;
 	$offset = 0 unless defined $offset and length $offset;
+
+	$limit = "" if $limit == -1;
 
 	my %args;
 	$args{date1} = $date1 if length $date1;
@@ -449,7 +451,7 @@ if ( $action eq "get-bin" ) {
 	if ( not $group ) {
 		print_start_html("Browse threads");
 		print $q->start_p() . "\n";
-		print_ahref(gen_url(action => "browse", group => "none", limit => 100), "Browse all");
+		print_ahref(gen_url(action => "browse", group => "none"), "Browse all");
 		print $q->br() . "\n";
 		print $q->b("Browse year:") . $q->br() . "\n";
 		my $years = $index->db_date("%Y");
@@ -468,7 +470,7 @@ if ( $action eq "get-bin" ) {
 		if ( $date1 ) {
 			my $date2 = $date1->add_years(1)->epoch();
 			$date1 = $date1->epoch();
-			print_ahref(gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2, limit => 100), "Browse all in year $year");
+			print_ahref(gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2), "Browse all in year $year");
 			print $q->br() . "\n";
 		}
 		print $q->b("Browse month:") . $q->br() . "\n";
@@ -499,7 +501,7 @@ if ( $action eq "get-bin" ) {
 		if ( $date1 ) {
 			my $date2 = $date1->add_months(1)->epoch();
 			$date1 = $date1->epoch();
-			print_ahref(gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2, limit => 100), "Browse all in year $year month $month");
+			print_ahref(gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2), "Browse all in year $year month $month");
 			print $q->br() . "\n";
 		}
 		print $q->b("Browse days:") . $q->br() . "\n";
@@ -512,7 +514,7 @@ if ( $action eq "get-bin" ) {
 				next unless $date1;
 				my $date2 = ($date1 + 24*60*60)->epoch();
 				$date1 = $date1->epoch();
-				print_ahref(gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2, limit => 100), $day);
+				print_ahref(gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2), $day);
 			}
 		} else {
 			print "(No days)" . $q->br() . "\n";
@@ -527,10 +529,12 @@ if ( $action eq "get-bin" ) {
 
 		$date1 = "" unless defined $date1;
 		$date2 = "" unless defined $date2;
-		$limit = "" unless defined $limit;
+		$limit = 100 unless defined $limit and length $limit;
 		$offset = 0 unless defined $offset and length $offset;
 		$desc = 0 unless defined $desc and length $desc;
 		$treedesc = 0 unless defined $treedesc and length $treedesc;
+
+		$limit = "" if $limit == -1;
 
 		my %args;
 		$args{date1} = $date1 if length $date1;
@@ -613,9 +617,11 @@ if ( $action eq "get-bin" ) {
 	$type = "" unless defined $type;
 	$date1 = "" unless defined $date1;
 	$date2 = "" unless defined $date2;
-	$limit = "" unless defined $limit;
+	$limit = 100 unless defined $limit and length $limit;
 	$offset = 0 unless defined $offset and length $offset;
 	$desc = 0 unless defined $desc and length $desc;
+
+	$limit = "" if $limit == -1;
 
 	my %args;
 	$args{subject} = $subject if length $subject;
@@ -624,9 +630,6 @@ if ( $action eq "get-bin" ) {
 	$args{type} = $type if length $type;
 	$args{date1} = $date1 if length $date1;
 	$args{date2} = $date2 if length $date2;
-	$args{limit} = $limit+1 if length $limit;
-	$args{offset} = $offset if $offset;
-	$args{desc} = $desc if $desc;
 
 	if ( not $submit and not keys %args ) {
 		# Show search form
@@ -638,7 +641,7 @@ if ( $action eq "get-bin" ) {
 		print $q->Tr($q->td(["Name:", $q->textfield(-name => "name")])) . "\n";
 		print $q->Tr($q->td(["Email address:", $q->textfield(-name => "email")])) . "\n";
 		# TODO: Add date1 and date2
-		print $q->Tr($q->td(["Limit results:", $q->popup_menu("limit", ["10", "20", "50", "100", "200", ""], "100", {"" => "(unlimited)"})])) . "\n";
+		print $q->Tr($q->td(["Limit results:", $q->popup_menu("limit", ["10", "20", "50", "100", "200", "-1"], "100", {"-1" => "(unlimited)"})])) . "\n";
 		print $q->Tr($q->td(["Sort order:", $q->popup_menu("desc", ["0", "1"], "0", {"0" => "ascending", "1" => "descending"})])) . "\n";
 		print $q->Tr($q->td($q->submit(-name => "submit", -value => "Search"))) . "\n";
 		print $q->end_table() . "\n";
@@ -651,6 +654,9 @@ if ( $action eq "get-bin" ) {
 		exit;
 	}
 
+	$args{limit} = $limit+1 if length $limit;
+	$args{offset} = $offset if $offset;
+	$args{desc} = $desc if $desc;
 	$args{implicit} = 0;
 
 	my $ret = $index->db_emails(%args);
