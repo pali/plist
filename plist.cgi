@@ -134,6 +134,8 @@ $action = "" unless $action and $indexdir;
 $id = "" unless $id and $action;
 $path = "" unless $path and $id;
 
+chop($path) if $path =~ /\/$/;
+
 if ( not $indexdir ) {
 
 	# List all directories in current directory
@@ -190,9 +192,9 @@ my $address_template = "<a href='" . gen_url(action => "search", limit => 100, -
 
 my $subject_template = "<a href='" . gen_url(action => "tree", -id => "<TMPL_VAR ESCAPE=URL NAME=ID>") . "'><TMPL_VAR ESCAPE=HTML NAME=SUBJECT></a>";
 
-my $download_template = "<b><a href='" . gen_url(action => "download", -id => "<TMPL_VAR ESCAPE=URL NAME=ID>", -part => "<TMPL_VAR ESCAPE=URL NAME=PART>") . "'>Download</a></b>\n";
+my $download_template = "<b><a href='" . gen_url(action => "download", -id => "<TMPL_VAR ESCAPE=URL NAME=ID>", -path => "<TMPL_VAR NAME=PART>") . "'>Download</a></b>\n";
 
-my $imagepreview_template = "<img src='" . gen_url(action => "download", -id => "<TMPL_VAR ESCAPE=URL NAME=ID>", -part => "<TMPL_VAR ESCAPE=URL NAME=PART>") . "'>\n";
+my $imagepreview_template = "<img src='" . gen_url(action => "download", -id => "<TMPL_VAR ESCAPE=URL NAME=ID>", -path => "<TMPL_VAR NAME=PART>") . "'>\n";
 
 sub format_date($) {
 
@@ -297,8 +299,9 @@ if ( $action eq "get-bin" ) {
 } elsif ( $action eq "download" ) {
 
 	error("Param id was not specified") unless $id;
-	my $part = $q->param("part");
-	error("Param part was not specified") unless $id;
+	error("Param path was not specified") unless $path;
+
+	my $part = $q->unescape($path);
 	my $pemail = $index->email($id);
 	error("Email with $id does not exist in archive $indexdir") unless $pemail;
 	error("Part $part of email with $id does not exist in archive $indexdir") unless $pemail->part($part);
