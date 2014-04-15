@@ -131,11 +131,8 @@ sub print_tree($$$$$$) {
 	my $root = ${$tree->{root}}[0];
 	delete $tree->{root};
 
-	print $q->start_ul({class => "tree"}) . "\n";
-
 	$processed->{$root} = 1;
 	my @stack = ([$root, 0]);
-	my $prevlen = 0;
 
 	while ( @stack ) {
 
@@ -143,10 +140,13 @@ sub print_tree($$$$$$) {
 		my ($tid, $len) = @{$m};
 		my $down = $tree->{$tid};
 
-		while ( $prevlen > $len ) {
-			print $q->end_ul() . "\n";
-			print $q->end_li() . "\n";
-			--$prevlen;
+		if ( $down ) {
+			foreach ( @{$down} ) {
+				if ( not $processed->{$_} ) {
+					$processed->{$_} = 1;
+					push(@stack, [$_, $len+1]);
+				}
+			}
 		}
 
 		my $email = $index->db_email($tid, 1);
@@ -159,54 +159,40 @@ sub print_tree($$$$$$) {
 
 		$count++;
 
-		print $q->start_li();
+		print $q->start_Tr();
 
-		if ( not $subject and not @{$email->{from}} and not $date ) {
-			print "unknown";
-		} else {
-			$subject = "unknown" unless $subject;
-			$date = "unknown" unless $date;
+		print $q->start_td();
+		for (my $i = 0; $i < $len; ++$i) { print "&emsp;" }
+		print "&bull;&nbsp;";
+		if ( $subject ) {
 			print_ahref("?indexdir=$eindexdir&action=gen-html&id=$mid", $subject, 1);
-			print " - ";
-			if ( @{$email->{from}} ) {
-				print_ahref("?indexdir=$eindexdir&action=search&limit=100&name=" . $q->escape(${${$email->{from}}[0]}[1]), ${${$email->{from}}[0]}[1], 1);
-				print " ";
-				print_ahref("?indexdir=$eindexdir&action=search&limit=100&email=" . $q->escape(${${$email->{from}}[0]}[0]), "<" . ${${$email->{from}}[0]}[0] . ">", 1);
-			} else {
-				print "unknown";
-			}
-			print " - $date";
-		}
-
-		my $count = 0;
-
-		if ( $down ) {
-			foreach ( @{$down} ) {
-				if ( not $processed->{$_} ) {
-					++$count;
-					$processed->{$_} = 1;
-					push(@stack, [$_, $len+1]);
-				}
-			}
-		}
-
-		if ( $count ) {
-			print "\n" . $q->start_ul() . "\n";
 		} else {
-			print $q->end_li() . "\n";
+			print "unknown";
 		}
+		print $q->end_td();
 
-		$prevlen = $len;
+		print $q->start_td();
+		if ( @{$email->{from}} ) {
+			# TODO: Fix this code, add needed checks
+			print_ahref("?indexdir=$eindexdir&action=search&limit=100&name=" . $q->escape(${${$email->{from}}[0]}[1]), ${${$email->{from}}[0]}[1], 1);
+			print " ";
+			print_ahref("?indexdir=$eindexdir&action=search&limit=100&email=" . $q->escape(${${$email->{from}}[0]}[0]), "<" . ${${$email->{from}}[0]}[0] . ">", 1);
+		} else {
+			print "unknown";
+		}
+		print $q->end_td();
+
+		print $q->start_td();
+		if ( $date ) {
+			print $date;
+		} else {
+			print "unknown";
+		}
+		print $q->end_td();
+
+		print $q->end_Tr() . "\n";
 
 	}
-
-	while ( $prevlen ) {
-		print $q->end_ul() . "\n";
-		print $q->end_li() . "\n";
-		--$prevlen;
-	}
-
-	print $q->end_ul();
 
 	return $count;
 
@@ -259,9 +245,14 @@ if ( $action eq "get-bin" ) {
 	my $order = 0;
 	$order = 1 unless $desc;
 	$order = $q->a({href => "?indexdir=$eindexdir&action=get-tree&id=" . $q->escape($id) . "&desc=$order"}, $order ? "(DESC)" : "(ASC)");
-	print $q->ul($q->li($q->b("Subject - From - Date $order")));
+
+	print $q->start_table(-style => "white-space:nowrap") . "\n";
+	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order"])) . "\n";
 
 	my $count = print_tree($index, $email->{id}, $desc, undef, undef, {});
+
+	print $q->end_table() . "\n";
+
 	print_p("(No emails)") unless $count;
 
 	print $q->br() . "\n";
@@ -475,10 +466,12 @@ if ( $action eq "get-bin" ) {
 		$order = $q->a({href => "?indexdir=$eindexdir&action=browse&group=none&date1=" . $q->escape($date1) . "&date2=". $q->escape($date2) . "&limit=" . $q->escape($limit) . "&offset=0&desc=$order&treedesc=" . $q->escape($treedesc)}, $order ? "(thr DESC)" : "(thr ASC)");
 		$treeorder = $q->a({href => "?indexdir=$eindexdir&action=browse&group=none&date1=" . $q->escape($date1) . "&date2=". $q->escape($date2) . "&limit=" . $q->escape($limit) . "&offset=" . $q->escape($offset) . "&desc=" . $q->escape($desc) . "&treedesc=$treeorder"}, $treeorder ? "(msg DESC)" : "(msg ASC)");
 
-		print $q->ul($q->li($q->b("Subject - From - Date $order $treeorder")));
+		print $q->start_table(-style => "white-space:nowrap") . "\n";
+		print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order $treeorder"])) . "\n";
 
 		my %processed;
 		my $neednext;
+		my $printbr = 1;
 		my $count = 0;
 		my $iter = -1;
 
@@ -487,6 +480,8 @@ if ( $action eq "get-bin" ) {
 			my $rid = $_->{id};
 			next if $processed{$rid};
 			if ( $neednext ) {
+				$printbr = 0;
+				print $q->end_table();
 				print $q->br() . "\n";
 				print_ahref("?indexdir=$eindexdir&action=browse&group=none&date1=" . $q->escape($date1) . "&date2=". $q->escape($date2) . "&limit=" . $q->escape($limit) . "&offset=" . $q->escape($offset + $iter) . "&desc=" . $q->escape($desc) . "&treedesc=" . $q->escape($treedesc), "Show next page");
 				last;
@@ -499,6 +494,9 @@ if ( $action eq "get-bin" ) {
 				$neednext = 1;
 			}
 		}
+
+		print $q->end_table() if $printbr;
+
 	} else {
 		error("Unknown value for param group");
 	}
