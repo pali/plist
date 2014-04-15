@@ -163,9 +163,9 @@ sub print_tree($$$$$$) {
 
 		#TODO: db_email can fail
 
-		my $mid = $q->escape($email->{messageid});
+		my $mid = $email->{messageid};
 		my $subject = $email->{subject};
-		my $date = $q->escapeHTML(format_date($email->{date}));
+		my $date = format_date($email->{date});
 
 		$count++;
 
@@ -194,7 +194,7 @@ sub print_tree($$$$$$) {
 
 		print $q->start_td();
 		if ( $date ) {
-			print $date;
+			print $q->escapeHTML($date);
 		} else {
 			print "unknown";
 		}
@@ -313,16 +313,17 @@ if ( $action eq "get-bin" ) {
 			print_ahref(gen_url("get-roots", desc => $desc, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit)), "Show next page");
 			last;
 		}
-		my $id = $q->escape($_->{messageid});
+		my $id = $_->{messageid};
 		my $subject = $_->{subject};
-		my $date = $q->escapeHTML(format_date($_->{date}));
+		my $date = format_date($_->{date});
 		$subject = "unknown" unless $subject;
+		$date = "unknown" unless $date;
 		print $q->start_Tr();
 		print $q->start_td();
 		print_ahref(gen_url("get-tree", id => $id), $subject, 1);
 		print $q->end_td();
 		print $q->start_td({style => "white-space:nowrap"});
-		print $date;
+		print $q->escapeHTML($date);
 		print $q->end_td();
 		print $q->end_Tr();
 		print "\n";
@@ -597,19 +598,20 @@ if ( $action eq "get-bin" ) {
 			$printbr = 0;
 			print $q->end_table() . "\n";
 			print $q->br() . "\n";
-			print_ahref(gen_html("search", subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc), "Show next page");
+			print_ahref(gen_url("search", subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc), "Show next page");
 			last;
 		}
-		my $id = $q->escape($_->{messageid});
-		my $date = $q->escapeHTML(format_date($_->{date}));
+		my $id = $_->{messageid};
+		my $date = format_date($_->{date});
 		my $subject = $_->{subject};
 		$subject = "unknown" unless $subject;
+		$date = "unknown" unless $date;
 		print $q->start_Tr();
 		print $q->start_td();
-		print_ahref(gen_html("gen-html", id => $id), $subject, 1);
+		print_ahref(gen_url("gen-html", id => $id), $subject, 1);
 		print $q->end_td();
 		print $q->start_td({style => "white-space:nowrap"});
-		print $date;
+		print $q->escapeHTML($date);
 		print $q->end_td();
 		print $q->end_Tr();
 		print "\n";
