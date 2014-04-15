@@ -75,6 +75,9 @@ if ( not $indexdir ) {
 
 }
 
+my $index = new PList::Index($indexdir);
+error("Archive $indexdir does not exist") unless $index;
+
 my $eindexdir = $q->escape($indexdir);
 
 my $action = $q->param("action");
@@ -95,9 +98,6 @@ if ( not $action ) {
 	exit;
 
 }
-
-my $index = new PList::Index($indexdir);
-error("Archive $indexdir does not exist") unless $index;
 
 my $address_template = "<a href='?indexdir=$eindexdir&amp;action=search&amp;limit=100&amp;name=<TMPL_VAR ESCAPE=URL NAME=NAMEURL>'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='?indexdir=$eindexdir&amp;action=search&amp;limit=100&amp;email=<TMPL_VAR ESCAPE=URL NAME=EMAILURL>'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
 
