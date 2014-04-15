@@ -16,6 +16,7 @@ my $q;
 my $script;
 my $indexdir;
 my $action;
+my $path;
 
 sub print_start_html($;$@) {
 	my ($title, $noh2, @header) = @_;
@@ -45,8 +46,9 @@ sub error($) {
 
 sub gen_url {
 	my $action = shift;
-	my $url = $script . "?indexdir=" . $q->escape($indexdir) . "&action=" . $q->escape($action);
-	$url .= "&" . $q->escape(shift) . "=" . $q->escape(shift) while @_;
+	my $url = $script . "/" . $q->escape($indexdir) . "/" . $q->escape($action) . "?";
+	$url .= $q->escape(shift) . "=" . $q->escape(shift) . "&" while @_;
+	chop($url);
 	return $url;
 }
 
@@ -54,8 +56,7 @@ $q = new CGI;
 $q->charset("utf-8");
 
 $script = $q->url(-absolute => 1);
-$indexdir = $q->param("indexdir");
-$action = $q->param("action");
+($_, $indexdir, $action, $path) = split("/", $q->path_info(), 4);
 
 if ( not $indexdir ) {
 
