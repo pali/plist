@@ -71,12 +71,12 @@ if ( not $indexdir ) {
 
 	my $count = 0;
 
-	while ( defined (my $name = readdir($dh)) ) {
-		next if $name =~ /^\./;
-		next unless -d $name;
-		next unless -f "$name/config";
+	while ( defined ($indexdir = readdir($dh)) ) {
+		next if $indexdir =~ /^\./;
+		next unless -d $indexdir;
+		next unless -f "$indexdir/config";
 		++$count;
-		print_ahref("?indexdir=" . $q->escape($name), $name);
+		print_ahref(gen_url(""), $indexdir);
 	}
 	closedir($dh);
 
@@ -555,9 +555,7 @@ if ( $action eq "get-bin" ) {
 	if ( not $submit and not keys %args ) {
 		# Show search form
 		print_start_html("Search");
-		print $q->start_form(-method => "GET", -action => "?", -accept_charset => "utf-8");
-		print $q->hidden(-name => "indexdir", -default => $indexdir) . "\n";
-		print $q->hidden(-name => "action", -default => "search") . "\n";
+		print $q->start_form(-method => "GET", -action => gen_url("search"), -accept_charset => "utf-8");
 		print $q->start_table() . "\n";
 		print $q->Tr($q->td(["Subject:", $q->textfield(-name => "subject")])) . "\n";
 		print $q->Tr($q->td(["Header type:", $q->popup_menu("type", ["", "from", "to", "cc"], "", {"" => "(any)"})])) . "\n";
