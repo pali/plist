@@ -175,7 +175,7 @@ sub print_tree($$$$$$) {
 		for (my $i = 0; $i < $len; ++$i) { print "&emsp;" }
 		print "&bull;&nbsp;";
 		if ( $subject ) {
-			print_ahref(gen_url("gen-html", id => $mid), $subject, 1);
+			print_ahref(gen_url("view", id => $mid), $subject, 1);
 		} else {
 			print "unknown";
 		}
@@ -347,7 +347,7 @@ if ( $action eq "get-bin" ) {
 	print_ahref("?", "Show list of archives");
 	print $q->end_html();
 
-} elsif ( $action eq "gen-html" ) {
+} elsif ( $action eq "view" ) {
 
 	my $id = $q->param("id");
 	error("Param id was not specified") unless $id;
@@ -608,7 +608,7 @@ if ( $action eq "get-bin" ) {
 		$date = "unknown" unless $date;
 		print $q->start_Tr();
 		print $q->start_td();
-		print_ahref(gen_url("gen-html", id => $id), $subject, 1);
+		print_ahref(gen_url("view", id => $id), $subject, 1);
 		print $q->end_td();
 		print $q->start_td({style => "white-space:nowrap"});
 		print $q->escapeHTML($date);
