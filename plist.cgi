@@ -111,7 +111,7 @@ if ( not $action ) {
 
 my $address_template = "<a href='" . gen_url("search", limit => 100, name => "") . "<TMPL_VAR ESCAPE=URL NAME=NAMEURL>'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='" . gen_url("search", limit => 100, email => "") . "<TMPL_VAR ESCAPE=URL NAME=EMAILURL>'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
 
-my $subject_template = "<a href='" . gen_url("get-tree", id => "") . "<TMPL_VAR ESCAPE=URL NAME=ID>'><TMPL_VAR ESCAPE=HTML NAME=SUBJECT></a>";
+my $subject_template = "<a href='" . gen_url("tree", id => "") . "<TMPL_VAR ESCAPE=URL NAME=ID>'><TMPL_VAR ESCAPE=HTML NAME=SUBJECT></a>";
 
 my $download_template = "<b><a href='" . gen_url("get-part", id => "") . "<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>Download</a></b>\n";
 
@@ -240,7 +240,7 @@ if ( $action eq "get-bin" ) {
 	binmode(\*STDOUT, ":raw");
 	$pemail->data($part, \*STDOUT);
 
-} elsif ( $action eq "get-tree" ) {
+} elsif ( $action eq "tree" ) {
 
 	my $id = $q->param("id");
 	my $desc = $q->param("desc");
@@ -254,7 +254,7 @@ if ( $action eq "get-bin" ) {
 
 	my $order = 0;
 	$order = 1 unless $desc;
-	$order = $q->a({href => gen_url("get-tree", id => $id, desc => $order)}, $order ? "(DESC)" : "(ASC)");
+	$order = $q->a({href => gen_url("tree", id => $id, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order"])) . "\n";
@@ -320,7 +320,7 @@ if ( $action eq "get-bin" ) {
 		$date = "unknown" unless $date;
 		print $q->start_Tr();
 		print $q->start_td();
-		print_ahref(gen_url("get-tree", id => $id), $subject, 1);
+		print_ahref(gen_url("tree", id => $id), $subject, 1);
 		print $q->end_td();
 		print $q->start_td({style => "white-space:nowrap"});
 		print $q->escapeHTML($date);
