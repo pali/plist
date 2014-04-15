@@ -16,6 +16,7 @@ my $q;
 my $script;
 my $indexdir;
 my $action;
+my $id;
 my $path;
 
 sub print_start_html($;$@) {
@@ -45,18 +46,93 @@ sub error($) {
 }
 
 sub gen_url {
-	my $action = shift;
-	my $url = $script . "/" . $q->escape($indexdir) . "/" . $q->escape($action) . "?";
-	$url .= $q->escape(shift) . "=" . $q->escape(shift) . "&" while @_;
-	chop($url);
-	return $url;
+	my $oldindexdir = $q->escape($indexdir);
+	my $oldaction = $q->escape($action);
+	my $oldid = $q->escape($id);
+	my $oldpath = $q->escape($path);
+	my $newindexdir = $oldindexdir;
+	my $newaction = $oldaction;
+	my $newid = "";
+	my $newpath = "";
+	my $args = "?";
+	while ( @_ ) {
+		my $key = shift;
+		my $value = shift;
+		if ( $key eq "indexdir" ) {
+			$newindexdir = $q->escape($value);
+		} elsif ( $key eq "-indexdir" ) {
+			$newindexdir = $value;
+		} elsif ( $key eq "action" ) {
+			$newaction = $q->escape($value);
+		} elsif ( $key eq "-action" ) {
+			$newaction = $value;
+		} elsif ( $key eq "id" ) {
+			$newid = $q->escape($value);
+		} elsif ( $key eq "-id" ) {
+			$newid = $value;
+		} elsif ( $key eq "path" ) {
+			$newpath = $q->escape($value);
+		} elsif ( $key eq "-path" ) {
+			$newpath = $value;
+		} elsif ( $key =~ /^-(.*)$/ ) {
+			$args .= $1 . "=" . $value . "&";
+		} else {
+			$args .= $q->escape($key) . "=" . $q->escape($value) . "&";
+		}
+	}
+	chop($args);
+	$newindexdir = "" unless $newindexdir;
+	$newaction = "" unless $newaction and $newindexdir;
+	$newid = "" unless $newid and $newaction;
+	$newpath = "" unless $newpath and $newid;
+	if ( $newindexdir eq $oldindexdir and $newaction eq $oldaction and $newid eq $oldid and $newpath eq $oldpath ) {
+		return "?" unless length($args);
+		return $args;
+	} else {
+		$args = "/" . $args;
+	}
+	if ( $newindexdir eq $oldindexdir and $newaction eq $oldaction and $newid eq $oldid and length($newpath) and not length($oldpath) ) {
+		return $newpath . $args if length($args);
+		return $newpath;
+	} elsif ( $newindexdir eq $oldindexdir and $newaction eq $oldaction and length($newid) and not length($oldid) ) {
+		my $url = $newid;
+		$url .= "/" . $newpath if length($newpath);
+		$url .= $args if length($args);
+		return $url;
+	} elsif ( $newindexdir eq $oldindexdir and length($newaction) and not length($oldaction) ) {
+		my $url = $newaction;
+		$url .= "/" . $newid if length($newid);
+		$url .= "/" . $newpath if length($newpath);
+		$url .= $args if length($args);
+		return $url;
+	} elsif ( length($newindexdir) and not length($oldindexdir) ) {
+		my $url = $newindexdir;
+		$url .= "/" . $newaction if length($newaction);
+		$url .= "/" . $newid if length($newid);
+		$url .= "/" . $newpath if length($newpath);
+		$url .= $args if length($args);
+		return $url;
+	} else {
+		my $url = $script;
+		$url .= "/" . $newindexdir if length($newindexdir);
+		$url .= "/" . $newaction if length($newaction);
+		$url .= "/" . $newid if length($newid);
+		$url .= "/" . $newpath if length($newpath);
+		$url .= $args if length($args);
+		return $url;
+	}
 }
 
 $q = new CGI;
 $q->charset("utf-8");
 
 $script = $q->url(-absolute => 1);
-($_, $indexdir, $action, $path) = split("/", $q->path_info(), 4);
+($_, $indexdir, $action, $id, $path) = split("/", $q->path_info(), 5);
+
+$indexdir = "" unless $indexdir;
+$action = "" unless $action and $indexdir;
+$id = "" unless $id and $action;
+$path = "" unless $path and $id;
 
 if ( not $indexdir ) {
 
@@ -72,12 +148,12 @@ if ( not $indexdir ) {
 
 	my $count = 0;
 
-	while ( defined ($indexdir = readdir($dh)) ) {
-		next if $indexdir =~ /^\./;
-		next unless -d $indexdir;
-		next unless -f "$indexdir/config";
+	while ( defined (my $name = readdir($dh)) ) {
+		next if $name =~ /^\./;
+		next unless -d $name;
+		next unless -f "$name/config";
 		++$count;
-		print_ahref(gen_url(""), $indexdir);
+		print_ahref(gen_url(indexdir => $name), $name);
 	}
 	closedir($dh);
 
@@ -98,25 +174,25 @@ if ( not $action ) {
 	# Show info page
 	print_start_html("Archive $indexdir");
 	print $q->start_p() . "\n";
-	print_ahref(gen_url("browse", limit => 100), "Browse threads");
-	print_ahref(gen_url("get-roots", limit => 100, desc => 1), "Browse roots of threads");
-	print_ahref(gen_url("search", limit => 100, desc => 1), "Browse emails");
-	print_ahref(gen_url("search"), "Search emails");
+	print_ahref(gen_url(action => "browse", limit => 100), "Browse threads");
+	print_ahref(gen_url(action => "get-roots", limit => 100, desc => 1), "Browse roots of threads");
+	print_ahref(gen_url(action => "search", limit => 100, desc => 1), "Browse emails");
+	print_ahref(gen_url(action => "search"), "Search emails");
 	print $q->br() . "\n";
-	print_ahref("?", "Show list of archives");
+	print_ahref(gen_url(indexdir => ""), "Show list of archives");
 	print $q->end_p();
 	print $q->end_html();
 	exit;
 
 }
 
-my $address_template = "<a href='" . gen_url("search", limit => 100, name => "") . "<TMPL_VAR ESCAPE=URL NAME=NAMEURL>'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='" . gen_url("search", limit => 100, email => "") . "<TMPL_VAR ESCAPE=URL NAME=EMAILURL>'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
+my $address_template = "<a href='" . gen_url(action => "search", limit => 100, -name => "<TMPL_VAR ESCAPE=URL NAME=NAMEURL>") . "'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='" . gen_url(action => "search", limit => 100, -email => "<TMPL_VAR ESCAPE=URL NAME=EMAILURL>") . "'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
 
-my $subject_template = "<a href='" . gen_url("tree", id => "") . "<TMPL_VAR ESCAPE=URL NAME=ID>'><TMPL_VAR ESCAPE=HTML NAME=SUBJECT></a>";
+my $subject_template = "<a href='" . gen_url(action => "tree", -id => "<TMPL_VAR ESCAPE=URL NAME=ID>") . "'><TMPL_VAR ESCAPE=HTML NAME=SUBJECT></a>";
 
-my $download_template = "<b><a href='" . gen_url("download", id => "") . "<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>Download</a></b>\n";
+my $download_template = "<b><a href='" . gen_url(action => "download", -id => "<TMPL_VAR ESCAPE=URL NAME=ID>", -part => "<TMPL_VAR ESCAPE=URL NAME=PART>") . "'>Download</a></b>\n";
 
-my $imagepreview_template = "<img src='" . gen_url("download", id => "") . "<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>\n";
+my $imagepreview_template = "<img src='" . gen_url(action => "download", -id => "<TMPL_VAR ESCAPE=URL NAME=ID>", -part => "<TMPL_VAR ESCAPE=URL NAME=PART>") . "'>\n";
 
 sub format_date($) {
 
@@ -131,11 +207,11 @@ sub format_date($) {
 
 sub print_tree($$$$$$) {
 
-	my ($index, $id, $desc, $limitup, $limitdown, $processed) = @_;
+	my ($index, $mid, $desc, $limitup, $limitdown, $processed) = @_;
 
 	my $count = 0;
 
-	my $tree = $index->db_tree($id, $desc, 1, $limitup, $limitdown);
+	my $tree = $index->db_tree($mid, $desc, 1, $limitup, $limitdown);
 	if ( not $tree ) {
 		return 0;
 	}
@@ -176,7 +252,7 @@ sub print_tree($$$$$$) {
 		for (my $i = 0; $i < $len; ++$i) { print "&emsp;" }
 		print "&bull;&nbsp;";
 		if ( $subject ) {
-			print_ahref(gen_url("view", id => $mid), $subject, 1);
+			print_ahref(gen_url(action => "view", id => $mid), $subject, 1);
 		} else {
 			print "unknown";
 		}
@@ -185,9 +261,9 @@ sub print_tree($$$$$$) {
 		print $q->start_td();
 		if ( @{$email->{from}} ) {
 			# TODO: Fix this code, add needed checks
-			print_ahref(gen_url("search", limit => 100, name => ${${$email->{from}}[0]}[1]), ${${$email->{from}}[0]}[1], 1);
+			print_ahref(gen_url(action => "search", limit => 100, name => ${${$email->{from}}[0]}[1]), ${${$email->{from}}[0]}[1], 1);
 			print " ";
-			print_ahref(gen_url("search", limit => 100, email => ${${$email->{from}}[0]}[0]), "<" . ${${$email->{from}}[0]}[0] . ">", 1);
+			print_ahref(gen_url(action => "search", limit => 100, email => ${${$email->{from}}[0]}[0]), "<" . ${${$email->{from}}[0]}[0] . ">", 1);
 		} else {
 			print "unknown";
 		}
@@ -211,7 +287,6 @@ sub print_tree($$$$$$) {
 
 if ( $action eq "get-bin" ) {
 
-	my $id = $q->param("id");
 	error("Param id was not specified") unless $id;
 	my $pemail = $index->email($id);
 	error("Email with $id does not exist in archive $indexdir") unless $pemail;
@@ -221,7 +296,6 @@ if ( $action eq "get-bin" ) {
 
 } elsif ( $action eq "download" ) {
 
-	my $id = $q->param("id");
 	error("Param id was not specified") unless $id;
 	my $part = $q->param("part");
 	error("Param part was not specified") unless $id;
@@ -243,7 +317,6 @@ if ( $action eq "get-bin" ) {
 
 } elsif ( $action eq "tree" ) {
 
-	my $id = $q->param("id");
 	my $desc = $q->param("desc");
 
 	error("Param id was not specified") unless $id;
@@ -255,7 +328,7 @@ if ( $action eq "get-bin" ) {
 
 	my $order = 0;
 	$order = 1 unless $desc;
-	$order = $q->a({href => gen_url("tree", id => $id, desc => $order)}, $order ? "(DESC)" : "(ASC)");
+	$order = $q->a({href => gen_url(action => "tree", id => $id, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order"])) . "\n";
@@ -267,8 +340,8 @@ if ( $action eq "get-bin" ) {
 	print_p("(No emails)") unless $count;
 
 	print $q->br() . "\n";
-	print_ahref(gen_url(""), "Show archive $indexdir");
-	print_ahref("?", "Show list of archives");
+	print_ahref(gen_url(action => ""), "Show archive $indexdir");
+	print_ahref(gen_url(indexdir => ""), "Show list of archives");
 	print $q->end_html();
 
 } elsif ( $action eq "get-roots" ) {
@@ -296,7 +369,7 @@ if ( $action eq "get-bin" ) {
 
 	my $order = 0;
 	$order = 1 unless $desc;
-	$order = $q->a({href => gen_url("get-roots", desc => $order, date1 => $date1, date2 => $date2, limit => $limit, offset => 0)}, $order ? "(DESC)" : "(ASC)");
+	$order = $q->a({href => gen_url(action => "get-roots", desc => $order, date1 => $date1, date2 => $date2, limit => $limit, offset => 0)}, $order ? "(DESC)" : "(ASC)");
 
 	print_start_html("Roots of threads");
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
@@ -311,17 +384,17 @@ if ( $action eq "get-bin" ) {
 			$printbr = 0;
 			print $q->end_table() . "\n";
 			print $q->br() . "\n";
-			print_ahref(gen_url("get-roots", desc => $desc, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit)), "Show next page");
+			print_ahref(gen_url(action => "get-roots", desc => $desc, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit)), "Show next page");
 			last;
 		}
-		my $id = $_->{messageid};
+		my $mid = $_->{messageid};
 		my $subject = $_->{subject};
 		my $date = format_date($_->{date});
 		$subject = "unknown" unless $subject;
 		$date = "unknown" unless $date;
 		print $q->start_Tr();
 		print $q->start_td();
-		print_ahref(gen_url("tree", id => $id), $subject, 1);
+		print_ahref(gen_url(action => "tree", id => $mid), $subject, 1);
 		print $q->end_td();
 		print $q->start_td({style => "white-space:nowrap"});
 		print $q->escapeHTML($date);
@@ -340,17 +413,16 @@ if ( $action eq "get-bin" ) {
 
 	if ( length $limit and $offset >= $limit ) {
 		print $q->br() . "\n" if $printbr;
-		print_ahref(gen_url("get-roots", desc => $desc, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit)), "Show previous page");
+		print_ahref(gen_url(action => "get-roots", desc => $desc, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit)), "Show previous page");
 	}
 
 	print $q->br() . "\n";
-	print_ahref(gen_url(""), "Show archive $indexdir");
-	print_ahref("?", "Show list of archives");
+	print_ahref(gen_url(action => ""), "Show archive $indexdir");
+	print_ahref(gen_url(indexdir => ""), "Show list of archives");
 	print $q->end_html();
 
 } elsif ( $action eq "view" ) {
 
-	my $id = $q->param("id");
 	error("Param id was not specified") unless $id;
 
 	my %config = (address_template => \$address_template, subject_template => \$subject_template, download_template => \$download_template, imagepreview_template => \$imagepreview_template);
@@ -374,12 +446,12 @@ if ( $action eq "get-bin" ) {
 	if ( not $group ) {
 		print_start_html("Browse threads");
 		print $q->start_p() . "\n";
-		print_ahref(gen_url("browse", group => "none", limit => 100), "Browse all");
+		print_ahref(gen_url(action => "browse", group => "none", limit => 100), "Browse all");
 		print $q->br() . "\n";
 		print $q->b("Browse year:") . $q->br() . "\n";
 		my $years = $index->db_date("%Y");
 		if ( $years ) {
-			print_ahref(gen_url("browse", group => "month", year => $_->[0]), $_->[0]) foreach @{$years};
+			print_ahref(gen_url(action => "browse", group => "month", year => $_->[0]), $_->[0]) foreach @{$years};
 		} else {
 			print "(No years)" . $q->br() . "\n";
 		}
@@ -393,7 +465,7 @@ if ( $action eq "get-bin" ) {
 		if ( $date1 ) {
 			my $date2 = $date1->add_years(1)->epoch();
 			$date1 = $date1->epoch();
-			print_ahref(gen_url("browse", group => "none", date1 => $date1, date2 => $date2, limit => 100), "Browse all in year $year");
+			print_ahref(gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2, limit => 100), "Browse all in year $year");
 			print $q->br() . "\n";
 		}
 		print $q->b("Browse month:") . $q->br() . "\n";
@@ -407,7 +479,7 @@ if ( $action eq "get-bin" ) {
 				my $fullmonth = $date1->fullmonth();
 				my $date2 = $date1->add_months(1)->epoch();
 				$date1 = $date1->epoch();
-				print_ahref(gen_url("browse", group => "day", year => $year, month => $month), $fullmonth);
+				print_ahref(gen_url(action => "browse", group => "day", year => $year, month => $month), $fullmonth);
 			}
 		} else {
 			print "(No months)" . $q->br() . "\n";
@@ -424,7 +496,7 @@ if ( $action eq "get-bin" ) {
 		if ( $date1 ) {
 			my $date2 = $date1->add_months(1)->epoch();
 			$date1 = $date1->epoch();
-			print_ahref(gen_url("browse", group => "none", date1 => $date1, date2 => $date2, limit => 100), "Browse all in year $year month $month");
+			print_ahref(gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2, limit => 100), "Browse all in year $year month $month");
 			print $q->br() . "\n";
 		}
 		print $q->b("Browse days:") . $q->br() . "\n";
@@ -437,7 +509,7 @@ if ( $action eq "get-bin" ) {
 				next unless $date1;
 				my $date2 = ($date1 + 24*60*60)->epoch();
 				$date1 = $date1->epoch();
-				print_ahref(gen_url("browse", group => "none", date1 => $date1, date2 => $date2, limit => 100), $day);
+				print_ahref(gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2, limit => 100), $day);
 			}
 		} else {
 			print "(No days)" . $q->br() . "\n";
@@ -475,8 +547,8 @@ if ( $action eq "get-bin" ) {
 		my $treeorder = 0;
 		$treeorder = 1 unless $treedesc;
 
-		$order = $q->a({href => gen_url("browse", group => "none", date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order, treedesc => $treedesc)}, $order ? "(thr DESC)" : "(thr ASC)");
-		$treeorder = $q->a({href => gen_url("browse", group => "none", date1 => $date1, date2 => $date2, limit => $limit, offset => $offset, desc => $desc, treedesc => $treeorder)}, $treeorder ? "(msg DESC)" : "(msg ASC)");
+		$order = $q->a({href => gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order, treedesc => $treedesc)}, $order ? "(thr DESC)" : "(thr ASC)");
+		$treeorder = $q->a({href => gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2, limit => $limit, offset => $offset, desc => $desc, treedesc => $treeorder)}, $treeorder ? "(msg DESC)" : "(msg ASC)");
 
 		print $q->start_table(-style => "white-space:nowrap") . "\n";
 		print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order $treeorder"])) . "\n";
@@ -495,7 +567,7 @@ if ( $action eq "get-bin" ) {
 				$printbr = 0;
 				print $q->end_table();
 				print $q->br() . "\n";
-				print_ahref(gen_url("browse", group => "none", date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $iter), desc => $desc, treedesc => $treedesc), "Show next page");
+				print_ahref(gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $iter), desc => $desc, treedesc => $treedesc), "Show next page");
 				last;
 			}
 			$processed{$rid} = 1;
@@ -514,8 +586,8 @@ if ( $action eq "get-bin" ) {
 	}
 
 	print $q->br() . "\n";
-	print_ahref(gen_url(""), "Show archive $indexdir");
-	print_ahref("?", "Show list of archives");
+	print_ahref(gen_url(action => ""), "Show archive $indexdir");
+	print_ahref(gen_url(indexdir => ""), "Show list of archives");
 	print $q->end_p();
 	print $q->end_html();
 
@@ -556,7 +628,7 @@ if ( $action eq "get-bin" ) {
 	if ( not $submit and not keys %args ) {
 		# Show search form
 		print_start_html("Search");
-		print $q->start_form(-method => "GET", -action => gen_url("search"), -accept_charset => "utf-8");
+		print $q->start_form(-method => "GET", -action => gen_url(action => "search"), -accept_charset => "utf-8");
 		print $q->start_table() . "\n";
 		print $q->Tr($q->td(["Subject:", $q->textfield(-name => "subject")])) . "\n";
 		print $q->Tr($q->td(["Header type:", $q->popup_menu("type", ["", "from", "to", "cc"], "", {"" => "(any)"})])) . "\n";
@@ -569,8 +641,8 @@ if ( $action eq "get-bin" ) {
 		print $q->end_table() . "\n";
 		print $q->end_form() . "\n";
 		print $q->start_p() . "\n";
-		print_ahref(gen_url(""), "Show archive $indexdir");
-		print_ahref("?", "Show list of archives");
+		print_ahref(gen_url(action => ""), "Show archive $indexdir");
+		print_ahref(gen_url(indexdir => ""), "Show list of archives");
 		print $q->end_p();
 		print $q->end_html();
 		exit;
@@ -583,7 +655,7 @@ if ( $action eq "get-bin" ) {
 
 	my $order = 0;
 	$order = 1 unless $desc;
-	$order = $q->a({href => gen_url("search", subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order)}, $order ? "(DESC)" : "(ASC)");
+	$order = $q->a({href => gen_url(action => "search", subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
 	print_start_html("Search");
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
@@ -597,17 +669,17 @@ if ( $action eq "get-bin" ) {
 			$printbr = 0;
 			print $q->end_table() . "\n";
 			print $q->br() . "\n";
-			print_ahref(gen_url("search", subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc), "Show next page");
+			print_ahref(gen_url(action => "search", subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc), "Show next page");
 			last;
 		}
-		my $id = $_->{messageid};
+		my $mid = $_->{messageid};
 		my $date = format_date($_->{date});
 		my $subject = $_->{subject};
 		$subject = "unknown" unless $subject;
 		$date = "unknown" unless $date;
 		print $q->start_Tr();
 		print $q->start_td();
-		print_ahref(gen_url("view", id => $id), $subject, 1);
+		print_ahref(gen_url(action => "view", id => $mid), $subject, 1);
 		print $q->end_td();
 		print $q->start_td({style => "white-space:nowrap"});
 		print $q->escapeHTML($date);
@@ -626,12 +698,12 @@ if ( $action eq "get-bin" ) {
 
 	if ( length $limit and $offset >= $limit ) {
 		print $q->br() . "\n" if $printbr;
-		print_ahref(gen_url("search", subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit), desc => $desc), "Show previous page");
+		print_ahref(gen_url(action => "search", subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit), desc => $desc), "Show previous page");
 	}
 
 	print $q->br() . "\n";
-	print_ahref(gen_url(""), "Show archive $indexdir");
-	print_ahref("?", "Show list of archives");
+	print_ahref(gen_url(action => ""), "Show archive $indexdir");
+	print_ahref(gen_url(indexdir => ""), "Show list of archives");
 	print $q->end_html();
 
 } else {
