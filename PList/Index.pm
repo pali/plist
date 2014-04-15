@@ -119,7 +119,7 @@ sub db_connect($$$$$) {
 
 	if ( $driver eq "SQLite" ) {
 		$dbh->{sqlite_unicode} = 1; # By default utf8 is turned off
-		$dbh->{AutoCommit} = 1; # NOTE: AutoCommit must be disabled when changing pragmas, otherwise foreign_keys will not be changed
+		$dbh->{AutoCommit} = 1; # NOTE: transactions must be disabled when changing pragmas, otherwise foreign_keys will not be changed
 		$dbh->do("PRAGMA synchronous = OFF;"); # This will dramatically speed up SQLite inserts (60-120 times) at cost of possible corruption if kernel crash
 		$dbh->do("PRAGMA foreign_keys = ON;"); # By default foreign keys constraints are turned off
 		$dbh->{AutoCommit} = 0;
