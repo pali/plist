@@ -1,0 +1,4 @@
+RewriteEngine on
+RewriteCond %{REQUEST_URI}::$1 ^(.*)?/(.*)::\2$
+RewriteRule ^(.*)$ - [E=BASE:%1]
+RewriteRule ^((?!plist\.cgi).*)$ %{ENV:BASE}/plist.cgi/$1 [L]
