@@ -113,9 +113,9 @@ my $address_template = "<a href='" . gen_url("search", limit => 100, name => "")
 
 my $subject_template = "<a href='" . gen_url("tree", id => "") . "<TMPL_VAR ESCAPE=URL NAME=ID>'><TMPL_VAR ESCAPE=HTML NAME=SUBJECT></a>";
 
-my $download_template = "<b><a href='" . gen_url("get-part", id => "") . "<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>Download</a></b>\n";
+my $download_template = "<b><a href='" . gen_url("download", id => "") . "<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>Download</a></b>\n";
 
-my $imagepreview_template = "<img src='" . gen_url("get-part", id => "") . "<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>\n";
+my $imagepreview_template = "<img src='" . gen_url("download", id => "") . "<TMPL_VAR ESCAPE=URL NAME=ID>&amp;part=<TMPL_VAR ESCAPE=URL NAME=PART>'>\n";
 
 sub format_date($) {
 
@@ -218,7 +218,7 @@ if ( $action eq "get-bin" ) {
 	binmode(\*STDOUT, ":raw");
 	PList::Email::Binary::to_fh($pemail, \*STDOUT);
 
-} elsif ( $action eq "get-part" ) {
+} elsif ( $action eq "download" ) {
 
 	my $id = $q->param("id");
 	error("Param id was not specified") unless $id;
