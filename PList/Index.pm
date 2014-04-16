@@ -1352,6 +1352,7 @@ sub delete($$) {
 
 	if (not flock($fh, 2)) {
 		warn "Cannot lock file deleted\n";
+		close($fh);
 		return 0;
 	}
 
@@ -1374,6 +1375,7 @@ sub delete($$) {
 		$ret = $sth->fetchall_hashref("messageid");
 	} or do {
 		eval { $dbh->rollback(); };
+		close($fh);
 		return 0;
 	};
 
