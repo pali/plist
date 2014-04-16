@@ -33,6 +33,12 @@ sub new($$;$) {
 		return undef;
 	}
 
+	if ( $append and not flock($fh, 2) ) {
+		warn "Cannot lock list file for appending\n";
+		close($fh);
+		return undef;
+	}
+
 	my $priv = {
 		fh => $fh,
 		append => $append,
