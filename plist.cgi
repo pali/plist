@@ -458,6 +458,8 @@ if ( $action eq "get-bin" ) {
 	my $limit = $q->param("limit");
 	my $offset = $q->param("offset");
 
+	$date1 = "" unless defined $date1;
+	$date2 = "" unless defined $date2;
 	$desc = 0 unless defined $desc and length $desc;
 	$limit = 100 unless defined $limit and length $limit;
 	$offset = 0 unless defined $offset and length $offset;
@@ -547,6 +549,8 @@ if ( $action eq "get-bin" ) {
 	my $desc = $q->param("desc");
 	my $treedesc = $q->param("treedesc");
 
+	$date1 = "" unless defined $date1;
+	$date2 = "" unless defined $date2;
 	$limit = 100 unless defined $limit and length $limit;
 	$offset = 0 unless defined $offset and length $offset;
 	$desc = 0 unless defined $desc and length $desc;
