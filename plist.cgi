@@ -176,9 +176,9 @@ if ( not $action ) {
 	# Show info page
 	print_start_html("Archive $indexdir");
 	print $q->start_p() . "\n";
-	print_ahref(gen_url(action => "browse"), "Browse threads");
-	print_ahref(gen_url(action => "get-roots", desc => 1), "Browse roots of threads");
-	print_ahref(gen_url(action => "search", desc => 1), "Browse emails");
+	print_ahref(gen_url(action => "trees"), "Browse (tree view)");
+	print_ahref(gen_url(action => "roots"), "Browse (only roots)");
+	print_ahref(gen_url(action => "emails"), "Browse (flat view)");
 	print_ahref(gen_url(action => "search"), "Search emails");
 	print $q->br() . "\n";
 	print_ahref(gen_url(indexdir => ""), "Show list of archives");
@@ -347,7 +347,25 @@ if ( $action eq "get-bin" ) {
 	print_ahref(gen_url(indexdir => ""), "Show list of archives");
 	print $q->end_html();
 
-} elsif ( $action eq "get-roots" ) {
+} elsif ( $action eq "view" ) {
+
+	error("Param id was not specified") unless $id;
+
+	my %config = (address_template => \$address_template, subject_template => \$subject_template, download_template => \$download_template, imagepreview_template => \$imagepreview_template);
+
+	my $str = $index->view($id, %config);
+	error("Email with $id does not exist in archive $indexdir") unless $str;
+
+	my $size;
+	{
+		use bytes;
+		$size = length($str);
+	}
+
+	print $q->header(-content_length => $size);
+	print $str;
+
+} elsif ( $action eq "roots" ) {
 
 	my $desc = $q->param("desc");
 	my $date1 = $q->param("date1");
@@ -376,7 +394,7 @@ if ( $action eq "get-bin" ) {
 	$order = 1 unless $desc;
 	$order = $q->a({href => gen_url(desc => $order, date1 => $date1, date2 => $date2, limit => $limit, offset => 0)}, $order ? "(DESC)" : "(ASC)");
 
-	print_start_html("Roots of threads");
+	print_start_html("Roots of threes");
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "Date $order"])) . "\n";
 
@@ -426,30 +444,12 @@ if ( $action eq "get-bin" ) {
 	print_ahref(gen_url(indexdir => ""), "Show list of archives");
 	print $q->end_html();
 
-} elsif ( $action eq "view" ) {
-
-	error("Param id was not specified") unless $id;
-
-	my %config = (address_template => \$address_template, subject_template => \$subject_template, download_template => \$download_template, imagepreview_template => \$imagepreview_template);
-
-	my $str = $index->view($id, %config);
-	error("Email with $id does not exist in archive $indexdir") unless $str;
-
-	my $size;
-	{
-		use bytes;
-		$size = length($str);
-	}
-
-	print $q->header(-content_length => $size);
-	print $str;
-
-} elsif ( $action eq "browse" ) {
+} elsif ( $action eq "trees" ) {
 
 	my $group = $q->param("group");
 
 	if ( not $group ) {
-		print_start_html("Browse threads");
+		print_start_html("Browse trees");
 		print $q->start_p() . "\n";
 		print_ahref(gen_url(group => "none"), "Browse all");
 		print $q->br() . "\n";
@@ -463,7 +463,7 @@ if ( $action eq "get-bin" ) {
 	} elsif ( $group eq "month" ) {
 		my $year = $q->param("year");
 		error("Param year was not specified") unless $year;
-		print_start_html("Browse threads in year $year");
+		print_start_html("Browse trees in year $year");
 		print $q->start_p() . "\n";
 		my $date1;
 		eval { $date1 = Time::Piece->strptime("$year", "%Y"); } or do { $date1 = undef; };
@@ -494,7 +494,7 @@ if ( $action eq "get-bin" ) {
 		error("Param year was not specified") unless $year;
 		my $month = $q->param("month");
 		error("Param month was not specified") unless $month;
-		print_start_html("Browse threads in year $year month $month");
+		print_start_html("Browse trees in year $year month $month");
 		print $q->start_p() . "\n";
 		my $date1;
 		eval { $date1 = Time::Piece->strptime("$year $month", "%Y %m"); } or do { $date1 = undef; };
@@ -545,7 +545,7 @@ if ( $action eq "get-bin" ) {
 		my $roots = $index->db_roots($desc, %args);
 		error("Database error (db_roots)") unless $roots;
 
-		print_start_html("Browse threads");
+		print_start_html("Browse trees");
 		print $q->start_p() . "\n";
 
 		my $order = 0;
@@ -598,7 +598,7 @@ if ( $action eq "get-bin" ) {
 	print $q->end_p();
 	print $q->end_html();
 
-} elsif ( $action eq "search" ) {
+} elsif ( $action eq "search" or $action eq "emails" ) {
 
 	my $subject = $q->param("subject");
 	my $email = $q->param("email");
@@ -623,6 +623,10 @@ if ( $action eq "get-bin" ) {
 
 	$limit = "" if $limit == -1;
 
+	if ( $action eq "emails" and ( $subject or $email or $name or $type ) ) {
+		error("Bad action, should be search instead emails");
+	}
+
 	my %args;
 	$args{subject} = $subject if length $subject;
 	$args{email} = $email if length $email;
@@ -631,7 +635,7 @@ if ( $action eq "get-bin" ) {
 	$args{date1} = $date1 if length $date1;
 	$args{date2} = $date2 if length $date2;
 
-	if ( not $submit and not keys %args ) {
+	if ( $action eq "search" and not $submit and not keys %args ) {
 		# Show search form
 		print_start_html("Search");
 		print $q->start_form(-method => "GET", -action => gen_url(), -accept_charset => "utf-8");
@@ -666,7 +670,11 @@ if ( $action eq "get-bin" ) {
 	$order = 1 unless $desc;
 	$order = $q->a({href => gen_url(subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
-	print_start_html("Search");
+	if ( $action eq "search" ) {
+		print_start_html("Search");
+	} else {
+		print_start_html("Emails");
+	}
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "Date $order"])) . "\n";
 
