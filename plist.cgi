@@ -331,7 +331,7 @@ if ( $action eq "get-bin" ) {
 
 	my $order = 0;
 	$order = 1 unless $desc;
-	$order = $q->a({href => gen_url(action => "tree", id => $id, desc => $order)}, $order ? "(DESC)" : "(ASC)");
+	$order = $q->a({href => gen_url(id => $id, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order"])) . "\n";
@@ -374,7 +374,7 @@ if ( $action eq "get-bin" ) {
 
 	my $order = 0;
 	$order = 1 unless $desc;
-	$order = $q->a({href => gen_url(action => "get-roots", desc => $order, date1 => $date1, date2 => $date2, limit => $limit, offset => 0)}, $order ? "(DESC)" : "(ASC)");
+	$order = $q->a({href => gen_url(desc => $order, date1 => $date1, date2 => $date2, limit => $limit, offset => 0)}, $order ? "(DESC)" : "(ASC)");
 
 	print_start_html("Roots of threads");
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
@@ -389,7 +389,7 @@ if ( $action eq "get-bin" ) {
 			$printbr = 0;
 			print $q->end_table() . "\n";
 			print $q->br() . "\n";
-			print_ahref(gen_url(action => "get-roots", desc => $desc, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit)), "Show next page");
+			print_ahref(gen_url(desc => $desc, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit)), "Show next page");
 			last;
 		}
 		my $mid = $_->{messageid};
@@ -418,7 +418,7 @@ if ( $action eq "get-bin" ) {
 
 	if ( length $limit and $offset >= $limit ) {
 		print $q->br() . "\n" if $printbr;
-		print_ahref(gen_url(action => "get-roots", desc => $desc, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit)), "Show previous page");
+		print_ahref(gen_url(desc => $desc, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit)), "Show previous page");
 	}
 
 	print $q->br() . "\n";
@@ -451,12 +451,12 @@ if ( $action eq "get-bin" ) {
 	if ( not $group ) {
 		print_start_html("Browse threads");
 		print $q->start_p() . "\n";
-		print_ahref(gen_url(action => "browse", group => "none"), "Browse all");
+		print_ahref(gen_url(group => "none"), "Browse all");
 		print $q->br() . "\n";
 		print $q->b("Browse year:") . $q->br() . "\n";
 		my $years = $index->db_date("%Y");
 		if ( $years ) {
-			print_ahref(gen_url(action => "browse", group => "month", year => $_->[0]), $_->[0]) foreach @{$years};
+			print_ahref(gen_url(group => "month", year => $_->[0]), $_->[0]) foreach @{$years};
 		} else {
 			print "(No years)" . $q->br() . "\n";
 		}
@@ -470,7 +470,7 @@ if ( $action eq "get-bin" ) {
 		if ( $date1 ) {
 			my $date2 = $date1->add_years(1)->epoch();
 			$date1 = $date1->epoch();
-			print_ahref(gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2), "Browse all in year $year");
+			print_ahref(gen_url(group => "none", date1 => $date1, date2 => $date2), "Browse all in year $year");
 			print $q->br() . "\n";
 		}
 		print $q->b("Browse month:") . $q->br() . "\n";
@@ -484,7 +484,7 @@ if ( $action eq "get-bin" ) {
 				my $fullmonth = $date1->fullmonth();
 				my $date2 = $date1->add_months(1)->epoch();
 				$date1 = $date1->epoch();
-				print_ahref(gen_url(action => "browse", group => "day", year => $year, month => $month), $fullmonth);
+				print_ahref(gen_url(group => "day", year => $year, month => $month), $fullmonth);
 			}
 		} else {
 			print "(No months)" . $q->br() . "\n";
@@ -501,7 +501,7 @@ if ( $action eq "get-bin" ) {
 		if ( $date1 ) {
 			my $date2 = $date1->add_months(1)->epoch();
 			$date1 = $date1->epoch();
-			print_ahref(gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2), "Browse all in year $year month $month");
+			print_ahref(gen_url(group => "none", date1 => $date1, date2 => $date2), "Browse all in year $year month $month");
 			print $q->br() . "\n";
 		}
 		print $q->b("Browse days:") . $q->br() . "\n";
@@ -514,7 +514,7 @@ if ( $action eq "get-bin" ) {
 				next unless $date1;
 				my $date2 = ($date1 + 24*60*60)->epoch();
 				$date1 = $date1->epoch();
-				print_ahref(gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2), $day);
+				print_ahref(gen_url(group => "none", date1 => $date1, date2 => $date2), $day);
 			}
 		} else {
 			print "(No days)" . $q->br() . "\n";
@@ -554,8 +554,8 @@ if ( $action eq "get-bin" ) {
 		my $treeorder = 0;
 		$treeorder = 1 unless $treedesc;
 
-		$order = $q->a({href => gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order, treedesc => $treedesc)}, $order ? "(thr DESC)" : "(thr ASC)");
-		$treeorder = $q->a({href => gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2, limit => $limit, offset => $offset, desc => $desc, treedesc => $treeorder)}, $treeorder ? "(msg DESC)" : "(msg ASC)");
+		$order = $q->a({href => gen_url(group => "none", date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order, treedesc => $treedesc)}, $order ? "(thr DESC)" : "(thr ASC)");
+		$treeorder = $q->a({href => gen_url(group => "none", date1 => $date1, date2 => $date2, limit => $limit, offset => $offset, desc => $desc, treedesc => $treeorder)}, $treeorder ? "(msg DESC)" : "(msg ASC)");
 
 		print $q->start_table(-style => "white-space:nowrap") . "\n";
 		print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order $treeorder"])) . "\n";
@@ -574,7 +574,7 @@ if ( $action eq "get-bin" ) {
 				$printbr = 0;
 				print $q->end_table();
 				print $q->br() . "\n";
-				print_ahref(gen_url(action => "browse", group => "none", date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $iter), desc => $desc, treedesc => $treedesc), "Show next page");
+				print_ahref(gen_url(group => "none", date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $iter), desc => $desc, treedesc => $treedesc), "Show next page");
 				last;
 			}
 			$processed{$rid} = 1;
@@ -634,7 +634,7 @@ if ( $action eq "get-bin" ) {
 	if ( not $submit and not keys %args ) {
 		# Show search form
 		print_start_html("Search");
-		print $q->start_form(-method => "GET", -action => gen_url(action => "search"), -accept_charset => "utf-8");
+		print $q->start_form(-method => "GET", -action => gen_url(), -accept_charset => "utf-8");
 		print $q->start_table() . "\n";
 		print $q->Tr($q->td(["Subject:", $q->textfield(-name => "subject")])) . "\n";
 		print $q->Tr($q->td(["Header type:", $q->popup_menu("type", ["", "from", "to", "cc"], "", {"" => "(any)"})])) . "\n";
@@ -664,7 +664,7 @@ if ( $action eq "get-bin" ) {
 
 	my $order = 0;
 	$order = 1 unless $desc;
-	$order = $q->a({href => gen_url(action => "search", subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order)}, $order ? "(DESC)" : "(ASC)");
+	$order = $q->a({href => gen_url(subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
 	print_start_html("Search");
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
@@ -678,7 +678,7 @@ if ( $action eq "get-bin" ) {
 			$printbr = 0;
 			print $q->end_table() . "\n";
 			print $q->br() . "\n";
-			print_ahref(gen_url(action => "search", subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc), "Show next page");
+			print_ahref(gen_url(subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc), "Show next page");
 			last;
 		}
 		my $mid = $_->{messageid};
@@ -707,7 +707,7 @@ if ( $action eq "get-bin" ) {
 
 	if ( length $limit and $offset >= $limit ) {
 		print $q->br() . "\n" if $printbr;
-		print_ahref(gen_url(action => "search", subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit), desc => $desc), "Show previous page");
+		print_ahref(gen_url(subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit), desc => $desc), "Show previous page");
 	}
 
 	print $q->br() . "\n";
