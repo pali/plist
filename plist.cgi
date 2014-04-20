@@ -75,9 +75,9 @@ sub gen_url {
 		} elsif ( $key eq "-path" ) {
 			$newpath = $value;
 		} elsif ( $key =~ /^-(.*)$/ ) {
-			$args .= $1 . "=" . $value . "&";
+			$args .= $1 . "=" . $value . "&" if length $value;
 		} else {
-			$args .= $q->escape($key) . "=" . $q->escape($value) . "&";
+			$args .= $q->escape($key) . "=" . $q->escape($value) . "&" if length $value;
 		}
 	}
 	chop($args);
@@ -176,10 +176,11 @@ if ( not $action ) {
 	# Show info page
 	print_start_html("Archive $indexdir");
 	print $q->start_p() . "\n";
-	print_ahref(gen_url(action => "trees"), "Browse (tree view)");
-	print_ahref(gen_url(action => "roots"), "Browse (only roots)");
-	print_ahref(gen_url(action => "emails"), "Browse (flat view)");
+	print_ahref(gen_url(action => "browse"), "Browse by year");
 	print_ahref(gen_url(action => "search"), "Search emails");
+	print_ahref(gen_url(action => "trees"), "Show all trees");
+	print_ahref(gen_url(action => "emails"), "Show all emails");
+	print_ahref(gen_url(action => "roots"), "Show all roots of emails");
 	print $q->br() . "\n";
 	print_ahref(gen_url(indexdir => ""), "Show list of archives");
 	print $q->end_p();
@@ -204,6 +205,39 @@ sub format_date($) {
 	$date = $date->strftime("%F %T %z") if $date;
 	return $date if $date;
 	return "";
+
+}
+
+sub parse_date($;$$) {
+
+	my ($year, $month, $day) = @_;
+	my $date1;
+	my $date2;
+
+	if ( defined $year and length $year and defined $month and length $month and defined $day and length $day ) {
+		my $date;
+		eval { $date = Time::Piece->strptime("$year $month $day", "%Y %m %d"); } or do { $date = undef; };
+		if ( $date ) {
+			$date1 = $date->epoch();
+			$date2 = ($date + 24*60*60)->epoch();
+		}
+	} elsif ( defined $year and length $year and defined $month and length $month ) {
+		my $date;
+		eval { $date = Time::Piece->strptime("$year $month", "%Y %m"); } or do { $date = undef; };
+		if ( $date ) {
+			$date1 = $date->epoch();
+			$date2 = $date->add_months(1)->epoch();
+		}
+	} elsif ( defined $year and length $year ) {
+		my $date;
+		eval { $date = Time::Piece->strptime("$year", "%Y"); } or do { $date = undef; };
+		if ( $date ) {
+			$date1 = $date->epoch();
+			$date2 = $date->add_years(1)->epoch();
+		}
+	}
+
+	return ($date1, $date2);
 
 }
 
@@ -416,15 +450,15 @@ if ( $action eq "get-bin" ) {
 
 } elsif ( $action eq "roots" ) {
 
+	my $year = $id;
+	(my $month, my $day, $_) = split("/", $path, 3);
+	(my $date1, my $date2) = parse_date($year, $month, $day);
+
 	my $desc = $q->param("desc");
-	my $date1 = $q->param("date1");
-	my $date2 = $q->param("date2");
 	my $limit = $q->param("limit");
 	my $offset = $q->param("offset");
 
 	$desc = 0 unless defined $desc and length $desc;
-	$date1 = "" unless defined $date1;
-	$date2 = "" unless defined $date2;
 	$limit = 100 unless defined $limit and length $limit;
 	$offset = 0 unless defined $offset and length $offset;
 
@@ -441,9 +475,18 @@ if ( $action eq "get-bin" ) {
 
 	my $order = 0;
 	$order = 1 unless $desc;
-	$order = $q->a({href => gen_url(desc => $order, date1 => $date1, date2 => $date2, limit => $limit, offset => 0)}, $order ? "(DESC)" : "(ASC)");
+	$order = $q->a({href => gen_url(id => $id, -path => $path, desc => $order, limit => $limit, offset => 0)}, $order ? "(DESC)" : "(ASC)");
 
-	print_start_html("Roots of threes");
+	print_start_html("Roots of trees");
+
+	print "View: ";
+	print_ahref(gen_url(action => "trees", id => $id, -path => $path), "Trees", 1);
+	print " ";
+	print_ahref(gen_url(action => "emails", id => $id, -path => $path), "Emails", 1);
+	print " Roots";
+	print $q->br();
+	print $q->br();
+
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "Date $order"])) . "\n";
 
@@ -456,7 +499,7 @@ if ( $action eq "get-bin" ) {
 			$printbr = 0;
 			print $q->end_table() . "\n";
 			print $q->br() . "\n";
-			print_ahref(gen_url(desc => $desc, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit)), "Show next page");
+			print_ahref(gen_url(id => $id, -path => $path, desc => $desc, limit => $limit, offset => ($offset + $limit)), "Show next page");
 			last;
 		}
 		my $mid = $_->{messageid};
@@ -485,7 +528,7 @@ if ( $action eq "get-bin" ) {
 
 	if ( length $limit and $offset >= $limit ) {
 		print $q->br() . "\n" if $printbr;
-		print_ahref(gen_url(desc => $desc, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit)), "Show previous page");
+		print_ahref(gen_url(id => $id, -path => $path, desc => $desc, limit => $limit, offset => ($offset - $limit)), "Show previous page");
 	}
 
 	print $q->br() . "\n";
@@ -495,170 +538,106 @@ if ( $action eq "get-bin" ) {
 
 } elsif ( $action eq "trees" ) {
 
-	my $group = $q->param("group");
+	my $year = $id;
+	(my $month, my $day, $_) = split("/", $path, 3);
+	(my $date1, my $date2) = parse_date($year, $month, $day);
 
-	if ( not $group ) {
-		print_start_html("Browse trees");
-		print $q->start_p() . "\n";
-		print_ahref(gen_url(group => "none"), "Browse all");
-		print $q->br() . "\n";
-		print $q->b("Browse year:") . $q->br() . "\n";
-		my $years = $index->db_date("%Y");
-		if ( $years ) {
-			print_ahref(gen_url(group => "month", year => $_->[0]), $_->[0]) foreach @{$years};
-		} else {
-			print "(No years)" . $q->br() . "\n";
-		}
-	} elsif ( $group eq "month" ) {
-		my $year = $q->param("year");
-		error("Param year was not specified") unless $year;
-		print_start_html("Browse trees in year $year");
-		print $q->start_p() . "\n";
-		my $date1;
-		eval { $date1 = Time::Piece->strptime("$year", "%Y"); } or do { $date1 = undef; };
-		if ( $date1 ) {
-			my $date2 = $date1->add_years(1)->epoch();
-			$date1 = $date1->epoch();
-			print_ahref(gen_url(group => "none", date1 => $date1, date2 => $date2), "Browse all in year $year");
+	my $limit = $q->param("limit");
+	my $offset = $q->param("offset");
+	my $desc = $q->param("desc");
+	my $treedesc = $q->param("treedesc");
+
+	$limit = 100 unless defined $limit and length $limit;
+	$offset = 0 unless defined $offset and length $offset;
+	$desc = 0 unless defined $desc and length $desc;
+	$treedesc = 0 unless defined $treedesc and length $treedesc;
+
+	$limit = "" if $limit == -1;
+
+	my %args;
+	$args{date1} = $date1 if length $date1;
+	$args{date2} = $date2 if length $date2;
+	$args{limit} = $limit+1 if length $limit;
+	$args{offset} = $offset if $offset;
+
+	my $roots = $index->db_roots($desc, %args);
+	error("Database error (db_roots)") unless $roots;
+
+	print_start_html("Browse trees");
+
+	print "View: Trees ";
+	print_ahref(gen_url(action => "emails", id => $id, -path => $path), "Emails", 1);
+	print " ";
+	print_ahref(gen_url(action => "roots", id => $id, -path => $path), "Roots", 1);
+	print $q->br();
+	print $q->br();
+
+	my $order = 0;
+	$order = 1 unless $desc;
+
+	my $treeorder = 0;
+	$treeorder = 1 unless $treedesc;
+
+	$order = $q->a({href => gen_url(id => $id, -path => $path, limit => $limit, offset => 0, desc => $order, treedesc => $treedesc)}, $order ? "(thr DESC)" : "(thr ASC)");
+	$treeorder = $q->a({href => gen_url(id => $id, -path => $path, limit => $limit, offset => $offset, desc => $desc, treedesc => $treeorder)}, $treeorder ? "(msg DESC)" : "(msg ASC)");
+
+	print $q->start_table(-style => "white-space:nowrap") . "\n";
+	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order $treeorder"])) . "\n";
+
+	my %processed;
+	my $neednext;
+	my $printbr = 1;
+	my $count = 0;
+	my $iter = -1;
+
+	foreach ( @{$roots} ) {
+		++$iter;
+		my $rid = $_->{id};
+		next if $processed{$rid};
+		if ( $neednext ) {
+			$printbr = 0;
+			print $q->end_table();
 			print $q->br() . "\n";
+			print_ahref(gen_url(id => $id, -path => $path, limit => $limit, offset => ($offset + $iter), desc => $desc, treedesc => $treedesc), "Show next page");
+			last;
 		}
-		print $q->b("Browse month:") . $q->br() . "\n";
-		my $months = $index->db_date("%m", "%Y", $year);
-		if ( $months ) {
-			foreach ( @{$months} ) {
-				my $month = $_->[0];
-				my $date1;
-				eval { $date1 = Time::Piece->strptime("$year $month", "%Y %m"); } or do { $date1 = undef; };
-				next unless $date1;
-				my $fullmonth = $date1->fullmonth();
-				my $date2 = $date1->add_months(1)->epoch();
-				$date1 = $date1->epoch();
-				print_ahref(gen_url(group => "day", year => $year, month => $month), $fullmonth);
-			}
-		} else {
-			print "(No months)" . $q->br() . "\n";
+		$processed{$rid} = 1;
+		my $ret = print_tree($index, $_->{id}, $treedesc, undef, undef, \%processed);
+		print "\n" if $ret > 0;
+		$count += $ret;
+		if ( length $limit and $count >= $limit ) {
+			$neednext = 1;
 		}
-	} elsif ( $group eq "day" ) {
-		my $year = $q->param("year");
-		error("Param year was not specified") unless $year;
-		my $month = $q->param("month");
-		error("Param month was not specified") unless $month;
-		print_start_html("Browse trees in year $year month $month");
-		print $q->start_p() . "\n";
-		my $date1;
-		eval { $date1 = Time::Piece->strptime("$year $month", "%Y %m"); } or do { $date1 = undef; };
-		if ( $date1 ) {
-			my $date2 = $date1->add_months(1)->epoch();
-			$date1 = $date1->epoch();
-			print_ahref(gen_url(group => "none", date1 => $date1, date2 => $date2), "Browse all in year $year month $month");
-			print $q->br() . "\n";
-		}
-		print $q->b("Browse days:") . $q->br() . "\n";
-		my $days = $index->db_date("%d", "%Y %m", "$year $month");
-		if ( $days ) {
-			foreach ( @{$days} ) {
-				my $day = $_->[0];
-				my $date1;
-				eval { $date1 = Time::Piece->strptime("$year $month $day", "%Y %m %d"); } or do { $date1 = undef; };
-				next unless $date1;
-				my $date2 = ($date1 + 24*60*60)->epoch();
-				$date1 = $date1->epoch();
-				print_ahref(gen_url(group => "none", date1 => $date1, date2 => $date2), $day);
-			}
-		} else {
-			print "(No days)" . $q->br() . "\n";
-		}
-	} elsif ( $group eq "none" ) {
-		my $date1 = $q->param("date1");
-		my $date2 = $q->param("date2");
-		my $limit = $q->param("limit");
-		my $offset = $q->param("offset");
-		my $desc = $q->param("desc");
-		my $treedesc = $q->param("treedesc");
-
-		$date1 = "" unless defined $date1;
-		$date2 = "" unless defined $date2;
-		$limit = 100 unless defined $limit and length $limit;
-		$offset = 0 unless defined $offset and length $offset;
-		$desc = 0 unless defined $desc and length $desc;
-		$treedesc = 0 unless defined $treedesc and length $treedesc;
-
-		$limit = "" if $limit == -1;
-
-		my %args;
-		$args{date1} = $date1 if length $date1;
-		$args{date2} = $date2 if length $date2;
-		$args{limit} = $limit+1 if length $limit;
-		$args{offset} = $offset if $offset;
-
-		my $roots = $index->db_roots($desc, %args);
-		error("Database error (db_roots)") unless $roots;
-
-		print_start_html("Browse trees");
-		print $q->start_p() . "\n";
-
-		my $order = 0;
-		$order = 1 unless $desc;
-
-		my $treeorder = 0;
-		$treeorder = 1 unless $treedesc;
-
-		$order = $q->a({href => gen_url(group => "none", date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order, treedesc => $treedesc)}, $order ? "(thr DESC)" : "(thr ASC)");
-		$treeorder = $q->a({href => gen_url(group => "none", date1 => $date1, date2 => $date2, limit => $limit, offset => $offset, desc => $desc, treedesc => $treeorder)}, $treeorder ? "(msg DESC)" : "(msg ASC)");
-
-		print $q->start_table(-style => "white-space:nowrap") . "\n";
-		print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order $treeorder"])) . "\n";
-
-		my %processed;
-		my $neednext;
-		my $printbr = 1;
-		my $count = 0;
-		my $iter = -1;
-
-		foreach ( @{$roots} ) {
-			++$iter;
-			my $rid = $_->{id};
-			next if $processed{$rid};
-			if ( $neednext ) {
-				$printbr = 0;
-				print $q->end_table();
-				print $q->br() . "\n";
-				print_ahref(gen_url(group => "none", date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $iter), desc => $desc, treedesc => $treedesc), "Show next page");
-				last;
-			}
-			$processed{$rid} = 1;
-			my $ret = print_tree($index, $_->{id}, $treedesc, undef, undef, \%processed);
-			print "\n" if $ret > 0;
-			$count += $ret;
-			if ( length $limit and $count >= $limit ) {
-				$neednext = 1;
-			}
-		}
-
-		print $q->end_table() if $printbr;
-
-	} else {
-		error("Unknown value for param group");
 	}
+
+	print $q->end_table() if $printbr;
 
 	print $q->br() . "\n";
 	print_ahref(gen_url(action => ""), "Show archive $indexdir");
 	print_ahref(gen_url(indexdir => ""), "Show list of archives");
-	print $q->end_p();
 	print $q->end_html();
 
 } elsif ( $action eq "search" or $action eq "emails" ) {
+
+	my $year = $id;
+	(my $month, my $day, $_) = split("/", $path, 3);
+	(my $date1, my $date2) = parse_date($year, $month, $day);
 
 	my $subject = $q->param("subject");
 	my $email = $q->param("email");
 	my $name = $q->param("name");
 	my $type = $q->param("type");
-	my $date1 = $q->param("date1");
-	my $date2 = $q->param("date2");
 	my $limit = $q->param("limit");
 	my $offset = $q->param("offset");
 	my $desc = $q->param("desc");
 	my $submit = $q->param("submit");
+
+	error("Param date1 is already specified in path") if defined $date1 and defined $q->param("date1");
+	error("Param date2 is already specified in path") if defined $date2 and defined $q->param("date2");
+	error("Bad action, should be search instead emails") if $action eq "emails" and ( defined $subject or defined $email or defined $name or defined $type );
+
+	$date1 = $q->param("date1") unless defined $date1;
+	$date2 = $q->param("date2") unless defined $date2;
 
 	$subject = "" unless defined $subject;
 	$email = "" unless defined $email;
@@ -672,10 +651,6 @@ if ( $action eq "get-bin" ) {
 
 	$limit = "" if $limit == -1;
 
-	if ( $action eq "emails" and ( $subject or $email or $name or $type ) ) {
-		error("Bad action, should be search instead emails");
-	}
-
 	my %args;
 	$args{subject} = $subject if length $subject;
 	$args{email} = $email if length $email;
@@ -683,6 +658,9 @@ if ( $action eq "get-bin" ) {
 	$args{type} = $type if length $type;
 	$args{date1} = $date1 if length $date1;
 	$args{date2} = $date2 if length $date2;
+
+	$date1 = "" unless defined $q->param("date1");
+	$date2 = "" unless defined $q->param("date2");
 
 	if ( $action eq "search" and not $submit and not keys %args ) {
 		# Show search form
@@ -717,12 +695,18 @@ if ( $action eq "get-bin" ) {
 
 	my $order = 0;
 	$order = 1 unless $desc;
-	$order = $q->a({href => gen_url(subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order)}, $order ? "(DESC)" : "(ASC)");
+	$order = $q->a({href => gen_url(id => $id, -path => $path, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
 	if ( $action eq "search" ) {
 		print_start_html("Search");
 	} else {
 		print_start_html("Emails");
+		print "View: ";
+		print_ahref(gen_url(action => "trees", id => $id, -path => $path), "Trees", 1);
+		print " Emails ";
+		print_ahref(gen_url(action => "roots", id => $id, -path => $path), "Roots", 1);
+		print $q->br();
+		print $q->br();
 	}
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "Date $order"])) . "\n";
@@ -735,7 +719,7 @@ if ( $action eq "get-bin" ) {
 			$printbr = 0;
 			print $q->end_table() . "\n";
 			print $q->br() . "\n";
-			print_ahref(gen_url(subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc), "Show next page");
+			print_ahref(gen_url(id => $id, -path => $path, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc), "Show next page");
 			last;
 		}
 		my $mid = $_->{messageid};
@@ -764,7 +748,7 @@ if ( $action eq "get-bin" ) {
 
 	if ( length $limit and $offset >= $limit ) {
 		print $q->br() . "\n" if $printbr;
-		print_ahref(gen_url(subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit), desc => $desc), "Show previous page");
+		print_ahref(gen_url(id => $id, -path => $path, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit), desc => $desc), "Show previous page");
 	}
 
 	print $q->br() . "\n";
