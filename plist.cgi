@@ -363,7 +363,7 @@ if ( $action eq "get-bin" ) {
 
 	print_start_html("Tree for email $id");
 
-	my $order = 0;
+	my $order = "";
 	$order = 1 unless $desc;
 	$order = $q->a({href => gen_url(id => $id, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
@@ -460,7 +460,7 @@ if ( $action eq "get-bin" ) {
 
 	$date1 = "" unless defined $date1;
 	$date2 = "" unless defined $date2;
-	$desc = 0 unless defined $desc and length $desc;
+	$desc = "" unless defined $desc;
 	$limit = 100 unless defined $limit and length $limit;
 	$offset = 0 unless defined $offset and length $offset;
 
@@ -475,7 +475,7 @@ if ( $action eq "get-bin" ) {
 	my $roots = $index->db_roots($desc, %args);
 	error("Database error (db_roots)") unless $roots;
 
-	my $order = 0;
+	my $order = "";
 	$order = 1 unless $desc;
 	$order = $q->a({href => gen_url(id => $id, -path => $path, desc => $order, limit => $limit, offset => 0)}, $order ? "(DESC)" : "(ASC)");
 
@@ -553,8 +553,8 @@ if ( $action eq "get-bin" ) {
 	$date2 = "" unless defined $date2;
 	$limit = 100 unless defined $limit and length $limit;
 	$offset = 0 unless defined $offset and length $offset;
-	$desc = 0 unless defined $desc and length $desc;
-	$treedesc = 0 unless defined $treedesc and length $treedesc;
+	$desc = "" unless defined $desc;
+	$treedesc = "" unless defined $treedesc;
 
 	$limit = "" if $limit == -1;
 
@@ -576,10 +576,10 @@ if ( $action eq "get-bin" ) {
 	print $q->br();
 	print $q->br();
 
-	my $order = 0;
+	my $order = "";
 	$order = 1 unless $desc;
 
-	my $treeorder = 0;
+	my $treeorder = "";
 	$treeorder = 1 unless $treedesc;
 
 	$order = $q->a({href => gen_url(id => $id, -path => $path, limit => $limit, offset => 0, desc => $order, treedesc => $treedesc)}, $order ? "(thr DESC)" : "(thr ASC)");
@@ -651,7 +651,7 @@ if ( $action eq "get-bin" ) {
 	$date2 = "" unless defined $date2;
 	$limit = 100 unless defined $limit and length $limit;
 	$offset = 0 unless defined $offset and length $offset;
-	$desc = 0 unless defined $desc and length $desc;
+	$desc = "" unless defined $desc;
 
 	$limit = "" if $limit == -1;
 
@@ -677,7 +677,7 @@ if ( $action eq "get-bin" ) {
 		print $q->Tr($q->td(["Email address:", $q->textfield(-name => "email")])) . "\n";
 		# TODO: Add date1 and date2
 		print $q->Tr($q->td(["Limit results:", $q->popup_menu("limit", ["10", "20", "50", "100", "200", "-1"], "100", {"-1" => "(unlimited)"})])) . "\n";
-		print $q->Tr($q->td(["Sort order:", $q->popup_menu("desc", ["0", "1"], "0", {"0" => "ascending", "1" => "descending"})])) . "\n";
+		print $q->Tr($q->td(["Sort order:", $q->popup_menu("desc", ["", "1"], "", {"" => "ascending", "1" => "descending"})])) . "\n";
 		print $q->Tr($q->td($q->submit(-name => "submit", -value => "Search"))) . "\n";
 		print $q->end_table() . "\n";
 		print $q->end_form() . "\n";
@@ -697,7 +697,7 @@ if ( $action eq "get-bin" ) {
 	my $ret = $index->db_emails(%args);
 	error("Database error (db_emails)") unless $ret;
 
-	my $order = 0;
+	my $order = "";
 	$order = 1 unless $desc;
 	$order = $q->a({href => gen_url(id => $id, -path => $path, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
