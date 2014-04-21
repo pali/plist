@@ -127,13 +127,18 @@ $q = new CGI;
 $q->charset("utf-8");
 
 $script = $q->url(-absolute => 1);
-($_, $indexdir, $action, $id, $path) = split("/", $q->path_info(), 5);
+($_, $indexdir, $action, $id, $path) = split(/(?<=\/)/, $q->path_info(), 5);
 
 $indexdir = "" unless $indexdir;
 $action = "" unless $action and $indexdir;
 $id = "" unless $id and $action;
 $path = "" unless $path and $id;
 
+error("Missing '/' at the end of URL") if ( length $indexdir and not $indexdir =~ /\/$/ ) or ( length $action and not $action =~ /\/$/ ) or ( length $id and not $id =~ /\/$/ );
+
+chop($indexdir) if $indexdir =~ /\/$/;
+chop($action) if $action =~ /\/$/;
+chop($id) if $id =~ /\/$/;
 chop($path) if $path =~ /\/$/;
 
 if ( not $indexdir ) {
