@@ -186,6 +186,10 @@ if ( not $action ) {
 	print_ahref(gen_url(action => "trees"), "Show all trees");
 	print_ahref(gen_url(action => "emails"), "Show all emails");
 	print_ahref(gen_url(action => "roots"), "Show all roots of emails");
+	print $q->start_form(-method => "GET", -action => gen_url(action => "search"), -accept_charset => "utf-8");
+	print $q->textfield(-name => "email") . "\n";
+	print $q->submit(-name => "submit", -value => "Quick Search") . "\n";
+	print $q->end_form() . "\n";
 	print $q->br() . "\n";
 	print_ahref(gen_url(indexdir => ""), "Show list of archives");
 	print $q->end_p();
