@@ -884,9 +884,9 @@ sub db_emails_str($$;%) {
 	$statement .= " JOIN addressess AS ss ON ss.emailid = e.id JOIN address AS a ON a.id = ss.addressid";
 	$statement .= " WHERE ( s.subject LIKE ? OR a.email LIKE ? OR a.name LIKE ? ) AND";
 
-	push(@args, $str);
-	push(@args, $str);
-	push(@args, $str);
+	push(@args, "%$str%");
+	push(@args, "%$str%");
+	push(@args, "%$str%");
 
 	if ( exists $args{date1} ) {
 		$statement .= " e.date >= ? AND";
