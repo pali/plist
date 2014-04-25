@@ -868,6 +868,75 @@ sub db_emails($;%) {
 
 }
 
+sub db_emails_str($$;%) {
+
+	my ($priv, $str, %args) = @_;
+
+	my $dbh = $priv->{dbh};
+
+	my $statement;
+	my @args;
+	my $ret;
+
+	# Select all email messageids which match conditions
+	$statement = "SELECT DISTINCT e.id, e.messageid, e.date, s.subject, e.list, e.offset, e.implicit, e.hasreply FROM emails AS e";
+	$statement .= " JOIN subjects AS s ON s.id = e.subjectid";
+	$statement .= " JOIN addressess AS ss ON ss.emailid = e.id JOIN address AS a ON a.id = ss.addressid";
+	$statement .= " WHERE ( s.subject LIKE ? OR a.email LIKE ? OR a.name LIKE ? ) AND";
+
+	push(@args, $str);
+	push(@args, $str);
+	push(@args, $str);
+
+	if ( exists $args{date1} ) {
+		$statement .= " e.date >= ? AND";
+		push(@args, $args{date1});
+	}
+
+	if ( exists $args{date2} ) {
+		$statement .= " e.date < ? AND";
+		push(@args, $args{date2});
+	}
+
+	if ( exists $args{implicit} ) {
+		$statement .= " e.implicit = ? AND";
+		push(@args, $args{implicit});
+	}
+
+	$statement =~ s/AND$//;
+
+	$statement .= " ORDER BY e.date";
+
+	if ( $args{desc} ) {
+		$statement .= " DESC";
+	}
+
+	if ( exists $args{limit} ) {
+		$statement .= " LIMIT ?";
+		push(@args, $args{limit});
+	}
+
+	# NOTE: OFFSET can be specified only if LIMIT was specified
+	if ( exists $args{limit} and exists $args{offset} ) {
+		$statement .= " OFFSET ?";
+		push(@args, $args{offset});
+	}
+
+	eval {
+		my $sth = $dbh->prepare_cached($statement);
+		$sth->execute(@args);
+		$ret = $sth->fetchall_arrayref({});
+	} or do {
+		eval { $dbh->rollback(); };
+		return undef;
+	};
+
+	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
+
+	return $ret;
+
+}
+
 sub db_replies($$;$$$) {
 
 	my ($priv, $id, $up, $desc, $rid) = @_;
