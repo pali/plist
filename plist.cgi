@@ -187,7 +187,7 @@ if ( not $action ) {
 	print_ahref(gen_url(action => "emails"), "Show all emails");
 	print_ahref(gen_url(action => "roots"), "Show all roots of emails");
 	print $q->start_form(-method => "GET", -action => gen_url(action => "search"), -accept_charset => "utf-8");
-	print $q->textfield(-name => "email") . "\n";
+	print $q->textfield(-name => "str") . "\n";
 	print $q->submit(-name => "submit", -value => "Quick Search") . "\n";
 	print $q->end_form() . "\n";
 	print $q->br() . "\n";
@@ -636,6 +636,7 @@ if ( $action eq "get-bin" ) {
 	(my $month, my $day, $_) = split("/", $path, 3);
 	(my $date1, my $date2) = parse_date($year, $month, $day);
 
+	my $str = $q->param("str");
 	my $subject = $q->param("subject");
 	my $email = $q->param("email");
 	my $name = $q->param("name");
@@ -652,6 +653,7 @@ if ( $action eq "get-bin" ) {
 	$date1 = $q->param("date1") unless defined $date1;
 	$date2 = $q->param("date2") unless defined $date2;
 
+	$str = "" unless defined $str;
 	$subject = "" unless defined $subject;
 	$email = "" unless defined $email;
 	$name = "" unless defined $name;
@@ -665,9 +667,13 @@ if ( $action eq "get-bin" ) {
 	$limit = "" if $limit == -1;
 
 	my %args;
-	$args{subject} = $subject if length $subject;
-	$args{email} = $email if length $email;
-	$args{name} = $name if length $name;
+
+	if ( not length $str ) {
+		$args{subject} = $subject if length $subject;
+		$args{email} = $email if length $email;
+		$args{name} = $name if length $name;
+	}
+
 	$args{type} = $type if length $type;
 	$args{date1} = $date1 if length $date1;
 	$args{date2} = $date2 if length $date2;
@@ -675,7 +681,7 @@ if ( $action eq "get-bin" ) {
 	$date1 = "" unless defined $q->param("date1");
 	$date2 = "" unless defined $q->param("date2");
 
-	if ( $action eq "search" and not $submit and not keys %args ) {
+	if ( $action eq "search" and not $submit and not $str and not keys %args ) {
 		# Show search form
 		print_start_html("Search");
 		print $q->start_form(-method => "GET", -action => gen_url(), -accept_charset => "utf-8");
@@ -703,7 +709,13 @@ if ( $action eq "get-bin" ) {
 	$args{desc} = $desc if $desc;
 	$args{implicit} = 0;
 
-	my $ret = $index->db_emails(%args);
+	my $ret;
+	if ( length $str ) {
+		$ret = $index->db_emails_str($str, %args);
+	} else {
+		$ret = $index->db_emails(%args);
+	}
+
 	error("Database error (db_emails)") unless $ret;
 
 	my $order = "";
