@@ -54,6 +54,8 @@ sub new($$) {
 	my $username;
 	my $password;
 
+	my $description;
+
 	while (<$fh>) {
 		next if $_ =~ /^\s*#/;
 		next unless $_ =~ /^\s*([^=]+)=(.*)$/;
@@ -61,6 +63,7 @@ sub new($$) {
 		$params = $2 if $1 eq "params";
 		$username = $2 if $1 eq "username";
 		$password = $2 if $1 eq "password";
+		$description = $2 if $1 eq "description";
 	}
 
 	close($fh);
@@ -79,9 +82,17 @@ sub new($$) {
 		dir => $dir,
 		dbh => $dbh,
 		driver => $driver,
+		description => $description,
 	};
 
 	bless $priv, $class;
+
+}
+
+sub description($) {
+
+	my ($priv) = @_;
+	return $priv->{description};
 
 }
 
