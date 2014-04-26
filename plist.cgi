@@ -179,8 +179,10 @@ error("Archive $indexdir does not exist") unless $index;
 if ( not $action ) {
 
 	# Show info page
+	my $description = $index->description();
 	print_start_html("Archive $indexdir");
 	print $q->start_p() . "\n";
+	print $q->escapeHTML($description) . $q->br() . $q->br() . "\n" if $description;
 	print_ahref(gen_url(action => "browse"), "Browse by year");
 	print_ahref(gen_url(action => "search"), "Search emails");
 	print_ahref(gen_url(action => "trees"), "Show all trees");
