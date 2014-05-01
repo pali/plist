@@ -1012,7 +1012,9 @@ sub db_emails_str($$;%) {
 	my $ret;
 
 	# Select all email messageids which match conditions
-	$statement = "SELECT DISTINCT e.id, e.messageid, e.date, e.subject, e.treeid, e.list, e.offset, e.implicit, e.hasreply FROM emails AS e";
+	$statement = "SELECT ee.id AS id, ee.messageid AS messageid, ee.date AS date, ee.subject AS subject, ee.treeid AS treeid, ee.email AS email, ee.name AS name, ee.list AS list, ee.offset AS offset, ee.implicit AS implicit, ee.hasreply AS hasreply FROM (";
+	$statement .= " SELECT * FROM emails AS e";
+	$statement .= " LEFT OUTER JOIN addressess AS ssf ON ssf.emailid = e.id LEFT OUTER JOIN address AS af ON af.id = ssf.addressid";
 	$statement .= " JOIN addressess AS ss ON ss.emailid = e.id JOIN address AS a ON a.id = ss.addressid";
 	$statement .= " WHERE ( e.subject LIKE ? OR a.email LIKE ? OR a.name LIKE ? ) AND";
 
@@ -1035,9 +1037,10 @@ sub db_emails_str($$;%) {
 		push(@args, $args{implicit});
 	}
 
-	$statement =~ s/AND$//;
-
-	$statement .= " ORDER BY e.date";
+	$statement .= " (ssf.type = 0 OR ssf.type IS NULL)";
+	$statement .= " ) AS ee";
+	$statement .= " GROUP BY ee.id";
+	$statement .= " ORDER BY ee.date";
 
 	if ( $args{desc} ) {
 		$statement .= " DESC";
