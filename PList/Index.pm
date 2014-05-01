@@ -247,8 +247,8 @@ sub create_tables($$) {
 	$statement = qq(
 		CREATE TABLE address (
 			id		INTEGER PRIMARY KEY NOT NULL $autoincrement,
-			email		$text NOT NULL,
-			name		$text NOT NULL,
+			email		$text,
+			name		$text,
 			UNIQUE (email $uniquehalfsize, name $uniquehalfsize) $ignoreconflict
 		);
 	);
@@ -287,6 +287,14 @@ sub create_tables($$) {
 	$statement = qq(
 		INSERT INTO subjects (id, subject)
 			VALUES (2, "")
+		;
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	# NULL address for emails without from header
+	$statement = qq(
+		INSERT INTO address (id, email, name)
+			VALUES (1, NULL, NULL)
 		;
 	);
 	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
@@ -639,6 +647,27 @@ sub add_email($$) {
 		eval { $dbh->rollback(); };
 		return 0;
 	};
+
+	if ( not $from or not @{$from} ) {
+		$statement = qq(
+			INSERT INTO addressess (emailid, addressid, type)
+				VALUES (
+					(SELECT id FROM emails WHERE messageid = ?),
+					1,
+					0
+				)
+				$ignoreconflict
+			;
+		);
+
+		eval {
+			my $sth = $dbh->prepare_cached($statement);
+			$sth->execute($id);
+		} or do {
+			eval { $dbh->rollback(); };
+			return 0;
+		};
+	}
 
 	my ($up_reply, $up_references) = $priv->db_replies($id, 1); # emails up
 	my ($down_reply, $down_references) = $priv->db_replies($id, 0); # emails down
