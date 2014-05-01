@@ -906,16 +906,15 @@ sub db_emails($;%) {
 	}
 
 	# Select all email messageids which match conditions
-	$statement = "SELECT DISTINCT e.id, e.messageid, e.date, e.subject, e.treeid, af.email, af.name, e.list, e.offset, e.implicit, e.hasreply FROM emails AS e";
+	$statement = "SELECT ee.id AS id, ee.messageid AS messageid, ee.date AS date, ee.subject AS subject, ee.treeid AS treeid, ee.email AS email, ee.name AS name, ee.list AS list, ee.offset AS offset, ee.implicit AS implicit, ee.hasreply AS hasreply FROM (";
+	$statement .= " SELECT * FROM emails AS e";
 	$statement .= " LEFT OUTER JOIN addressess AS ssf ON ssf.emailid = e.id LEFT OUTER JOIN address AS af ON af.id = ssf.addressid";
 
 	if ( exists $args{email} or exists $args{name} ) {
 		$statement .= " JOIN addressess AS ss ON ss.emailid = e.id JOIN address AS a ON a.id = ss.addressid";
 	}
 
-	if ( exists $args{id} or exists $args{messageid} or exists $args{treeid} or exists $args{date1} or exists $args{date2} or exists $args{implicit} or exists $args{subject} or exists $args{email} or exists $args{name} or exists $args{type} ) {
-		$statement .= " WHERE";
-	}
+	$statement .= " WHERE";
 
 	if ( exists $args{id} ) {
 		$statement .= " e.id = ? AND";
@@ -967,11 +966,10 @@ sub db_emails($;%) {
 		push(@args, $args{type});
 	}
 
-	$statement =~ s/AND$//;
-
-	$statement .= " GROUP BY ssf.type HAVING ssf.type = 0 OR NULL";
-
-	$statement .= " ORDER BY e.date";
+	$statement .= " (ssf.type = 0 OR ssf.type IS NULL)";
+	$statement .= " ) AS ee";
+	$statement .= " GROUP BY ee.id";
+	$statement .= " ORDER BY ee.date";
 
 	if ( $args{desc} ) {
 		$statement .= " DESC";
