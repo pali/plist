@@ -22,7 +22,7 @@ use Cwd;
 # SQL tables:
 #
 # emails:
-# id, messageid, date, subjectid(subjects), list, offset, implicit, hasreply
+# id, messageid, date, subjectid(subjects), subject, list, offset, implicit, hasreply
 #
 # replies:
 # id, emailid1(emails), emailid2(emails), type
@@ -184,6 +184,7 @@ sub create_tables($$) {
 			messageid	$text NOT NULL,
 			date		INTEGER,
 			subjectid	INTEGER NOT NULL REFERENCES subjects(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+			subject		$text,
 			list		$text,
 			offset		INTEGER,
 			implicit	INTEGER NOT NULL,
@@ -438,7 +439,8 @@ sub add_email($$) {
 	my $reply = $header->{reply};
 	my $references = $header->{references};
 	my $date = $header->{date};
-	my $subject = normalize_subject($header->{subject});
+	my $subject = $header->{subject};
+	my $nsubject = normalize_subject($subject);
 
 	# NOTE: SQLite has conflict action directly in CREATE TABLE
 	my $ignoreconflict = "";
@@ -453,7 +455,7 @@ sub add_email($$) {
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($subject);
+		$sth->execute($nsubject);
 	} or do {
 		eval { $dbh->rollback(); };
 		return 0;
@@ -469,6 +471,7 @@ sub add_email($$) {
 				SET
 					date = ?,
 					subjectid = (SELECT id FROM subjects WHERE subject = ?),
+					subject = ?,
 					list = ?,
 					offset = ?,
 					implicit = 0,
@@ -478,10 +481,11 @@ sub add_email($$) {
 		);
 	} else {
 		$statement = qq(
-			INSERT INTO emails (date, subjectid, list, offset, implicit, hasreply, messageid)
+			INSERT INTO emails (date, subjectid, subject, list, offset, implicit, hasreply, messageid)
 				VALUES (
 					?,
 					(SELECT id FROM subjects WHERE subject = ?),
+					?,
 					?,
 					?,
 					0,
@@ -494,7 +498,7 @@ sub add_email($$) {
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($date, $subject, $listfile, $offset, $hasreply, $id);
+		$sth->execute($date, $nsubject, $subject, $listfile, $offset, $hasreply, $id);
 	} or do {
 		eval { $dbh->rollback(); };
 		return 0;
@@ -659,9 +663,8 @@ sub db_email($$;$) {
 
 	# Select email with messageid
 	$statement = qq(
-		SELECT e.id, e.messageid, e.date, s.subject, e.list, e.offset, e.implicit, e.hasreply
+		SELECT e.id, e.messageid, e.date, e.subject, e.list, e.offset, e.implicit, e.hasreply
 			FROM emails AS e
-			JOIN subjects AS s ON s.id = e.subjectid
 			WHERE e.$where = ?
 			LIMIT 1
 		;
@@ -782,10 +785,6 @@ sub db_emails($;%) {
 	my @args;
 	my $ret;
 
-	if ( exists $args{subject} ) {
-		$args{subject} = normalize_subject($args{subject});
-	}
-
 	if ( exists $args{type} ) {
 		if ( $args{type} eq "from" ) {
 			$args{type} = 0;
@@ -799,8 +798,7 @@ sub db_emails($;%) {
 	}
 
 	# Select all email messageids which match conditions
-	$statement = "SELECT DISTINCT e.id, e.messageid, e.date, s.subject, e.list, e.offset, e.implicit, e.hasreply FROM emails AS e";
-	$statement .= " JOIN subjects AS s ON s.id = e.subjectid";
+	$statement = "SELECT DISTINCT e.id, e.messageid, e.date, e.subject, e.list, e.offset, e.implicit, e.hasreply FROM emails AS e";
 
 	if ( exists $args{email} or exists $args{name} ) {
 		$statement .= " JOIN addressess AS ss ON ss.emailid = e.id JOIN address AS a ON a.id = ss.addressid";
@@ -826,7 +824,7 @@ sub db_emails($;%) {
 	}
 
 	if ( exists $args{subject} ) {
-		$statement .= " s.subject LIKE ? AND";
+		$statement .= " e.subject LIKE ? AND";
 		push(@args, "%" . $args{subject} . "%");
 	}
 
@@ -890,10 +888,9 @@ sub db_emails_str($$;%) {
 	my $ret;
 
 	# Select all email messageids which match conditions
-	$statement = "SELECT DISTINCT e.id, e.messageid, e.date, s.subject, e.list, e.offset, e.implicit, e.hasreply FROM emails AS e";
-	$statement .= " JOIN subjects AS s ON s.id = e.subjectid";
+	$statement = "SELECT DISTINCT e.id, e.messageid, e.date, e.subject, e.list, e.offset, e.implicit, e.hasreply FROM emails AS e";
 	$statement .= " JOIN addressess AS ss ON ss.emailid = e.id JOIN address AS a ON a.id = ss.addressid";
-	$statement .= " WHERE ( s.subject LIKE ? OR a.email LIKE ? OR a.name LIKE ? ) AND";
+	$statement .= " WHERE ( e.subject LIKE ? OR a.email LIKE ? OR a.name LIKE ? ) AND";
 
 	push(@args, "%$str%");
 	push(@args, "%$str%");
@@ -1499,6 +1496,7 @@ sub delete($$) {
 				SET
 					date = NULL,
 					subjectid = 1,
+					subject = NULL,
 					list = NULL,
 					offset = NULL,
 					implicit = 1,
