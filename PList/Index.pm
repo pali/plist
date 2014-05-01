@@ -22,7 +22,7 @@ use Cwd;
 # SQL tables:
 #
 # emails:
-# id, messageid, date, subjectid(subjects), subject, list, offset, implicit, hasreply
+# id, messageid, date, subjectid(subjects), subject, treeid, list, offset, implicit, hasreply
 #
 # replies:
 # id, emailid1(emails), emailid2(emails), type
@@ -185,6 +185,7 @@ sub create_tables($$) {
 			date		INTEGER,
 			subjectid	INTEGER NOT NULL REFERENCES subjects(id) ON UPDATE CASCADE ON DELETE RESTRICT,
 			subject		$text,
+			treeid		INTEGER,
 			list		$text,
 			offset		INTEGER,
 			implicit	INTEGER NOT NULL,
@@ -201,6 +202,11 @@ sub create_tables($$) {
 
 	$statement = qq(
 		CREATE INDEX emailssubjectid ON emails(subjectid);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
+		CREATE INDEX emailstreeid ON emails(treeid);
 	);
 	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
@@ -612,6 +618,66 @@ sub add_email($$) {
 		return 0;
 	};
 
+	my ($up_reply, $up_references) = $priv->db_replies($id, 1); # emails up
+	my ($down_reply, $down_references) = $priv->db_replies($id, 0); # emails down
+
+	my %mergeids;
+	$mergeids{${$_}[4]} = 1 foreach (@{$up_reply}, @{$up_references}, @{$down_reply}, @{$down_references});
+
+	my $treeid;
+	my @mergeids = sort keys %mergeids;
+	if ( @mergeids ) {
+		$treeid = shift @mergeids;
+	} else {
+		$statement = "SELECT MAX(treeid)+1 FROM emails;";
+		eval {
+			my $sth = $dbh->prepare_cached($statement);
+			$sth->execute($id);
+			$ret = $sth->fetchall_arrayref();
+		} or do {
+			eval { $dbh->rollback(); };
+			return 0;
+		};
+		if ( not $ret or not @{$ret} ) {
+			eval { $dbh->rollback(); };
+			return 0;
+		}
+		$treeid = ${$ret}[0];
+	}
+
+	$statement = qq(
+		UPDATE emails
+			SET treeid = ?
+			WHERE messageid = ?
+		;
+	);
+
+	eval {
+		my $sth = $dbh->prepare_cached($statement);
+		$sth->execute($treeid, $id);
+	} or do {
+		eval { $dbh->rollback(); };
+		return 0;
+	};
+
+	if ( @mergeids ) {
+		$statement = qq(
+			UPDATE emails
+				SET treeid = ?
+				WHERE treeid = ?
+			;
+		);
+
+		eval {
+			my $sth = $dbh->prepare_cached($statement);
+			$sth->execute($treeid, $_) foreach (@mergeids);
+			1;
+		} or do {
+			eval { $dbh->rollback(); };
+			return 0;
+		};
+	}
+
 	eval {
 		$dbh->commit();
 	} or do {
@@ -973,7 +1039,7 @@ sub db_replies($$;$$$) {
 
 	# Select all emails which are in-reply-to or references (up or down) to specified email
 	$statement = qq(
-		SELECT DISTINCT e2.id, e2.messageid, e2.implicit, r.type
+		SELECT DISTINCT e2.id, e2.messageid, e2.implicit, r.type, e2.treeid
 			FROM emails AS e1
 			JOIN replies AS r ON r.emailid$id1 = e1.id
 			JOIN emails AS e2 ON e2.id = r.emailid$id2
@@ -1021,7 +1087,7 @@ sub db_replies($$;$$$) {
 
 	# Select all emails which has same (non empty) subject as specified email, do not have in-reply-to header and are send before specified email
 	$statement = qq(
-		SELECT DISTINCT e2.id, e2.messageid, e2.implicit
+		SELECT DISTINCT e2.id, e2.messageid, e2.implicit, e2.treeid
 			FROM emails AS e1
 			JOIN emails AS e2 ON e2.subjectid = e1.subjectid
 			WHERE
