@@ -864,7 +864,7 @@ sub db_emails($;%) {
 	}
 
 	# Select all email messageids which match conditions
-	$statement = "SELECT DISTINCT e.id, e.messageid, e.date, e.subject, e.list, e.offset, e.implicit, e.hasreply FROM emails AS e";
+	$statement = "SELECT DISTINCT e.id, e.messageid, e.date, e.subject, e.treeid, e.list, e.offset, e.implicit, e.hasreply FROM emails AS e";
 
 	if ( exists $args{email} or exists $args{name} ) {
 		$statement .= " JOIN addressess AS ss ON ss.emailid = e.id JOIN address AS a ON a.id = ss.addressid";
@@ -954,7 +954,7 @@ sub db_emails_str($$;%) {
 	my $ret;
 
 	# Select all email messageids which match conditions
-	$statement = "SELECT DISTINCT e.id, e.messageid, e.date, e.subject, e.list, e.offset, e.implicit, e.hasreply FROM emails AS e";
+	$statement = "SELECT DISTINCT e.id, e.messageid, e.date, e.subject, e.treeid, e.list, e.offset, e.implicit, e.hasreply FROM emails AS e";
 	$statement .= " JOIN addressess AS ss ON ss.emailid = e.id JOIN address AS a ON a.id = ss.addressid";
 	$statement .= " WHERE ( e.subject LIKE ? OR a.email LIKE ? OR a.name LIKE ? ) AND";
 
