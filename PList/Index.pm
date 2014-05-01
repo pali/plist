@@ -153,6 +153,9 @@ sub create_tables($$) {
 	my $text = "TEXT";
 	$text = "VARCHAR(8192) CHARACTER SET utf8" if $driver eq "mysql";
 
+	my $halftext = "TEXT";
+	$halftext = "VARCHAR(4096) CHARACTER SET utf8" if $driver eq "mysql";
+
 	my $uniquesize = "";
 	$uniquesize = "(255)" if $driver eq "mysql";
 
@@ -186,7 +189,7 @@ sub create_tables($$) {
 			subjectid	INTEGER NOT NULL REFERENCES subjects(id) ON UPDATE CASCADE ON DELETE RESTRICT,
 			subject		$text,
 			treeid		INTEGER,
-			list		$text,
+			list		$halftext,
 			offset		INTEGER,
 			implicit	INTEGER NOT NULL,
 			hasreply	INTEGER,
@@ -622,7 +625,11 @@ sub add_email($$) {
 	my ($down_reply, $down_references) = $priv->db_replies($id, 0); # emails down
 
 	my %mergeids;
-	$mergeids{${$_}[4]} = 1 foreach (@{$up_reply}, @{$up_references}, @{$down_reply}, @{$down_references});
+	foreach (@{$up_reply}, @{$up_references}, @{$down_reply}, @{$down_references}) {
+		my $treeid = ${$_}[3];
+		next unless defined $treeid;
+		$mergeids{$treeid} = 1;
+	}
 
 	my $treeid;
 	my @mergeids = sort keys %mergeids;
@@ -632,17 +639,18 @@ sub add_email($$) {
 		$statement = "SELECT MAX(treeid)+1 FROM emails;";
 		eval {
 			my $sth = $dbh->prepare_cached($statement);
-			$sth->execute($id);
+			$sth->execute();
 			$ret = $sth->fetchall_arrayref();
 		} or do {
 			eval { $dbh->rollback(); };
 			return 0;
 		};
-		if ( not $ret or not @{$ret} ) {
+		if ( not $ret or not @{$ret} or not ${$ret}[0] ) {
 			eval { $dbh->rollback(); };
 			return 0;
 		}
-		$treeid = ${$ret}[0];
+		$treeid = ${${$ret}[0]}[0];
+		$treeid = 1 unless defined $treeid;
 	}
 
 	$statement = qq(
@@ -1054,7 +1062,7 @@ sub db_replies($$;$$$) {
 
 	# Select all emails which are in-reply-to or references (up or down) to specified email
 	$statement = qq(
-		SELECT DISTINCT e2.id, e2.messageid, e2.implicit, r.type, e2.treeid
+		SELECT DISTINCT e2.id, e2.messageid, e2.implicit, e2.treeid, r.type
 			FROM emails AS e1
 			JOIN replies AS r ON r.emailid$id1 = e1.id
 			JOIN emails AS e2 ON e2.id = r.emailid$id2
