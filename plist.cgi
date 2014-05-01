@@ -745,7 +745,7 @@ if ( $action eq "get-bin" ) {
 		print $q->br();
 	}
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
-	print $q->Tr($q->th({-align => "left"}, ["Subject", "Date $order"])) . "\n";
+	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order"])) . "\n";
 
 	my $neednext;
 	my $printbr = 1;
@@ -761,11 +761,19 @@ if ( $action eq "get-bin" ) {
 		my $mid = $_->{messageid};
 		my $date = format_date($_->{date});
 		my $subject = $_->{subject};
+		my $email = $_->{email};
+		my $name = $_->{name};
 		$subject = "unknown" unless $subject;
 		$date = "unknown" unless $date;
 		print $q->start_Tr();
 		print $q->start_td();
 		print_ahref(gen_url(action => "view", id => $mid), $subject, 1);
+		print $q->end_td();
+		print $q->start_td();
+		print "unknown" if not $name and not $email;
+		print_ahref(gen_url(action => "search", name => $name), $name, 1) if $name;
+		print " " if $name and $email;
+		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1) if $email;
 		print $q->end_td();
 		print $q->start_td({style => "white-space:nowrap"});
 		print $q->escapeHTML($date);
