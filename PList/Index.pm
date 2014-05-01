@@ -906,7 +906,8 @@ sub db_emails($;%) {
 	}
 
 	# Select all email messageids which match conditions
-	$statement = "SELECT DISTINCT e.id, e.messageid, e.date, e.subject, e.treeid, e.list, e.offset, e.implicit, e.hasreply FROM emails AS e";
+	$statement = "SELECT DISTINCT e.id, e.messageid, e.date, e.subject, e.treeid, af.email, af.name, e.list, e.offset, e.implicit, e.hasreply FROM emails AS e";
+	$statement .= " LEFT OUTER JOIN addressess AS ssf ON ssf.emailid = e.id LEFT OUTER JOIN address AS af ON af.id = ssf.addressid";
 
 	if ( exists $args{email} or exists $args{name} ) {
 		$statement .= " JOIN addressess AS ss ON ss.emailid = e.id JOIN address AS a ON a.id = ss.addressid";
@@ -967,6 +968,8 @@ sub db_emails($;%) {
 	}
 
 	$statement =~ s/AND$//;
+
+	$statement .= " GROUP BY ssf.type HAVING ssf.type = 0 OR NULL";
 
 	$statement .= " ORDER BY e.date";
 
