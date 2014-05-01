@@ -513,6 +513,25 @@ sub add_email($$) {
 		return 0;
 	};
 
+	$statement = "SELECT MAX(treeid)+1 FROM emails;";
+
+	eval {
+		my $sth = $dbh->prepare_cached($statement);
+		$sth->execute();
+		$ret = $sth->fetchall_arrayref();
+	} or do {
+		eval { $dbh->rollback(); };
+		return 0;
+	};
+
+	if ( not $ret or not @{$ret} or not ${$ret}[0] ) {
+		eval { $dbh->rollback(); };
+		return 0;
+	}
+
+	my $newtreeid = ${${$ret}[0]}[0];
+	$newtreeid = 1 unless defined $newtreeid;
+
 	my @replies;
 
 	if ( $reply and @{$reply} ) {
@@ -524,15 +543,15 @@ sub add_email($$) {
 
 	# Insert in-reply-to and references emails to database as implicit (if not exists)
 	$statement = qq(
-		INSERT INTO emails (messageid, subjectid, implicit)
-			VALUES (?, 1, 1)
+		INSERT INTO emails (messageid, subjectid, treeid, implicit)
+			VALUES (?, 1, ?, 1)
 			$ignoreconflict
 		;
 	);
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute(${$_}[1]) foreach (@replies);
+		$sth->execute(${$_}[1], $newtreeid) foreach (@replies);
 		1;
 	} or do {
 		eval { $dbh->rollback(); };
@@ -636,21 +655,7 @@ sub add_email($$) {
 	if ( @mergeids ) {
 		$treeid = shift @mergeids;
 	} else {
-		$statement = "SELECT MAX(treeid)+1 FROM emails;";
-		eval {
-			my $sth = $dbh->prepare_cached($statement);
-			$sth->execute();
-			$ret = $sth->fetchall_arrayref();
-		} or do {
-			eval { $dbh->rollback(); };
-			return 0;
-		};
-		if ( not $ret or not @{$ret} or not ${$ret}[0] ) {
-			eval { $dbh->rollback(); };
-			return 0;
-		}
-		$treeid = ${${$ret}[0]}[0];
-		$treeid = 1 unless defined $treeid;
+		$treeid = $newtreeid;
 	}
 
 	$statement = qq(
