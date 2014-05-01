@@ -639,6 +639,9 @@ if ( $action eq "get-bin" ) {
 	(my $date1, my $date2) = parse_date($year, $month, $day);
 
 	my $str = $q->param("str");
+	my $rid = $q->param("id");
+	my $messageid = $q->param("messageid");
+	my $treeid = $q->param("treeid");
 	my $subject = $q->param("subject");
 	my $email = $q->param("email");
 	my $name = $q->param("name");
@@ -656,6 +659,9 @@ if ( $action eq "get-bin" ) {
 	$date2 = $q->param("date2") unless defined $date2;
 
 	$str = "" unless defined $str;
+	$rid = "" unless defined $rid;
+	$messageid = "" unless defined $messageid;
+	$treeid = "" unless defined $treeid;
 	$subject = "" unless defined $subject;
 	$email = "" unless defined $email;
 	$name = "" unless defined $name;
@@ -671,6 +677,9 @@ if ( $action eq "get-bin" ) {
 	my %args;
 
 	if ( not length $str ) {
+		$args{id} = $rid if length $rid;
+		$args{messageid} = $messageid if length $messageid;
+		$args{treeid} = $treeid if length $treeid;
 		$args{subject} = $subject if length $subject;
 		$args{email} = $email if length $email;
 		$args{name} = $name if length $name;
