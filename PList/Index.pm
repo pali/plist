@@ -870,8 +870,23 @@ sub db_emails($;%) {
 		$statement .= " JOIN addressess AS ss ON ss.emailid = e.id JOIN address AS a ON a.id = ss.addressid";
 	}
 
-	if ( exists $args{date1} or exists $args{date2} or exists $args{implicit} or exists $args{subject} or exists $args{email} or exists $args{name} or exists $args{type} ) {
+	if ( exists $args{id} or exists $args{messageid} or exists $args{treeid} or exists $args{date1} or exists $args{date2} or exists $args{implicit} or exists $args{subject} or exists $args{email} or exists $args{name} or exists $args{type} ) {
 		$statement .= " WHERE";
+	}
+
+	if ( exists $args{id} ) {
+		$statement .= " e.id = ? AND";
+		push(@args, $args{id});
+	}
+
+	if ( exists $args{messageid} ) {
+		$statement .= " e.messageid = ? AND";
+		push(@args, $args{messageid});
+	}
+
+	if ( exists $args{treeid} ) {
+		$statement .= " e.treeid = ? AND";
+		push(@args, $args{treeid});
 	}
 
 	if ( exists $args{date1} ) {
