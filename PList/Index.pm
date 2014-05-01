@@ -1072,6 +1072,43 @@ sub db_emails_str($$;%) {
 
 }
 
+sub db_graph($$;$) {
+
+	my ($priv, $id, $rid) = @_;
+
+	my $dbh = $priv->{dbh};
+
+	my $where = "messageid";
+	$where = "id" if $rid;
+
+	my $statement;
+	my $ret;
+
+	$statement = qq(
+		SELECT e1.id AS id1, e1.messageid AS messageid1, e1.implicit AS implicit1, e2.id AS id2, r2.messageid AS messageid2, e2.implicit AS implicit2, r.type AS type, e1.treeid AS treeid
+			FROM emails AS e1
+			JOIN replies AS r ON r.emailid2 = e1.id
+			JOIN emails AS e2 ON e2.id = r.emailid1
+			WHERE e1.treeid = (SELECT treeid FROM emails WHERE $where = ?)
+			ORDER BY r.type, e1.date, e2.date
+		;
+	);
+
+	eval {
+		my $sth = $dbh->prepare_cached($statement);
+		$sth->execute($id);
+		$ret = $sth->fetchall_arrayref({});
+	} or do {
+		eval { $dbh->rollback(); };
+		return undef;
+	};
+
+	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
+
+	return $ret;
+
+}
+
 sub db_replies($$;$$$) {
 
 	my ($priv, $id, $up, $desc, $rid) = @_;
