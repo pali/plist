@@ -50,6 +50,8 @@ sub gen_url {
 	my $oldaction = $q->escape($action);
 	my $oldid = $q->escape($id);
 	my $oldpath = $q->escape($path);
+	$oldpath =~ s/%2F/\//g;
+	$oldpath =~ s/%5C/\\/g;
 	my $newindexdir = $oldindexdir;
 	my $newaction = $oldaction;
 	my $newid = "";
@@ -72,6 +74,8 @@ sub gen_url {
 			$newid = $value;
 		} elsif ( $key eq "path" ) {
 			$newpath = $q->escape($value);
+			$newpath =~ s/%2F/\//g;
+			$newpath =~ s/%5C/\\/g;
 		} elsif ( $key eq "-path" ) {
 			$newpath = $value;
 		} elsif ( $key =~ /^-(.*)$/ ) {
