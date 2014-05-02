@@ -98,7 +98,7 @@ sub ids(@) {
 
 	my @ret;
 	push(@ret, m/<\s*([^<>]+)\s*>/g) foreach (@_);
-	return map { $_ =~ s/\s//g; length($_) > 4 ? $_ : () } @ret;
+	return map { $_ =~ s/[\s\\\/]//g; length($_) > 4 ? $_ : () } @ret;
 	# NOTE: Too short ids cannot be used as unique identifier
 
 }
@@ -126,7 +126,7 @@ sub messageid($) {
 	# NOTE: Too short message id cannot be used as unique identifier
 	if ( $id and length($id) > 4 ) {
 		$id =~ s/^\s*<(.*)>\s*$/$1/;
-		$id =~ s/\s//g;
+		$id =~ s/[\s\\\/]//g;
 		return $id;
 	} else {
 		# Generate some stable unique message-id which is needed for indexing
