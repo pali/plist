@@ -224,8 +224,8 @@ sub index_tree_get($$) {
 		print "Subject: $subject\n";
 	}
 
-	my $tree = $index->db_tree($id, 0, 1);
-	if ( not $tree ) {
+	my ($tree, $emails) = $index->db_tree($id, 0, 1);
+	if ( not $tree or not $tree->{root} ) {
 		print "Error: Tree not found\n";
 		return;
 	}
