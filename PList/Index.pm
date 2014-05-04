@@ -1488,36 +1488,17 @@ sub db_roots($$;%) {
 
 	my @args;
 
-	my $date = "";
-	my $havingdate = "";
+	my $having = "";
 	my $limit = "";
 
-	if ( exists $args{date1} ) {
-		$date .= "AND date >= ?";
-		push(@args, $args{date1});
-	}
-
-	if ( exists $args{date2} ) {
-		$date .= "AND date < ?";
-		push(@args, $args{date2});
-	}
-
-	if ( exists $args{date1} ) {
-		push(@args, $args{date1});
-	}
-
-	if ( exists $args{date2} ) {
-		push(@args, $args{date2});
-	}
-
 	if ( exists $args{date1} and exists $args{date2} ) {
-		$havingdate = "HAVING MIN(e2.date) >= ? AND MIN(e2.date) < ?";
+		$having = "HAVING MIN(e.date) >= ? AND MIN(e.date) < ?";
 		push(@args, $args{date1}, $args{date2});
 	} elsif ( exists $args{date1} ) {
-		$havingdate = "HAVING MIN(e2.date) >= ?";
+		$having = "HAVING MIN(e.date) >= ?";
 		push(@args, $args{date1});
 	} elsif ( exists $args{date2} ) {
-		$havingdate = "HAVING MIN(e2.date) < ?";
+		$having = "HAVING MIN(e.date) < ?";
 		push(@args, $args{date2});
 	}
 
@@ -1533,47 +1514,14 @@ sub db_roots($$;%) {
 	}
 
 	$statement = qq(
-		SELECT e1.id AS id, e1.messageid AS messageid, e1.date AS date, s.subject AS subject, e1.implicit AS implicit
-			FROM (
-				SELECT e1.id, e1.messageid, e1.date AS date, e1.subjectid, e1.implicit
-					FROM emails AS e1,
-						(
-							SELECT subjectid, MIN(date) AS date2
-								FROM emails
-								WHERE hasreply = 0 AND subjectid != 1 AND subjectid != 2
-								GROUP BY subjectid
-						) AS e2
-					WHERE
-						e1.subjectid = e2.subjectid AND
-						e1.date = e2.date2
-						$date
-			) AS e1
-			JOIN subjects AS s ON s.id = e1.subjectid
-		UNION
-		SELECT e1.id AS id, e1.messageid AS messageid, e1.date AS date, s.subject AS subject, e1.implicit AS implicit
-			FROM emails AS e1
-			JOIN subjects AS s ON s.id = e1.subjectid
-			WHERE
-				e1.hasreply = 0 AND
-				e1.subjectid = 2
-				$date
-		UNION
-		SELECT e1.id AS id, e1.messageid AS messageid, MIN(e2.date) AS date, s.subject AS subject, e1.implicit AS implicit
-			FROM emails AS e1
-			LEFT OUTER JOIN replies AS r1 ON r1.emailid2 = e1.id
-			LEFT OUTER JOIN emails AS e2 ON e2.id = r1.emailid1
-			JOIN subjects AS s ON s.id = e2.subjectid
-			WHERE
-				e1.implicit = 1 AND
-				e2.implicit = 0 AND
-				EXISTS (
-					SELECT * FROM replies AS r2
-						WHERE r2.emailid2 = e1.id AND r2.type = 0
-				)
-			GROUP BY e1.id
-			$havingdate
-		ORDER BY date $desc
-		$limit
+		SELECT e.id AS id, e.messageid AS messageid, MIN(e.date) AS date, s.subject AS subject, e.treeid AS treeid
+			FROM emails AS e
+			JOIN subjects AS s ON s.id = e.subjectid
+			WHERE implicit = 0
+			GROUP BY treeid
+			$having
+			ORDER BY MIN(date) $desc
+			$limit
 		;
 	);
 
