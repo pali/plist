@@ -1141,6 +1141,211 @@ sub db_graph($$) {
 
 }
 
+sub djs_makeset($$$) {
+
+	my ($parent, $size, $i) = @_;
+
+	$parent->{$i} = $i;
+	$size->{$i} = 1;
+
+}
+
+sub djs_merge($$$$) {
+
+	my ($parent, $size, $a, $b) = @_;
+
+	if ( $size->{$a} < $size->{$b} ) {
+		($a, $b) = ($b, $a);
+	}
+
+	$parent->{$b} = $a;
+	$size->{$a} += $size->{$b};
+
+}
+
+sub djs_find($$$) {
+
+	my ($parent, $size, $i) = @_;
+
+	my $root = $i;
+
+	while ( $root != $parent->{$root} ) {
+		$root = $parent->{$root};
+	}
+
+	while ( $i != $parent->{$i} ) {
+		my $par = $parent->{$i};
+		$parent->{$i} = $root;
+		$i = $par;
+	}
+
+	return $root;
+
+}
+
+sub db_tree($$;$$$$) {
+
+	# TODO: Fix ordering in this function
+
+	my ($priv, $id, $desc, $rid, $limitup, $limitdown) = @_;
+
+	my $treeid = $priv->db_treeid($id, $rid);
+	my $emails = $priv->db_emails(treeid => $treeid);
+	my $graph = $priv->db_graph($treeid);
+
+	my %emails;
+	$emails{$_->{id}} = $_ foreach @{$emails};
+
+	my %graphr; # reverse
+
+	if ( $graph ) {
+		foreach ( @{$graph} ) {
+			my $id1 = $_->{id1};
+			my $id2 = $_->{id2};
+			my $type = $_->{type};
+			$graphr{$id2} = [] unless $graphr{$id2};
+			push(@{$graphr{$id2}}, [$id1, $type]);
+		}
+	}
+
+	# Make sure that every email has only one in-reply-to edge (other set to references)
+	foreach ( keys %graphr ) {
+		my $reply = 0;
+		foreach ( @{$graphr{$_}} ) {
+			next if $_->[1] != 0;
+			if ( not $reply ) {
+				$reply = 1;
+			} else {
+				$_->[1] = 1;
+			}
+		}
+	}
+
+	my %treer; # reverse
+
+	my %djs_parent;
+	my %djs_size;
+	djs_makeset(\%djs_parent, \%djs_size, $_->{id}) foreach @{$emails};
+
+	# First add in-reply-to edges
+	foreach ( @{$emails} ) {
+		my $id2 = $_->{id};
+		next if exists $treer{$id2};
+		next unless $graphr{$id2};
+		foreach ( @{$graphr{$id2}} ) {
+			my $id1 = $_->[0];
+			my $type = $_->[1];
+			next if $type != 0;
+			next if djs_find(\%djs_parent, \%djs_size, $id1) == djs_find(\%djs_parent, \%djs_size, $id2);
+			djs_merge(\%djs_parent, \%djs_size, $id1, $id2);
+			$treer{$id2} = $id1;
+		}
+	}
+
+	if ( (scalar keys %graphr) != (scalar keys %treer) + 1 ) {
+
+		# Then add unambiguous references edges
+		foreach ( @{$emails} ) {
+			my $id2 = $_->{id};
+			next if exists $treer{$id2};
+			next unless $graphr{$id2};
+			my $pos = -1;
+			my $i = -1;
+			foreach ( @{$graphr{$id2}} ) {
+				++$i;
+				my $id1 = $_->[0];
+				my $type = $_->[1];
+				next if $type != 1;
+				if ( $pos != -1 ) {
+					$pos = -1;
+					last;
+				}
+				$pos = $i;
+			}
+			my $id1 = $graphr{$id2}->[$pos];
+			if ( djs_find(\%djs_parent, \%djs_size, $id1) != djs_find(\%djs_parent, \%djs_size, $id2) ) {
+				djs_merge(\%djs_parent, \%djs_size, $id1, $id2);
+				$treer{$id2} = $id1;
+			}
+		}
+
+	}
+
+	my $root;
+
+	if ( (scalar keys %graphr) != (scalar keys %treer) + 1 ) {
+
+		# Select candidates for root
+		my %processed;
+		my @roots;
+
+		foreach ( keys %graphr ) {
+			my $id = $_;
+			next if $processed{$id};
+			$processed{$id} = 1;
+			my $next = 0;
+			while ( $treer{$id} ) {
+				$id = $treer{$id};
+				$next = 1 if $processed{$id};
+				last if $next;
+				$processed{$id} = 1;
+			}
+			next if $next;
+			push(@roots, $id);
+		}
+
+		# Set oldest email as root
+		# In case that all candicates are implicit emails (with NULL date) first will be selected
+		$root = $roots[0];
+		my $date = $emails{$root}->{date};
+		foreach ( @roots ) {
+			my $newdate = $emails{$_}->{date};
+			next unless defined $newdate;
+			next if $date < $newdate;
+			$date = $newdate;
+			$root = $_;
+		}
+
+		# TODO: add other references edges
+
+	} else {
+
+		# Set root from treer (there is only one)
+		foreach ( keys %treer ) {
+			next if $treer{$_};
+			$root = $_;
+			last;
+		}
+
+	}
+
+	# Add missing emails to root
+	foreach ( keys %emails ) {
+		next if exists $treer{$_};
+		$treer{$_} = $root;
+	}
+
+	# Build direct (not reverse) tree
+	my %tree = ( root => [$root], $root => [] );
+	foreach ( keys %treer ) {
+		my $id2 = $_;
+		my $id1 = $treer{$id2};
+		$tree{$id1} = [] unless $tree{$id1};
+		push(@{$tree{$id1}}, $id2);
+	}
+
+	# Remove implicit emails from root which are without replies
+	my @subroots;
+	foreach ( @{$tree{$root}} ) {
+		next if $emails{$_}->{implicit} and not $tree{$_};
+		push(@subroots, $_);
+	}
+	$tree{$root} = \@subroots;
+
+	return \%tree;
+
+}
+
 sub db_replies($$;$$$) {
 
 	my ($priv, $id, $up, $desc, $rid) = @_;
@@ -1251,182 +1456,6 @@ sub db_replies($$;$$$) {
 
 	push(@reply, @{$ret});
 	return (\@reply, \@references);
-
-}
-
-sub db_subtree($$;$$$) {
-
-	my ($priv, $id, $desc, $rid, $limit) = @_;
-
-	my %tree = ( root => [] );
-	my %treerev;
-	my %tree2;
-	my %processed = ( root => 1 );
-	my @stack1 = (["root", $id, 0]);
-	my @stack2;
-	my @stack3;
-
-	my $arri = 1;
-	$arri = 0 if $rid;
-
-	while ( scalar @stack1 or scalar @stack2 or scalar @stack3 ) {
-
-		my $m;
-		my $s3;
-		if ( scalar @stack1 ) {
-			$m = pop(@stack1);
-		} elsif ( scalar @stack2 ) {
-			$m = pop(@stack2);
-		} else {
-			$m = pop(@stack3);
-			$s3 = 1;
-		}
-
-		my ($up, $tid, $len) = @{$m};
-
-		next if $processed{$tid};
-
-		next if defined $limit and $len > $limit;
-
-		$tree{$tid} = [] unless $tree{$tid};
-
-		if ( $s3 ) {
-			$tree2{$up} = [] unless $tree2{$up};
-			push(@{$tree2{$up}}, $tid);
-		} else {
-			$treerev{$tid} = [] unless $treerev{$tid};
-			$processed{$tid} = 1;
-			push(@{$tree{$up}}, $tid);
-			push(@{$treerev{$tid}}, $up);
-		}
-
-		my ($reply, $references) = $priv->db_replies($tid, 0, $desc, $rid);
-
-		if ( scalar @{$reply} ) {
-			push(@stack1, [$tid, ${$_}[$arri], $len+1]) foreach ( @{$reply} );
-			if ( not defined $limit ) {
-				push(@stack2, [$tid, ${$_}[$arri], $len+1]) foreach ( @{$references} );
-			}
-		} else {
-			push(@stack3, [$tid, ${$_}[$arri], $len+1]) foreach ( @{$references} );
-		}
-
-	}
-
-	foreach my $up ( keys %tree2 ) {
-		foreach my $tid ( @{$tree2{$up}} ) {
-			if ( not exists $treerev{$tid} ) {
-				push(@{$tree{$up}}, $tid);
-			}
-		}
-	}
-
-	return \%tree;
-
-}
-
-sub db_tree($$;$$$$) {
-
-	my ($priv, $id, $desc, $rid, $limitup, $limitdown) = @_;
-
-	my $tid = $id;
-	my $impl = 0;
-
-	my %processed;
-
-	my $arri = 1;
-	$arri = 0 if $rid;
-
-	my $count = 0;
-
-	while ( 1 ) {
-
-		last if defined $limitup and ++$count > $limitup;
-
-		my ($reply, $references) = $priv->db_replies($tid, 1, 0, $rid);
-
-		$processed{$tid} = 1;
-
-		my $newtid;
-		my $newimpl = 0;
-
-		foreach ( @{$reply} ) {
-			if ( not ${$_}[2] and not $processed{${$_}[$arri]} ) {
-				$newtid = ${$_}[$arri];
-				last;
-			}
-		}
-
-		if ( $newtid ) {
-			$tid = $newtid;
-			$impl = $newimpl;
-			redo;
-		}
-
-		foreach ( @{$references} ) {
-			if ( not ${$_}[2] and not $processed{${$_}[$arri]} ) {
-				$newtid = ${$_}[$arri];
-				last;
-			}
-		}
-
-		if ( $newtid ) {
-			$tid = $newtid;
-			$impl = $newimpl;
-			redo;
-		}
-
-		$newimpl = 1;
-
-		foreach ( @{$reply} ) {
-			if ( not $processed{${$_}[$arri]} ) {
-				$newtid = ${$_}[$arri];
-				last;
-			}
-		}
-
-		if ( $newtid ) {
-			$tid = $newtid;
-			$impl = $newimpl;
-			redo;
-		}
-
-		foreach ( @{$references} ) {
-			if ( not $processed{${$_}[$arri]} ) {
-				$newtid = ${$_}[$arri];
-				last;
-			}
-		}
-
-		if ( $newtid ) {
-			$tid = $newtid;
-			$impl = $newimpl;
-			redo;
-		}
-
-		last;
-
-	}
-
-	my $limit;
-
-	if ( defined $limitup and $limitdown ) {
-		$limit = $limitup + $limitdown;
-	} elsif ( defined $limitdown ) {
-		$limit = $limitdown;
-	}
-
-	my $tree = $priv->db_subtree($tid, $desc, $rid, $limit);
-
-	if ( $impl ) {
-		my $root = ${$tree->{root}}[0];
-		if ( $id ne $root and scalar @{$tree->{$root}} == 1 ) {
-			$tree->{root} = $tree->{$root};
-			delete $tree->{$root};
-		}
-	}
-
-	return $tree;
 
 }
 
