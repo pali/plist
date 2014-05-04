@@ -29,7 +29,7 @@ sub help() {
 	print "index get-bin <dir> <id> [<bin>]\n";
 	print "index get-part <dir> <id> <part> [<file>]\n";
 	print "index get-roots <dir> [desc] [date1] [date2] [limit] [offset]\n";
-	print "index get-tree <dir> <id> [<file]\n";
+	print "index get-tree <dir> <id> [<file>]\n";
 	print "index gen-html <dir> <id> [<html>]\n";
 	print "index gen-txt <dir> <id> [<txt>]\n";
 	print "index del <dir> <id>\n";
