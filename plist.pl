@@ -586,11 +586,11 @@ if ( not $mod or not $command ) {
 		my $roots = $index->db_roots($desc, %args);
 
 		print "Roots:\n";
-		printf("%2s %7s %12s %60s %7s\n", "i", "id", "date", "messageid", "subject");
+		printf("%7s %12s %7s\n", "treeid", "date", "subject");
 		if ( $roots ) {
 			foreach ( @{$roots} ) {
 				if ( $_ ) {
-					printf("%2d %7d %12d %60s %7s\n", $_->{implicit}, $_->{id}, $_->{date}, $_->{messageid}, $_->{subject});
+					printf("%7d %12d %7s\n", $_->{treeid}, $_->{date}, $_->{subject});
 				}
 			}
 		}
