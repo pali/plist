@@ -1186,26 +1186,30 @@ sub djs_find($$$) {
 sub db_tree($$;$$$$) {
 
 	# TODO: Fix ordering in this function
+	# TODO: implement $limitup and $limitdown
 
 	my ($priv, $id, $desc, $rid, $limitup, $limitdown) = @_;
 
 	my $treeid = $priv->db_treeid($id, $rid);
+	return undef unless defined $treeid;
+
 	my $emails = $priv->db_emails(treeid => $treeid);
+	return undef unless $emails and @{$emails};
+
 	my $graph = $priv->db_graph($treeid);
+	return undef unless $graph;
 
 	my %emails;
 	$emails{$_->{id}} = $_ foreach @{$emails};
 
 	my %graphr; # reverse
 
-	if ( $graph ) {
-		foreach ( @{$graph} ) {
-			my $id1 = $_->{id1};
-			my $id2 = $_->{id2};
-			my $type = $_->{type};
-			$graphr{$id2} = [] unless $graphr{$id2};
-			push(@{$graphr{$id2}}, [$id1, $type]);
-		}
+	foreach ( @{$graph} ) {
+		my $id1 = $_->{id1};
+		my $id2 = $_->{id2};
+		my $type = $_->{type};
+		$graphr{$id2} = [] unless $graphr{$id2};
+		push(@{$graphr{$id2}}, [$id1, $type]);
 	}
 
 	# Make sure that every email has only one in-reply-to edge (other set to references)
@@ -1227,22 +1231,26 @@ sub db_tree($$;$$$$) {
 	my %djs_size;
 	djs_makeset(\%djs_parent, \%djs_size, $_->{id}) foreach @{$emails};
 
-	# First add in-reply-to edges
-	foreach ( @{$emails} ) {
-		my $id2 = $_->{id};
-		next if exists $treer{$id2};
-		next unless $graphr{$id2};
-		foreach ( @{$graphr{$id2}} ) {
-			my $id1 = $_->[0];
-			my $type = $_->[1];
-			next if $type != 0;
-			next if djs_find(\%djs_parent, \%djs_size, $id1) == djs_find(\%djs_parent, \%djs_size, $id2);
-			djs_merge(\%djs_parent, \%djs_size, $id1, $id2);
-			$treer{$id2} = $id1;
+	if ( (scalar keys %graphr) != 0 ) {
+
+		# First add in-reply-to edges
+		foreach ( @{$emails} ) {
+			my $id2 = $_->{id};
+			next if exists $treer{$id2};
+			next unless $graphr{$id2};
+			foreach ( @{$graphr{$id2}} ) {
+				my $id1 = $_->[0];
+				my $type = $_->[1];
+				next if $type != 0;
+				next if djs_find(\%djs_parent, \%djs_size, $id1) == djs_find(\%djs_parent, \%djs_size, $id2);
+				djs_merge(\%djs_parent, \%djs_size, $id1, $id2);
+				$treer{$id2} = $id1;
+			}
 		}
+
 	}
 
-	if ( (scalar keys %graphr) != (scalar keys %treer) + 1 ) {
+	if ( (scalar keys %graphr) != 0 and (scalar keys %graphr) != (scalar keys %treer) + 1 ) {
 
 		# Then add unambiguous references edges
 		foreach ( @{$emails} ) {
@@ -1279,8 +1287,8 @@ sub db_tree($$;$$$$) {
 		my %processed;
 		my @roots;
 
-		foreach ( keys %graphr ) {
-			my $id = $_;
+		foreach ( @{$emails} ) {
+			my $id = $_->{id};
 			next if $processed{$id};
 			$processed{$id} = 1;
 			my $next = 0;
@@ -1294,10 +1302,12 @@ sub db_tree($$;$$$$) {
 			push(@roots, $id);
 		}
 
+		return undef unless @roots; # This should not happen, otherwise bug in database
+
 		# Set oldest email as root
 		# In case that all candicates are implicit emails (with NULL date) first will be selected
 		$root = $roots[0];
-		my $date = $emails{$root}->{date};
+		my $date = "inf";
 		foreach ( @roots ) {
 			my $newdate = $emails{$_}->{date};
 			next unless defined $newdate;
@@ -1318,6 +1328,8 @@ sub db_tree($$;$$$$) {
 		}
 
 	}
+
+	return undef unless defined $root; # This should not happen, otherwise bug
 
 	# Add missing emails to root
 	foreach ( keys %emails ) {
