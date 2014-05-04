@@ -182,7 +182,17 @@ sub index_tree_get($$) {
 
 	my ($index, $messageid) = @_;
 
-	my $email = $index->db_email($messageid);
+	my ($tree, $emails) = $index->db_tree($messageid, 0, 0);
+	if ( not $tree or not $tree->{root} ) {
+		print "Error: Tree not found\n";
+		return;
+	}
+
+	my $email;
+	foreach ( keys %{$emails} ) {
+		next if $emails->{$_}->{messageid} ne $messageid;
+		$email = $emails->{$_};
+	}
 
 	if ( not $email ) {
 		print "Error: Email not found\n";
@@ -191,30 +201,13 @@ sub index_tree_get($$) {
 
 	my $id = $email->{id};
 	my $implicit = $email->{implicit};
-	my $from = $email->{from};
-	my $to = $email->{to};
-	my $cc = $email->{cc};
 	my $date = $email->{date};
 	my $subject = $email->{subject};
+	my $from = $email->{name} . " <" . $email->{email} . ">";
 
 	print "Internal id: $id\n";
 	print "Id: $messageid\n";
-
-	if ( $from and @{$from} ) {
-		print "From:";
-		print " " . $_->[1] . " <" . $_->[0] . ">" foreach (@{$from});
-		print "\n";
-	}
-	if ( $to and @{$to} ) {
-		print "To:";
-		print " " . $_->[1] . " <" . $_->[0] . ">" foreach (@{$to});
-		print "\n";
-	}
-	if ( $cc and @{$cc} ) {
-		print "Cc:";
-		print " " . $_->[1] . " <" . $_->[0] . ">" foreach (@{$cc});
-		print "\n";
-	}
+	print "From: $from\n";
 
 	if ( $date ) {
 		print "Date: $date\n";
@@ -222,12 +215,6 @@ sub index_tree_get($$) {
 
 	if ( $subject ) {
 		print "Subject: $subject\n";
-	}
-
-	my ($tree, $emails) = $index->db_tree($id, 0, 1);
-	if ( not $tree or not $tree->{root} ) {
-		print "Error: Tree not found\n";
-		return;
 	}
 
 	my $root = ${$tree->{root}}[0];
