@@ -369,9 +369,6 @@ if ( $action eq "get-bin" ) {
 
 	error("Param id was not specified") unless $id;
 
-	my $email = $index->db_email($id);
-	error("Email with $id does not exist in archive $indexdir") unless $email;
-
 	print_start_html("Tree for email $id");
 
 	my $order = "";
@@ -381,7 +378,7 @@ if ( $action eq "get-bin" ) {
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order"])) . "\n";
 
-	my $count = print_tree($index, $email->{id}, $desc, 1, undef, undef, {});
+	my $count = print_tree($index, $id, $desc, undef, undef, undef, {});
 
 	print $q->end_table() . "\n";
 
