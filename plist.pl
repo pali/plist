@@ -225,6 +225,11 @@ sub index_tree_get($$) {
 	}
 
 	my $tree = $index->db_tree($id, 0, 1);
+	if ( not $tree ) {
+		print "Error: Tree not found\n";
+		return;
+	}
+
 	my $root = ${$tree->{root}}[0];
 
 	delete $tree->{root};
