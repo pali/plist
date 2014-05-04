@@ -1360,7 +1360,7 @@ sub db_tree($$;$$$$) {
 	}
 	$tree{$root} = \@subroots;
 
-	return \%tree;
+	return (\%tree, \%emails);
 
 }
 
