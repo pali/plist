@@ -1190,8 +1190,14 @@ sub db_tree($$;$$$$) {
 
 	my ($priv, $id, $desc, $rid, $limitup, $limitdown) = @_;
 
-	my $treeid = $priv->db_treeid($id, $rid);
-	return undef unless defined $treeid;
+	my $treeid;
+
+	if ( defined $rid and $rid == 2 ) {
+		$treeid = $id;
+	} else {
+		$treeid = $priv->db_treeid($id, $rid);
+		return undef unless defined $treeid;
+	}
 
 	my $emails = $priv->db_emails(treeid => $treeid);
 	return undef unless $emails and @{$emails};
