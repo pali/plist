@@ -262,8 +262,8 @@ sub print_tree($$$$$$$) {
 
 	my $count = 0;
 
-	my $tree = $index->db_tree($id, $desc, $rid, $limitup, $limitdown);
-	if ( not $tree ) {
+	my ($tree, $emails) = $index->db_tree($id, $desc, $rid, $limitup, $limitdown);
+	if ( not $tree or not $tree->{root} ) {
 		return 0;
 	}
 	my $root = ${$tree->{root}}[0];
@@ -287,13 +287,13 @@ sub print_tree($$$$$$$) {
 			}
 		}
 
-		my $email = $index->db_email($tid, 1);
+		my $e = $emails->{$tid};
 
-		#TODO: db_email can fail
-
-		my $mid = $email->{messageid};
-		my $subject = $email->{subject};
-		my $date = format_date($email->{date});
+		my $mid = $e->{messageid};
+		my $subject = $e->{subject};
+		my $name = $e->{name};
+		my $email = $e->{email};
+		my $date = format_date($e->{date});
 
 		$count++;
 
@@ -310,14 +310,10 @@ sub print_tree($$$$$$$) {
 		print $q->end_td();
 
 		print $q->start_td();
-		if ( @{$email->{from}} ) {
-			# TODO: Fix this code, add needed checks
-			print_ahref(gen_url(action => "search", name => ${${$email->{from}}[0]}[1]), ${${$email->{from}}[0]}[1], 1);
-			print " ";
-			print_ahref(gen_url(action => "search", email => ${${$email->{from}}[0]}[0]), "<" . ${${$email->{from}}[0]}[0] . ">", 1);
-		} else {
-			print "unknown";
-		}
+		print "unknown" if not $name and not $email;
+		print_ahref(gen_url(action => "search", name => $name), $name, 1) if $name;
+		print " " if $name and $email;
+		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1) if $email;
 		print $q->end_td();
 
 		print $q->start_td();
