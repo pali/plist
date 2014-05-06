@@ -1122,10 +1122,10 @@ sub db_tree($$;$$$$) {
 		return undef unless defined $treeid;
 	}
 
-	my $emails = $priv->db_emails(treeid => $treeid);
+	my $emails = $priv->db_emails(treeid => $treeid, desc => $desc);
 	return undef unless $emails and @{$emails};
 
-	my $graph = $priv->db_graph($treeid);
+	my $graph = $priv->db_graph($treeid, $desc);
 	return undef unless $graph;
 
 	my %emails;
@@ -1268,8 +1268,8 @@ sub db_tree($$;$$$$) {
 
 	# Build direct (not reverse) tree
 	my %tree = ( root => [$root], $root => [] );
-	foreach ( keys %treer ) {
-		my $id2 = $_;
+	foreach ( @{$emails} ) {
+		my $id2 = $_->{id};
 		my $id1 = $treer{$id2};
 		$tree{$id1} = [] unless $tree{$id1};
 		push(@{$tree{$id1}}, $id2);
