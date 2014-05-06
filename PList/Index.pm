@@ -1024,14 +1024,20 @@ sub db_treeid($$$) {
 
 }
 
-sub db_graph($$) {
+sub db_graph($$;$) {
 
-	my ($priv, $treeid) = @_;
+	my ($priv, $treeid, $desc) = @_;
 
 	my $dbh = $priv->{dbh};
 
 	my $statement;
 	my $ret;
+
+	if ( $desc ) {
+		$desc = "DESC";
+	} else {
+		$desc = "";
+	}
 
 	$statement = qq(
 		SELECT e1.id AS id1, e2.id AS id2, r.type AS type
@@ -1039,7 +1045,7 @@ sub db_graph($$) {
 			JOIN replies AS r ON r.emailid2 = e1.id
 			JOIN emails AS e2 ON e2.id = r.emailid1
 			WHERE e1.treeid = ?
-			ORDER BY r.type, e1.date, e2.date
+			ORDER BY r.type, e1.date, e2.date $desc
 		;
 	);
 
