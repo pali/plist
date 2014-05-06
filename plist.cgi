@@ -127,10 +127,20 @@ sub gen_url {
 	}
 }
 
+sub get_script_url() {
+	my $uri = $q->unescape($q->request_uri()); # request uri is escaped
+	$uri =~ s/\?.*$//s; # remove query string
+	$uri =~ s/\+/ /g; # there is no difference between unescaped space and plus chars
+	my $path_info = $q->path_info();
+	$path_info =~ s/\+/ /g; # be consistent with uri
+	$uri =~ s/\Q$path_info\E$//; # remove path_info
+	return $uri;
+}
+
 $q = new CGI;
 $q->charset("utf-8");
 
-$script = $q->url(-absolute => 1);
+$script = get_script_url();
 ($_, $indexdir, $action, $id, $path) = split(/(?<=\/)/, $q->path_info(), 5);
 
 $indexdir = "" unless $indexdir;
