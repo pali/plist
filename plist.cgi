@@ -279,7 +279,7 @@ sub print_tree($$$$$$$) {
 		my $down = $tree->{$tid};
 
 		if ( $down ) {
-			foreach ( @{$down} ) {
+			foreach ( reverse @{$down} ) {
 				if ( not $processed->{$_} ) {
 					$processed->{$_} = 1;
 					push(@stack, [$_, $len+1]);
