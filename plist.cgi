@@ -155,6 +155,8 @@ chop($action) if $action =~ /\/$/;
 chop($id) if $id =~ /\/$/;
 chop($path) if $path =~ /\/$/;
 
+error("Invalid archive name $indexdir") if $indexdir =~ /[\\\/]/;
+
 if ( not $indexdir ) {
 
 	# List all directories in current directory
