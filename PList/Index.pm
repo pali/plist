@@ -1233,14 +1233,35 @@ sub db_tree($$;$$$$) {
 
 		return undef unless @roots; # This should not happen, otherwise bug in database
 
+		my %tree;
+		my @keys = sort { $emails{$a}->{date} <=> $emails{$b}->{date} } keys %treer;
+		@keys = reverse @keys if $desc;
+		foreach ( @keys ) {
+			my $id2 = $_;
+			my $id1 = $treer{$id2};
+			$tree{$id1} = [] unless $tree{$id1};
+			push(@{$tree{$id1}}, $id2);
+		}
+
 		# Set oldest email as root
 		# In case that all candicates are implicit emails (with NULL date) first will be selected
 		$root = $roots[0];
 		my $date = "inf";
+		$date = "-inf" if $desc;
 		foreach ( @roots ) {
-			my $newdate = $emails{$_}->{date};
+			my @arr = ($_);
+			my $newdate;
+			# Choose first non implicit email from subtree $_
+			while ( @arr ) {
+				$_ = shift(@arr);
+				$newdate = $emails{$_}->{date};
+				last if defined $newdate;
+				next unless $tree{$_};
+				push(@arr, @{$tree{$_}});
+			}
 			next unless defined $newdate;
-			next if $date < $newdate;
+			next if $desc and $date > $newdate;
+			next if not $desc and $date < $newdate;
 			$date = $newdate;
 			$root = $_;
 		}
