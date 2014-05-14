@@ -268,11 +268,12 @@ sub parse_date($;$$) {
 
 }
 
-sub print_tree($$$$$$$) {
+sub print_tree($$$$$$) {
 
-	my ($index, $id, $desc, $rid, $limitup, $limitdown, $processed) = @_;
+	my ($index, $id, $desc, $rid, $limitup, $limitdown) = @_;
 
 	my $count = 0;
+	my %processed;
 
 	my ($tree, $emails) = $index->db_tree($id, $desc, $rid, $limitup, $limitdown);
 	if ( not $tree or not $tree->{root} ) {
@@ -281,7 +282,7 @@ sub print_tree($$$$$$$) {
 	my $root = ${$tree->{root}}[0];
 	delete $tree->{root};
 
-	$processed->{$root} = 1;
+	$processed{$root} = 1;
 	my @stack = ([$root, 0]);
 
 	while ( @stack ) {
@@ -292,8 +293,8 @@ sub print_tree($$$$$$$) {
 
 		if ( $down ) {
 			foreach ( reverse @{$down} ) {
-				if ( not $processed->{$_} ) {
-					$processed->{$_} = 1;
+				if ( not $processed{$_} ) {
+					$processed{$_} = 1;
 					push(@stack, [$_, $len+1]);
 				}
 			}
@@ -381,7 +382,7 @@ if ( $action eq "get-bin" ) {
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order"])) . "\n";
 
-	my $count = print_tree($index, $id, $desc, undef, undef, undef, {});
+	my $count = print_tree($index, $id, $desc, undef, undef, undef);
 
 	print $q->end_table() . "\n";
 
@@ -598,7 +599,6 @@ if ( $action eq "get-bin" ) {
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order $treeorder"])) . "\n";
 
-	my %processed;
 	my $neednext;
 	my $printbr = 1;
 	my $count = 0;
@@ -607,7 +607,6 @@ if ( $action eq "get-bin" ) {
 	foreach ( @{$roots} ) {
 		++$iter;
 		my $treeid = $_->{treeid};
-		next if $processed{$treeid};
 		if ( $neednext ) {
 			$printbr = 0;
 			print $q->end_table();
@@ -615,8 +614,7 @@ if ( $action eq "get-bin" ) {
 			print_ahref(gen_url(id => $id, path => $path, limit => $limit, offset => ($offset + $iter), desc => $desc, treedesc => $treedesc), "Show next page");
 			last;
 		}
-		$processed{$treeid} = 1;
-		my $ret = print_tree($index, $treeid, $treedesc, 2, undef, undef, \%processed);
+		my $ret = print_tree($index, $treeid, $treedesc, 2, undef, undef);
 		print "\n" if $ret > 0;
 		$count += $ret;
 		if ( length $limit and $count >= $limit ) {
