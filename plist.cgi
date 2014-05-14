@@ -491,7 +491,13 @@ if ( $action eq "get-bin" ) {
 	$order = 1 unless $desc;
 	$order = $q->a({href => gen_url(id => $id, path => $path, desc => $order, limit => $limit, offset => 0)}, $order ? "(DESC)" : "(ASC)");
 
-	print_start_html("Roots of trees (" . ($offset + 1) . " \x{2013} " . ($offset + $limit) . ")");
+	my $neednext = 0;
+	my $nextoffset = $offset + scalar @{$roots};
+	if ( length $limit and scalar @{$roots} > $limit ) {
+		$nextoffset = $offset + $limit;
+		$neednext = 1;
+	}
+	print_start_html("Roots of trees (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
 
 	print "View: ";
 	print_ahref(gen_url(action => "trees", id => $id, path => $path), "Trees", 1);
@@ -504,18 +510,7 @@ if ( $action eq "get-bin" ) {
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "Date $order"])) . "\n";
 
-	my $neednext;
-	my $printbr = 1;
-	my $count = 0;
-
 	foreach ( @{$roots} ) {
-		if ( $neednext ) {
-			$printbr = 0;
-			print $q->end_table() . "\n";
-			print $q->br() . "\n";
-			print_ahref(gen_url(id => $id, path => $path, desc => $desc, limit => $limit, offset => ($offset + $limit)), "Show next page");
-			last;
-		}
 		my $mid = $_->{messageid};
 		my $subject = $_->{subject};
 		my $date = format_date($_->{date});
@@ -529,15 +524,18 @@ if ( $action eq "get-bin" ) {
 		print $q->end_td();
 		print $q->end_Tr();
 		print "\n";
-		++$count;
-		if ( length $limit and $count >= $limit ) {
-			$neednext = 1;
-		}
 	}
 
-	print $q->end_table() . "\n" if $printbr;
+	print $q->end_table() . "\n";
 
-	print_p("(No emails)") unless $count;
+	print_p("(No emails)") unless @{$roots};
+
+	my $printbr = 1;
+	if ( $neednext ) {
+		$printbr = 0;
+		print $q->br() . "\n";
+		print_ahref(gen_url(id => $id, path => $path, desc => $desc, limit => $limit, offset => ($offset + $limit)), "Show next page");
+	}
 
 	if ( length $limit and $offset >= $limit ) {
 		print $q->br() . "\n" if $printbr;
