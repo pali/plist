@@ -314,26 +314,17 @@ sub print_tree($$$$$$$) {
 		print $q->start_td();
 		for (my $i = 0; $i < $len; ++$i) { print "&emsp;" }
 		print "&bull;&nbsp;";
-		if ( $subject ) {
-			print_ahref(gen_url(action => "view", id => $mid), $subject, 1);
-		} else {
-			print "unknown";
-		}
+		print_ahref(gen_url(action => "view", id => $mid), $subject, 1) if $subject;
 		print $q->end_td();
 
 		print $q->start_td();
-		print "unknown" if not $name and not $email;
 		print_ahref(gen_url(action => "search", name => $name), $name, 1) if $name;
 		print " " if $name and $email;
 		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1) if $email;
 		print $q->end_td();
 
 		print $q->start_td();
-		if ( $date ) {
-			print $q->escapeHTML($date);
-		} else {
-			print "unknown";
-		}
+		print $q->escapeHTML($date) if $date;
 		print $q->end_td();
 
 		print $q->end_Tr() . "\n";
@@ -528,13 +519,12 @@ if ( $action eq "get-bin" ) {
 		my $subject = $_->{subject};
 		my $date = format_date($_->{date});
 		$subject = "unknown" unless $subject;
-		$date = "unknown" unless $date;
 		print $q->start_Tr();
 		print $q->start_td();
 		print_ahref(gen_url(action => "tree", id => $mid), $subject, 1);
 		print $q->end_td();
 		print $q->start_td({style => "white-space:nowrap"});
-		print $q->escapeHTML($date);
+		print $q->escapeHTML($date) if $date;
 		print $q->end_td();
 		print $q->end_Tr();
 		print "\n";
@@ -773,19 +763,17 @@ if ( $action eq "get-bin" ) {
 		my $email = $_->{email};
 		my $name = $_->{name};
 		$subject = "unknown" unless $subject;
-		$date = "unknown" unless $date;
 		print $q->start_Tr();
 		print $q->start_td();
 		print_ahref(gen_url(action => "view", id => $mid), $subject, 1);
 		print $q->end_td();
 		print $q->start_td();
-		print "unknown" if not $name and not $email;
 		print_ahref(gen_url(action => "search", name => $name), $name, 1) if $name;
 		print " " if $name and $email;
 		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1) if $email;
 		print $q->end_td();
 		print $q->start_td({style => "white-space:nowrap"});
-		print $q->escapeHTML($date);
+		print $q->escapeHTML($date) if $date;
 		print $q->end_td();
 		print $q->end_Tr();
 		print "\n";
