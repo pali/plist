@@ -722,23 +722,30 @@ if ( $action eq "get-bin" ) {
 	$args{desc} = $desc if $desc;
 	$args{implicit} = 0;
 
-	my $ret;
+	my $emails;
 	if ( length $str ) {
-		$ret = $index->db_emails_str($str, %args);
+		$emails = $index->db_emails_str($str, %args);
 	} else {
-		$ret = $index->db_emails(%args);
+		$emails = $index->db_emails(%args);
 	}
 
-	error("Database error (db_emails)") unless $ret;
+	error("Database error (db_emails)") unless $emails;
 
 	my $order = "";
 	$order = 1 unless $desc;
 	$order = $q->a({href => gen_url(id => $id, path => $path, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
+	my $neednext = 0;
+	my $nextoffset = $offset + scalar @{$emails};
+	if ( length $limit and scalar @{$emails} > $limit ) {
+		$nextoffset = $offset + $limit;
+		$neednext = 1;
+	}
+
 	if ( $action eq "search" ) {
-		print_start_html("Search (" . ($offset + 1) . " \x{2013} " . ($offset + $limit) . ")");
+		print_start_html("Search (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
 	} else {
-		print_start_html("Emails (" . ($offset + 1) . " \x{2013} " . ($offset + $limit) . ")");
+		print_start_html("Emails (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
 		print "View: ";
 		print_ahref(gen_url(action => "trees", id => $id, path => $path), "Trees", 1);
 		print " Emails ";
@@ -749,17 +756,7 @@ if ( $action eq "get-bin" ) {
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order"])) . "\n";
 
-	my $neednext;
-	my $printbr = 1;
-	my $count = 0;
-	foreach ( @{$ret} ) {
-		if ( $neednext ) {
-			$printbr = 0;
-			print $q->end_table() . "\n";
-			print $q->br() . "\n";
-			print_ahref(gen_url(id => $id, path => $path, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc), "Show next page");
-			last;
-		}
+	foreach ( @{$emails} ) {
 		my $mid = $_->{messageid};
 		my $date = format_date($_->{date});
 		my $subject = $_->{subject};
@@ -780,15 +777,18 @@ if ( $action eq "get-bin" ) {
 		print $q->end_td();
 		print $q->end_Tr();
 		print "\n";
-		++$count;
-		if ( length $limit and $count >= $limit ) {
-			$neednext = 1;
-		}
 	}
 
-	print $q->end_table() . "\n" if $printbr;
+	print $q->end_table() . "\n";
 
-	print_p("(No emails)") unless $count;
+	print_p("(No emails)") unless @{$emails};
+
+	my $printbr = 1;
+	if ( $neednext ) {
+		$printbr = 0;
+		print $q->br() . "\n";
+		print_ahref(gen_url(id => $id, path => $path, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc), "Show next page");
+	}
 
 	if ( length $limit and $offset >= $limit ) {
 		print $q->br() . "\n" if $printbr;
