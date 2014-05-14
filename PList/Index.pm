@@ -1108,7 +1108,6 @@ sub djs_find($$$) {
 
 sub db_tree($$;$$$$) {
 
-	# TODO: Fix ordering in this function
 	# TODO: implement $limitup and $limitdown
 
 	my ($priv, $id, $desc, $rid, $limitup, $limitdown) = @_;
@@ -1154,6 +1153,7 @@ sub db_tree($$;$$$$) {
 		}
 	}
 
+	my %dates;
 	my %treer; # reverse
 
 	my %djs_parent;
@@ -1174,6 +1174,11 @@ sub db_tree($$;$$$$) {
 				next if djs_find(\%djs_parent, \%djs_size, $id1) == djs_find(\%djs_parent, \%djs_size, $id2);
 				djs_merge(\%djs_parent, \%djs_size, $id1, $id2);
 				$treer{$id2} = $id1;
+				if ( $emails{$id1}->{implicit} and defined $emails{$id2}->{date} ) {
+					if ( ( not exists $dates{$id1} ) or ( $desc and $dates{$id1} < $emails{$id2}->{date} ) or ( not $desc and $dates{$id1} > $emails{$id2}->{date} ) ) {
+						$dates{$id1} = $emails{$id2}->{date};
+					}
+				}
 			}
 		}
 
@@ -1203,6 +1208,11 @@ sub db_tree($$;$$$$) {
 			if ( djs_find(\%djs_parent, \%djs_size, $id1) != djs_find(\%djs_parent, \%djs_size, $id2) ) {
 				djs_merge(\%djs_parent, \%djs_size, $id1, $id2);
 				$treer{$id2} = $id1;
+				if ( $emails{$id1}->{implicit} and defined $emails{$id2}->{date} ) {
+					if ( ( not exists $dates{$id1} ) or ( $desc and $dates{$id1} < $emails{$id2}->{date} ) or ( not $desc and $dates{$id1} > $emails{$id2}->{date} ) ) {
+						$dates{$id1} = $emails{$id2}->{date};
+					}
+				}
 			}
 		}
 
@@ -1233,35 +1243,15 @@ sub db_tree($$;$$$$) {
 
 		return undef unless @roots; # This should not happen, otherwise bug in database
 
-		my %tree;
-		my @keys = sort { $emails{$a}->{date} <=> $emails{$b}->{date} } keys %treer;
-		@keys = reverse @keys if $desc;
-		foreach ( @keys ) {
-			my $id2 = $_;
-			my $id1 = $treer{$id2};
-			$tree{$id1} = [] unless $tree{$id1};
-			push(@{$tree{$id1}}, $id2);
-		}
-
 		# Set oldest email as root
 		# In case that all candicates are implicit emails (with NULL date) first will be selected
 		$root = $roots[0];
 		my $date = "inf";
-		$date = "-inf" if $desc;
 		foreach ( @roots ) {
-			my @arr = ($_);
-			my $newdate;
-			# Choose first non implicit email from subtree $_
-			while ( @arr ) {
-				$_ = shift(@arr);
-				$newdate = $emails{$_}->{date};
-				last if defined $newdate;
-				next unless $tree{$_};
-				push(@arr, @{$tree{$_}});
-			}
+			my $newdate = $emails{$_}->{date};
+			$newdate = $dates{$_} unless defined $newdate;
 			next unless defined $newdate;
-			next if $desc and $date > $newdate;
-			next if not $desc and $date < $newdate;
+			next unless $date > $newdate;
 			$date = $newdate;
 			$root = $_;
 		}
@@ -1284,7 +1274,14 @@ sub db_tree($$;$$$$) {
 	# Add missing emails to root
 	foreach ( keys %emails ) {
 		next if exists $treer{$_};
-		$treer{$_} = $root;
+		my $id1 = $root;
+		my $id2 = $_;
+		$treer{$id2} = $id1;
+		if ( $emails{$id1}->{implicit} and defined $emails{$id2}->{date} ) {
+			if ( ( not exists $dates{$id1} ) or ( $desc and $dates{$id1} < $emails{$id2}->{date} ) or ( not $desc and $dates{$id1} > $emails{$id2}->{date} ) ) {
+				$dates{$id1} = $emails{$id2}->{date};
+			}
+		}
 	}
 
 	# Build direct (not reverse) tree
@@ -1294,6 +1291,18 @@ sub db_tree($$;$$$$) {
 		my $id1 = $treer{$id2};
 		$tree{$id1} = [] unless $tree{$id1};
 		push(@{$tree{$id1}}, $id2);
+		$dates{$id2} = $emails{$id2}->{date} if not exists $dates{$id2} and defined $emails{$id2}->{date};
+		$dates{$id2} = 0 unless defined $dates{$id2};
+	}
+
+	foreach ( keys %tree ) {
+		my @arr;
+		if ( $desc ) {
+			@arr = sort { $dates{$b} <=> $dates{$a} } @{$tree{$_}};
+		} else {
+			@arr = sort { $dates{$a} <=> $dates{$b} } @{$tree{$_}};
+		}
+		$tree{$_} = \@arr;
 	}
 
 	# Remove implicit emails from root which are without replies
