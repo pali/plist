@@ -823,8 +823,8 @@ sub db_emails($;%) {
 	}
 
 	# Select all email messageids which match conditions
-	$statement = "SELECT ee.id AS id, ee.messageid AS messageid, ee.date AS date, ee.subject AS subject, ee.treeid AS treeid, ee.email AS email, ee.name AS name, ee.list AS list, ee.offset AS offset, ee.implicit AS implicit, ee.hasreply AS hasreply FROM (";
-	$statement .= " SELECT * FROM emails AS e";
+	$statement = "SELECT * FROM (";
+	$statement .= " SELECT e.id AS id, e.messageid AS messageid, e.date AS date, e.subject AS subject, e.treeid AS treeid, af.email AS email, af.name AS name, e.list AS list, e.offset AS offset, e.implicit AS implicit, e.hasreply AS hasreply FROM emails AS e";
 	$statement .= " LEFT OUTER JOIN addressess AS ssf ON ssf.emailid = e.id LEFT OUTER JOIN address AS af ON af.id = ssf.addressid";
 
 	if ( exists $args{email} or exists $args{name} ) {
