@@ -1473,7 +1473,7 @@ sub db_roots($$;%) {
 	}
 
 	$statement = qq(
-		SELECT e.id AS id, e.messageid AS messageid, MIN(e.date) AS date, s.subject AS subject, e.treeid AS treeid
+		SELECT e.id AS id, e.messageid AS messageid, MIN(e.date) AS date, s.subject AS subject, e.treeid AS treeid, COUNT(treeid) AS count
 			FROM emails AS e
 			JOIN subjects AS s ON s.id = e.subjectid
 			WHERE implicit = 0
