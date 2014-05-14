@@ -578,7 +578,25 @@ if ( $action eq "get-bin" ) {
 	my $roots = $index->db_roots($desc, %args);
 	error("Database error (db_roots)") unless $roots;
 
-	print_start_html("Browse trees (" . ($offset + 1) . " \x{2013} " . ($offset + $limit) . ")");
+	my $nextoffset;
+	my $neednext = 0;
+	my $count = 0;
+	my $iter = 0;
+
+	foreach ( @{$roots} ) {
+		++$iter;
+		if ( $neednext == 2 ) {
+			$neednext = 1;
+			last;
+		}
+		$count += $_->{count};
+		$neednext = 2 if length $limit and $count >= $limit;
+	}
+
+	$neednext = 0 if $neednext != 1;
+	$nextoffset = $offset + $iter if $neednext;
+
+	print_start_html("Browse trees (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
 
 	print "View: Trees ";
 	print_ahref(gen_url(action => "emails", id => $id, path => $path), "Emails", 1);
@@ -599,30 +617,19 @@ if ( $action eq "get-bin" ) {
 	print $q->start_table(-style => "white-space:nowrap") . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order $treeorder"])) . "\n";
 
-	my $neednext;
-	my $printbr = 1;
-	my $count = 0;
-	my $iter = -1;
-
+	$iter = -1;
 	foreach ( @{$roots} ) {
 		++$iter;
-		my $treeid = $_->{treeid};
-		if ( $neednext ) {
-			$printbr = 0;
-			print $q->end_table();
-			print $q->br() . "\n";
-			print_ahref(gen_url(id => $id, path => $path, limit => $limit, offset => ($offset + $iter), desc => $desc, treedesc => $treedesc), "Show next page");
-			last;
-		}
-		my $ret = print_tree($index, $treeid, $treedesc, 2, undef, undef);
-		print "\n" if $ret > 0;
-		$count += $ret;
-		if ( length $limit and $count >= $limit ) {
-			$neednext = 1;
-		}
+		last if $iter >= $nextoffset;
+		print_tree($index, $_->{treeid}, $treedesc, 2, undef, undef);
 	}
 
-	print $q->end_table() if $printbr;
+	print $q->end_table();
+
+	if ( $neednext ) {
+		print $q->br() . "\n";
+		print_ahref(gen_url(id => $id, path => $path, limit => $limit, offset => $nextoffset, desc => $desc, treedesc => $treedesc), "Show next page");
+	}
 
 	print $q->br() . "\n";
 	print_ahref(gen_url(action => ""), "Show archive $indexdir");
