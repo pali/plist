@@ -491,7 +491,7 @@ if ( $action eq "get-bin" ) {
 	$order = 1 unless $desc;
 	$order = $q->a({href => gen_url(id => $id, path => $path, desc => $order, limit => $limit, offset => 0)}, $order ? "(DESC)" : "(ASC)");
 
-	print_start_html("Roots of trees (" . ($offset + 1) . " - " . ($offset + $limit) . ")");
+	print_start_html("Roots of trees (" . ($offset + 1) . " \x{2013} " . ($offset + $limit) . ")");
 
 	print "View: ";
 	print_ahref(gen_url(action => "trees", id => $id, path => $path), "Trees", 1);
@@ -578,7 +578,7 @@ if ( $action eq "get-bin" ) {
 	my $roots = $index->db_roots($desc, %args);
 	error("Database error (db_roots)") unless $roots;
 
-	print_start_html("Browse trees (" . ($offset + 1) . " - " . ($offset + $limit) . ")");
+	print_start_html("Browse trees (" . ($offset + 1) . " \x{2013} " . ($offset + $limit) . ")");
 
 	print "View: Trees ";
 	print_ahref(gen_url(action => "emails", id => $id, path => $path), "Emails", 1);
@@ -731,9 +731,9 @@ if ( $action eq "get-bin" ) {
 	$order = $q->a({href => gen_url(id => $id, path => $path, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
 	if ( $action eq "search" ) {
-		print_start_html("Search (" . ($offset + 1) . " - " . ($offset + $limit) . ")");
+		print_start_html("Search (" . ($offset + 1) . " \x{2013} " . ($offset + $limit) . ")");
 	} else {
-		print_start_html("Emails (" . ($offset + 1) . " - " . ($offset + $limit) . ")");
+		print_start_html("Emails (" . ($offset + 1) . " \x{2013} " . ($offset + $limit) . ")");
 		print "View: ";
 		print_ahref(gen_url(action => "trees", id => $id, path => $path), "Trees", 1);
 		print " Emails ";
