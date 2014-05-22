@@ -313,20 +313,20 @@ sub print_tree($$$$$$) {
 
 		print $q->start_Tr();
 
-		print $q->start_td();
-		print $q->span({-style => "width: " . $len * 16 . "px; display: inline-block;"}, "&nbsp;");
+		print $q->start_td({-style => "width:65%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
+		print $q->span({-style => "width:" . $len * 16 . "px; max-width:70%; display:inline-block;"}, "&nbsp;");
 		print "&bull;&nbsp;";
 		print_ahref(gen_url(action => "view", id => $mid), $subject, 1) if $subject;
 		print "unknown" unless $subject;
 		print $q->end_td();
 
-		print $q->start_td();
+		print $q->start_td({-style => "width:25%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
 		print_ahref(gen_url(action => "search", name => $name), $name, 1) if $name;
 		print " " if $name and $email;
 		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1) if $email;
 		print $q->end_td();
 
-		print $q->start_td();
+		print $q->start_td({-style => "width:10%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
 		print $q->escapeHTML($date) if $date;
 		print $q->end_td();
 
@@ -381,8 +381,8 @@ if ( $action eq "get-bin" ) {
 	$order = 1 unless $desc;
 	$order = $q->a({href => gen_url(id => $id, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
-	print $q->start_table({-style => "white-space:nowrap;"}) . "\n";
-	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order"])) . "\n";
+	print $q->start_table({-style => "table-layout:fixed; width:100%; white-space:nowrap;"}) . "\n";
+	print $q->Tr($q->th({-align => "left", -style => "display:inline-block;"}, ["Subject", "From", "Date $order"])) . "\n";
 
 	my $count = print_tree($index, $id, $desc, undef, undef, undef);
 
@@ -614,8 +614,8 @@ if ( $action eq "get-bin" ) {
 	$order = $q->a({href => gen_url(id => $id, path => $path, limit => $limit, offset => 0, desc => $order, treedesc => $treedesc)}, $order ? "(thr DESC)" : "(thr ASC)");
 	$treeorder = $q->a({href => gen_url(id => $id, path => $path, limit => $limit, offset => $offset, desc => $desc, treedesc => $treeorder)}, $treeorder ? "(msg DESC)" : "(msg ASC)");
 
-	print $q->start_table({-style => "white-space:nowrap"}) . "\n";
-	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order $treeorder"])) . "\n";
+	print $q->start_table({-style => "table-layout:fixed; width:100%; white-space:nowrap;"}) . "\n";
+	print $q->Tr($q->th({-align => "left", -style => "display:inline-block;"}, ["Subject", "From", "Date $order $treeorder"])) . "\n";
 
 	$iter = -1;
 	foreach ( @{$roots} ) {
