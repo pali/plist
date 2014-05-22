@@ -381,7 +381,7 @@ if ( $action eq "get-bin" ) {
 	$order = 1 unless $desc;
 	$order = $q->a({href => gen_url(id => $id, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
-	print $q->start_table(-style => "white-space:nowrap") . "\n";
+	print $q->start_table({-style => "white-space:nowrap;"}) . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order"])) . "\n";
 
 	my $count = print_tree($index, $id, $desc, undef, undef, undef);
@@ -509,7 +509,7 @@ if ( $action eq "get-bin" ) {
 	print $q->br();
 	print $q->br();
 
-	print $q->start_table(-style => "white-space:nowrap") . "\n";
+	print $q->start_table({-style => "white-space:nowrap"}) . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "Date $order"])) . "\n";
 
 	foreach ( @{$roots} ) {
@@ -521,7 +521,7 @@ if ( $action eq "get-bin" ) {
 		print $q->start_td();
 		print_ahref(gen_url(action => "tree", id => $mid), $subject, 1);
 		print $q->end_td();
-		print $q->start_td({style => "white-space:nowrap"});
+		print $q->start_td();
 		print $q->escapeHTML($date) if $date;
 		print $q->end_td();
 		print $q->end_Tr();
@@ -614,7 +614,7 @@ if ( $action eq "get-bin" ) {
 	$order = $q->a({href => gen_url(id => $id, path => $path, limit => $limit, offset => 0, desc => $order, treedesc => $treedesc)}, $order ? "(thr DESC)" : "(thr ASC)");
 	$treeorder = $q->a({href => gen_url(id => $id, path => $path, limit => $limit, offset => $offset, desc => $desc, treedesc => $treeorder)}, $treeorder ? "(msg DESC)" : "(msg ASC)");
 
-	print $q->start_table(-style => "white-space:nowrap") . "\n";
+	print $q->start_table({-style => "white-space:nowrap"}) . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order $treeorder"])) . "\n";
 
 	$iter = -1;
@@ -755,7 +755,7 @@ if ( $action eq "get-bin" ) {
 		print $q->br();
 		print $q->br();
 	}
-	print $q->start_table(-style => "white-space:nowrap") . "\n";
+	print $q->start_table({-style => "white-space:nowrap"}) . "\n";
 	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order"])) . "\n";
 
 	foreach ( @{$emails} ) {
@@ -774,7 +774,7 @@ if ( $action eq "get-bin" ) {
 		print " " if $name and $email;
 		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1) if $email;
 		print $q->end_td();
-		print $q->start_td({style => "white-space:nowrap"});
+		print $q->start_td();
 		print $q->escapeHTML($date) if $date;
 		print $q->end_td();
 		print $q->end_Tr();
