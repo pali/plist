@@ -230,7 +230,7 @@ sub format_date($) {
 	my ($date) = @_;
 	$date = gmtime($date) if $date;
 	# TODO: configure format
-	$date = $date->strftime("%F %T %z") if $date;
+	$date = $date->strftime("%F %T") if $date;
 	return $date if $date;
 	return "";
 
