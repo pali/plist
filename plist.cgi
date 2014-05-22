@@ -314,7 +314,7 @@ sub print_tree($$$$$$) {
 		print $q->start_Tr();
 
 		print $q->start_td();
-		for (my $i = 0; $i < $len; ++$i) { print "&emsp;" }
+		print $q->span({-style => "width: " . $len * 16 . "px; display: inline-block;"}, "&nbsp;");
 		print "&bull;&nbsp;";
 		print_ahref(gen_url(action => "view", id => $mid), $subject, 1) if $subject;
 		print "unknown" unless $subject;
