@@ -301,22 +301,26 @@ sub read_part($$$$$) {
 	{
 		local $Email::MIME::ContentType::STRICT_PARAMS = 0;
 		my $content_type = parse_content_type($subpart->content_type);
-		$discrete = $content_type->{discrete};
-		$composite = $content_type->{composite};
-		my $attributes = $content_type->{attributes};
-		$charset = $attributes->{charset};
-
-		# If parsing failed, set some generic content type
-		if ( not $discrete or not $composite ) {
-			$discrete = "application";
-			$composite = "octet-stream";
+		if ( $content_type ) {
+			$discrete = $content_type->{discrete};
+			$composite = $content_type->{composite};
+			my $attributes = $content_type->{attributes};
+			if ( $attributes ) {
+				$charset = $attributes->{charset};
+			}
 		}
+	}
 
-		# Method Email::MIME::ContentType::parse_content_type() return us-ascii charset when there is no content type header
-		# So remove specified fake charset and later do some charset detection
-		if ( not $subpart->content_type ) {
-			$charset = undef;
-		}
+	# If parsing failed, set some generic content type
+	if ( not $discrete or not $composite ) {
+		$discrete = "application";
+		$composite = "octet-stream";
+	}
+
+	# Method Email::MIME::ContentType::parse_content_type() return us-ascii charset when there is no content type header
+	# So remove specified fake charset and later do some charset detection
+	if ( not $subpart->content_type ) {
+		$charset = undef;
 	}
 
 	my $partstr = "$prefix/${$partid}";
