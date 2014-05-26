@@ -243,7 +243,15 @@ sub html_strip($) {
 sub subpart_get_body($$$$) {
 
 	my ($subpart, $discrete, $composite, $charset) = @_;
-	my $body = $subpart->body();
+	my $body;
+
+	eval {
+		$body = $subpart->body();
+	} or do {
+		$body = $subpart->body_raw();
+	};
+
+	return "" unless defined $body;
 
 	# Text subparts should have specified charset, if not try to detect it
 	if ( $discrete eq "text" and not $charset ) {
