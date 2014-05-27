@@ -165,11 +165,15 @@ sub address($) {
 		$name =~ s/^"(.*)"$/$1/;
 	}
 
-	if ( $name ) {
-		return $address . " " . $name;
-	} else {
-		return $address;
+	if ( not $name ) {
+		$name = $email_address->user;
 	}
+
+	if ( not $name ) {
+		$name = "nobody";
+	}
+
+	return $address . " " . $name;
 
 }
 
@@ -182,10 +186,12 @@ sub piper_address($) {
 
 	my $address;
 	my $name;
+	my $user;
+	my $host;
 
 	if ( $email_address =~ /^(\S+) at (\S+) \((.*)\)$/ ) {
-		my $user = $1;
-		my $host = $2;
+		$user = $1;
+		$host = $2;
 		$name = $3;
 		$user =~ s/\s//g;
 		$host =~ s/\s//g;
@@ -194,20 +200,23 @@ sub piper_address($) {
 		$name =~ s/\s+$//;
 		$name =~ s/^'(.*)'$/$1/;
 		$name =~ s/^"(.*)"$/$1/;
-		if ( not $user ) {
-			$user = "nobody";
-		}
-		if ( not $host ) {
-			$host = "nohost";
-		}
-		$address = "$user\@$host";
 	}
 
-	if ( $name ) {
-		return $address . " " . $name;
-	} else {
-		return $address;
+	if ( not $user ) {
+		$user = "nobody";
 	}
+
+	if ( not $host ) {
+		$host = "nohost";
+	}
+
+	if ( not $name ) {
+		$name = $user;
+	}
+
+	$address = "$user\@$host";
+
+	return $address . " " . $name;
 
 }
 
