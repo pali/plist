@@ -592,6 +592,8 @@ sub add_email($$) {
 	if ( $from and @{$from} ) {
 		foreach ( @{$from} ) {
 			$_ =~ /^(\S*) (.*)$/;
+			$1 = "" unless defined $1;
+			$2 = "" unless defined $2;
 			push(@addressess, [$id, $1, $2, 0]);
 		}
 	}
@@ -599,6 +601,8 @@ sub add_email($$) {
 	if ( $to and @{$to} ) {
 		foreach ( @{$to} ) {
 			$_ =~ /^(\S*) (.*)$/;
+			$1 = "" unless defined $1;
+			$2 = "" unless defined $2;
 			push(@addressess, [$id, $1, $2, 1]);
 		}
 	}
@@ -606,6 +610,8 @@ sub add_email($$) {
 	if ( $cc and @{$cc} ) {
 		foreach ( @{$cc} ) {
 			$_ =~ /^(\S*) (.*)$/;
+			$1 = "" unless defined $1;
+			$2 = "" unless defined $2;
 			push(@addressess, [$id, $1, $2, 2]);
 		}
 	}
