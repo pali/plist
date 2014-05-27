@@ -273,8 +273,8 @@ sub print_tree($$$$$$) {
 
 	my ($index, $id, $desc, $rid, $limitup, $limitdown) = @_;
 
-	my $count = 0;
 	my %processed;
+	my @stack;
 
 	my ($tree, $emails) = $index->db_tree($id, $desc, $rid, $limitup, $limitdown);
 	if ( not $tree or not $tree->{root} ) {
@@ -283,8 +283,34 @@ sub print_tree($$$$$$) {
 	my $root = ${$tree->{root}}[0];
 	delete $tree->{root};
 
-	$processed{$root} = 1;
-	my @stack = ([$root, 0]);
+	%processed = ($root => 1);
+	@stack = ([$root, 0]);
+
+	my $depth = 1;
+
+	while ( @stack ) {
+		my $m = pop(@stack);
+		my ($tid, $len) = @{$m};
+		my $down = $tree->{$tid};
+
+		if ( $depth < $len ) {
+			$depth = $len;
+		}
+
+		if ( $down ) {
+			foreach ( reverse @{$down} ) {
+				if ( not $processed{$_} ) {
+					$processed{$_} = 1;
+					push(@stack, [$_, $len+1]);
+				}
+			}
+		}
+	}
+
+	my $count = 0;
+
+	%processed = ($root => 1);
+	@stack = ([$root, 0]);
 
 	while ( @stack ) {
 
@@ -313,8 +339,8 @@ sub print_tree($$$$$$) {
 
 		print $q->start_Tr();
 
-		print $q->start_td({-style => "width:65%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
-		print $q->span({-style => "width:" . $len * 16 . "px; max-width:70%; display:inline-block;"}, "&nbsp;");
+		print $q->start_td({-style => "width:60%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
+		print $q->span({-style => "width:" . $len * 70 / $depth . "%; max-width:" . $len * 16 . "px; display:inline-block;"}, "&nbsp;");
 		print "&bull;&nbsp;";
 		print_ahref(gen_url(action => "view", id => $mid), $subject, 1) if $subject;
 		print "unknown" unless $subject;
@@ -326,7 +352,7 @@ sub print_tree($$$$$$) {
 		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1) if $email;
 		print $q->end_td();
 
-		print $q->start_td({-style => "width:10%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
+		print $q->start_td({-style => "width:15%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
 		print $q->escapeHTML($date) if $date;
 		print $q->end_td();
 
