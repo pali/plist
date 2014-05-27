@@ -180,9 +180,9 @@ sub bin_get($$$) {
 
 }
 
-sub index_tree_get($$) {
+sub index_tree_get($$$) {
 
-	my ($index, $messageid) = @_;
+	my ($index, $messageid, $fh) = @_;
 
 	my ($tree, $emails) = $index->db_tree($messageid, 0, 0);
 	if ( not $tree or not $tree->{root} ) {
@@ -207,16 +207,16 @@ sub index_tree_get($$) {
 	my $subject = $email->{subject};
 	my $from = $email->{name} . " <" . $email->{email} . ">";
 
-	print "Internal id: $id\n";
-	print "Id: $messageid\n";
-	print "From: $from\n";
+	print $fh "Internal id: $id\n";
+	print $fh "Id: $messageid\n";
+	print $fh "From: $from\n";
 
 	if ( $date ) {
-		print "Date: $date\n";
+		print $fh "Date: $date\n";
 	}
 
 	if ( $subject ) {
-		print "Subject: $subject\n";
+		print $fh "Subject: $subject\n";
 	}
 
 	my $root = ${$tree->{root}}[0];
@@ -232,7 +232,7 @@ sub index_tree_get($$) {
 	my @len = ();
 	my $linelen = 0;
 
-	print "Tree:\n";
+	print $fh "Tree:\n";
 
 	while (@stack) {
 
@@ -252,13 +252,13 @@ sub index_tree_get($$) {
 			}
 		}
 
-		printf(" %" . ($len-1) . "d", $tid);
+		printf $fh " %" . ($len-1) . "d", $tid;
 
 		$linelen = pop(@len) if @stack;
 
 		if ( $size == scalar @stack ) {
-			print "\n";
-			print $space x $linelen if @stack;
+			print $fh "\n";
+			print $fh $space x $linelen if @stack;
 		}
 
 	}
@@ -604,7 +604,7 @@ if ( not $mod or not $command ) {
 			die "Failed\n" unless $pemail;
 			PList::Email::Binary::to_fh($pemail, $fh);
 		} elsif ( $command eq "get-tree" ) {
-			index_tree_get($index, $id);
+			index_tree_get($index, $id, $fh);
 			exit 0;
 		} else {
 			my $str = $index->view($id, %args);
