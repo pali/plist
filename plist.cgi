@@ -352,7 +352,7 @@ sub print_tree($$$$$$) {
 		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1) if $email;
 		print $q->end_td();
 
-		print $q->start_td({-style => "width:15%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
+		print $q->start_td({-style => "display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
 		print $q->escapeHTML($date) if $date;
 		print $q->end_td();
 
