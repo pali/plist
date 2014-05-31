@@ -193,13 +193,52 @@ if ( not $indexdir ) {
 my $index = new PList::Index($indexdir);
 error("Archive $indexdir does not exist") unless $index;
 
+sub format_date($);
+
 if ( not $action ) {
 
 	# Show info page
 	my $description = $index->description();
 	print_start_html("Archive $indexdir");
 	print $q->start_p() . "\n";
-	print $q->escapeHTML($description) . $q->br() . $q->br() . "\n" if $description;
+	print $q->escapeHTML($description) . $q->br() . "\n" if $description;
+	print $q->end_p() . "\n";
+
+	print $q->h3("Latest emails:");
+	print $q->start_table({-style => "table-layout:fixed; width:100%; white-space:nowrap;"}) . "\n";
+	print $q->Tr($q->th({-align => "left", -style => "display:inline-block;"}, ["Subject", "From", "Date"])) . "\n";
+
+	my $emails = $index->db_emails(limit => 10, implicit => 0, desc => 1);
+
+	foreach ( @{$emails} ) {
+		my $mid = $_->{messageid};
+		my $date = format_date($_->{date});
+		my $subject = $_->{subject};
+		my $email = $_->{email};
+		my $name = $_->{name};
+		$subject = "unknown" unless $subject;
+		print $q->start_Tr();
+		print $q->start_td({-style => "width:60%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
+		print_ahref(gen_url(action => "view", id => $mid), $subject, 1);
+		print $q->end_td();
+		print $q->start_td({-style => "width:25%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
+		print_ahref(gen_url(action => "search", name => $name), $name, 1) if $name;
+		print " " if $name and $email;
+		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1) if $email;
+		print $q->end_td();
+		print $q->start_td({-style => "display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
+		print $q->escapeHTML($date) if $date;
+		print $q->end_td();
+		print $q->end_Tr();
+		print "\n";
+	}
+
+	print $q->end_table() . "\n";
+
+	print_p("(No emails)") unless @{$emails};
+
+	print $q->h3("Actions:");
+	print $q->start_p() . "\n";
 	print_ahref(gen_url(action => "browse"), "Browse by year");
 	print_ahref(gen_url(action => "search"), "Search emails");
 	print_ahref(gen_url(action => "trees"), "Show all trees");
