@@ -820,7 +820,7 @@ if ( $action eq "get-bin" ) {
 
 	my $order = "";
 	$order = 1 unless $desc;
-	$order = $q->a({href => gen_url(id => $id, path => $path, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order)}, $order ? "(DESC)" : "(ASC)");
+	$order = $q->a({href => gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
 	my $neednext = 0;
 	my $nextoffset = $offset + scalar @{$emails};
@@ -894,12 +894,12 @@ if ( $action eq "get-bin" ) {
 	if ( $neednext ) {
 		$printbr = 0;
 		print $q->br() . "\n";
-		print_ahref(gen_url(id => $id, path => $path, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc), "Show next page");
+		print_ahref(gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc), "Show next page");
 	}
 
 	if ( length $limit and $offset >= $limit ) {
 		print $q->br() . "\n" if $printbr;
-		print_ahref(gen_url(id => $id, path => $path, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit), desc => $desc), "Show previous page");
+		print_ahref(gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit), desc => $desc), "Show previous page");
 	}
 
 	print $q->br() . "\n";
