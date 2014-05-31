@@ -535,8 +535,8 @@ if ( $action eq "get-bin" ) {
 	print $q->br();
 	print $q->br();
 
-	print $q->start_table({-style => "white-space:nowrap"}) . "\n";
-	print $q->Tr($q->th({-align => "left"}, ["Subject", "Date $order"])) . "\n";
+	print $q->start_table({-style => "table-layout:fixed; width:100%; white-space:nowrap"}) . "\n";
+	print $q->Tr($q->th({-align => "left", -style => "display:inline-block;"}, ["Subject", "Date $order"])) . "\n";
 
 	foreach ( @{$roots} ) {
 		my $mid = $_->{messageid};
@@ -544,10 +544,10 @@ if ( $action eq "get-bin" ) {
 		my $date = format_date($_->{date});
 		$subject = "unknown" unless $subject;
 		print $q->start_Tr();
-		print $q->start_td();
+		print $q->start_td({-style => "width:85%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
 		print_ahref(gen_url(action => "tree", id => $mid), $subject, 1);
 		print $q->end_td();
-		print $q->start_td();
+		print $q->start_td({-style => "display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
 		print $q->escapeHTML($date) if $date;
 		print $q->end_td();
 		print $q->end_Tr();
@@ -781,8 +781,8 @@ if ( $action eq "get-bin" ) {
 		print $q->br();
 		print $q->br();
 	}
-	print $q->start_table({-style => "white-space:nowrap"}) . "\n";
-	print $q->Tr($q->th({-align => "left"}, ["Subject", "From", "Date $order"])) . "\n";
+	print $q->start_table({-style => "table-layout:fixed; width:100%; white-space:nowrap"}) . "\n";
+	print $q->Tr($q->th({-align => "left", -style => "display:inline-block;"}, ["Subject", "From", "Date $order"])) . "\n";
 
 	foreach ( @{$emails} ) {
 		my $mid = $_->{messageid};
@@ -792,15 +792,15 @@ if ( $action eq "get-bin" ) {
 		my $name = $_->{name};
 		$subject = "unknown" unless $subject;
 		print $q->start_Tr();
-		print $q->start_td();
+		print $q->start_td({-style => "width:60%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
 		print_ahref(gen_url(action => "view", id => $mid), $subject, 1);
 		print $q->end_td();
-		print $q->start_td();
+		print $q->start_td({-style => "width:25%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
 		print_ahref(gen_url(action => "search", name => $name), $name, 1) if $name;
 		print " " if $name and $email;
 		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1) if $email;
 		print $q->end_td();
-		print $q->start_td();
+		print $q->start_td({-style => "display:inline-block; overflow:hidden; text-overflow:ellipsis;"});
 		print $q->escapeHTML($date) if $date;
 		print $q->end_td();
 		print $q->end_Tr();
