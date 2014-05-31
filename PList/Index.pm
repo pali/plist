@@ -224,6 +224,11 @@ sub create_tables($$) {
 	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
+		CREATE INDEX emailstreeiddate ON emails(treeid, date);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
 		CREATE INDEX emailshasreply ON emails(hasreply);
 	);
 	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
