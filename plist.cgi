@@ -440,7 +440,7 @@ if ( $action eq "get-bin" ) {
 
 	error("Param id was not specified") unless $id;
 
-	print_start_html("Tree for email $id");
+	print_start_html("Archive $indexdir - Tree for email $id");
 
 	my $order = "";
 	$order = 1 unless $desc;
@@ -484,7 +484,7 @@ if ( $action eq "get-bin" ) {
 	(my $month, my $day, $_) = split("/", $path, 3);
 
 	if ( not $year ) {
-		print_start_html("Browse emails");
+		print_start_html("Archive $indexdir - Browse emails");
 		print $q->start_p() . "\n";
 		print_ahref(gen_url(action => "trees"), "Browse all");
 		print $q->br() . "\n";
@@ -496,7 +496,7 @@ if ( $action eq "get-bin" ) {
 			print "(No years)" . $q->br() . "\n";
 		}
 	} elsif ( not $month ) {
-		print_start_html("Browse emails for $year");
+		print_start_html("Archive $indexdir - Browse emails for $year");
 		print $q->start_p() . "\n";
 		print_ahref(gen_url(action => "trees", id => $year), "Browse all in $year");
 		print $q->br() . "\n";
@@ -508,7 +508,7 @@ if ( $action eq "get-bin" ) {
 			print "(No months)" . $q->br() . "\n";
 		}
 	} else {
-		print_start_html("Browse emails for $year-$month");
+		print_start_html("Archive $indexdir - Browse emails for $year-$month");
 		print $q->start_p() . "\n";
 		print_ahref(gen_url(action => "trees", id => $year, path => $month), "Browse all in $year-$month");
 		print $q->br() . "\n";
@@ -564,7 +564,7 @@ if ( $action eq "get-bin" ) {
 		$nextoffset = $offset + $limit;
 		$neednext = 1;
 	}
-	print_start_html("Roots of trees (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
+	print_start_html("Archive $indexdir - Roots of trees (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
 
 	print "View: ";
 	print_ahref(gen_url(action => "trees", id => $id, path => $path), "Trees", 1);
@@ -661,7 +661,7 @@ if ( $action eq "get-bin" ) {
 	$neednext = 0 if $neednext != 1;
 	$nextoffset = $offset + $iter if $neednext;
 
-	print_start_html("Browse trees (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
+	print_start_html("Archive $indexdir - Browse trees (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
 
 	print "View: Trees ";
 	print_ahref(gen_url(action => "emails", id => $id, path => $path), "Emails", 1);
@@ -763,7 +763,7 @@ if ( $action eq "get-bin" ) {
 
 	if ( $action eq "search" and not $submit and not $str and not keys %args ) {
 		# Show search form
-		print_start_html("Search");
+		print_start_html("Archive $indexdir - Search");
 		print $q->start_form(-method => "GET", -action => gen_url(), -accept_charset => "utf-8");
 		print $q->start_table() . "\n";
 		print $q->Tr($q->td(["Subject:", $q->textfield(-name => "subject")])) . "\n";
@@ -810,9 +810,9 @@ if ( $action eq "get-bin" ) {
 	}
 
 	if ( $action eq "search" ) {
-		print_start_html("Search (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
+		print_start_html("Archive $indexdir - Search (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
 	} else {
-		print_start_html("Emails (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
+		print_start_html("Archive $indexdir - Emails (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
 		print "View: ";
 		print_ahref(gen_url(action => "trees", id => $id, path => $path), "Trees", 1);
 		print " Emails ";
