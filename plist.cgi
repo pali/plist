@@ -206,7 +206,11 @@ if ( not $action ) {
 
 	print $q->h3("Latest emails:");
 	print $q->start_table({-style => "table-layout:fixed; width:100%; white-space:nowrap;"}) . "\n";
-	print $q->Tr($q->th({-align => "left", -style => "display:inline-block;"}, ["Subject", "From", "Date"])) . "\n";
+	print $q->start_Tr();
+	print $q->th({-align => "left", -style => "width:60%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"}, "Subject");
+	print $q->th({-align => "left", -style => "width:25%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"}, "From");
+	print $q->th({-align => "left", -style => "display:inline-block; overflow:hidden; text-overflow:ellipsis;"}, "Date");
+	print $q->end_Tr() . "\n";
 
 	my $emails = $index->db_emails(limit => 10, implicit => 0, desc => 1);
 
@@ -447,7 +451,11 @@ if ( $action eq "get-bin" ) {
 	$order = $q->a({href => gen_url(id => $id, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
 	print $q->start_table({-style => "table-layout:fixed; width:100%; white-space:nowrap;"}) . "\n";
-	print $q->Tr($q->th({-align => "left", -style => "display:inline-block;"}, ["Subject", "From", "Date $order"])) . "\n";
+	print $q->start_Tr();
+	print $q->th({-align => "left", -style => "width:60%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"}, "Subject");
+	print $q->th({-align => "left", -style => "width:25%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"}, "From");
+	print $q->th({-align => "left", -style => "display:inline-block; overflow:hidden; text-overflow:ellipsis;"}, "Date $order");
+	print $q->end_Tr() . "\n";
 
 	my $count = print_tree($index, $id, $desc, undef, undef, undef);
 
@@ -578,7 +586,10 @@ if ( $action eq "get-bin" ) {
 	print $q->br();
 
 	print $q->start_table({-style => "table-layout:fixed; width:100%; white-space:nowrap"}) . "\n";
-	print $q->Tr($q->th({-align => "left", -style => "display:inline-block;"}, ["Subject", "Date $order"])) . "\n";
+	print $q->start_Tr();
+	print $q->th({-align => "left", -style => "width:85%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"}, "Subject");
+	print $q->th({-align => "left", -style => "display:inline-block; overflow:hidden; text-overflow:ellipsis;"}, "Date $order");
+	print $q->end_Tr() . "\n";
 
 	foreach ( @{$roots} ) {
 		my $mid = $_->{messageid};
@@ -685,7 +696,11 @@ if ( $action eq "get-bin" ) {
 	$treeorder = $q->a({href => gen_url(id => $id, path => $path, limit => $limit, offset => $offset, desc => $desc, treedesc => $treeorder)}, $treeorder ? "(msg DESC)" : "(msg ASC)");
 
 	print $q->start_table({-style => "table-layout:fixed; width:100%; white-space:nowrap;"}) . "\n";
-	print $q->Tr($q->th({-align => "left", -style => "display:inline-block;"}, ["Subject", "From", "Date $order $treeorder"])) . "\n";
+	print $q->start_Tr();
+	print $q->th({-align => "left", -style => "width:60%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"}, "Subject");
+	print $q->th({-align => "left", -style => "width:25%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"}, "From");
+	print $q->th({-align => "left", -style => "display:inline-block; overflow:hidden; text-overflow:ellipsis;"}, "Date $order $treeorder");
+	print $q->end_Tr() . "\n";
 
 	$iter = -1;
 	foreach ( @{$roots} ) {
@@ -842,7 +857,11 @@ if ( $action eq "get-bin" ) {
 	}
 
 	print $q->start_table({-style => "table-layout:fixed; width:100%; white-space:nowrap"}) . "\n";
-	print $q->Tr($q->th({-align => "left", -style => "display:inline-block;"}, ["Subject", "From", "Date $order"])) . "\n";
+	print $q->start_Tr();
+	print $q->th({-align => "left", -style => "width:60%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"}, "Subject");
+	print $q->th({-align => "left", -style => "width:25%; display:inline-block; overflow:hidden; text-overflow:ellipsis;"}, "From");
+	print $q->th({-align => "left", -style => "display:inline-block; overflow:hidden; text-overflow:ellipsis;"}, "Date $order");
+	print $q->end_Tr() . "\n";
 
 	foreach ( @{$emails} ) {
 		my $mid = $_->{messageid};
