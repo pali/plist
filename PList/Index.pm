@@ -884,7 +884,7 @@ sub db_emails($;%) {
 		push(@args, "%" . $args{name} . "%");
 	}
 
-	if ( exists $args{type} ) {
+	if ( ( exists $args{email} or exists $args{name} ) and exists $args{type} ) {
 		$statement .= " ss.type = ? AND";
 		push(@args, $args{type});
 	}
