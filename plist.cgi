@@ -564,7 +564,10 @@ if ( $action eq "get-bin" ) {
 		$nextoffset = $offset + $limit;
 		$neednext = 1;
 	}
-	print_start_html("Archive $indexdir - Roots of trees (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
+
+	my $title = "Archive $indexdir - Roots of trees";
+	$title .= " (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")" if $nextoffset > $offset;
+	print_start_html($title);
 
 	print "View: ";
 	print_ahref(gen_url(action => "trees", id => $id, path => $path), "Trees", 1);
@@ -661,7 +664,9 @@ if ( $action eq "get-bin" ) {
 	$neednext = 0 if $neednext != 1;
 	$nextoffset = $offset + $iter if $neednext;
 
-	print_start_html("Archive $indexdir - Browse trees (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
+	my $title = "Archive $indexdir - Browse trees";
+	$title .= " (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")" if $nextoffset > $offset;
+	print_start_html($title);
 
 	print "View: Trees ";
 	print_ahref(gen_url(action => "emails", id => $id, path => $path), "Emails", 1);
