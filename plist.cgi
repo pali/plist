@@ -814,17 +814,33 @@ if ( $action eq "get-bin" ) {
 		$neednext = 1;
 	}
 
-	if ( $action eq "search" ) {
-		print_start_html("Archive $indexdir - Search (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
-	} else {
-		print_start_html("Archive $indexdir - Emails (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")");
+	my $title = "Archive $indexdir -";
+	$title .= " Quick Search for $str" if $action eq "search" and length $str;
+	$title .= " Search" if $action eq "search";
+	$title .= " Emails" if $action eq "emails";
+	$title .= " (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")" if $nextoffset > $offset;
+	print_start_html($title);
+
+	if ( $action eq "search" and not length $str ) {
+		print $q->start_p();
+		print "Search for query:" . $q->br() . "\n";
+		print "Subject: $subject" . $q->br() . "\n" if length $subject;
+		print "Header type: $type" . $q->br() . "\n" if length $type;
+		print "Name: $name" . $q->br() . "\n" if length $name;
+		print "Email: $email" . $q->br() . "\n" if length $email;
+		print $q->end_p();
+	}
+
+	if ( $action eq "emails" ) {
+		print $q->start_p();
 		print "View: ";
 		print_ahref(gen_url(action => "trees", id => $id, path => $path), "Trees", 1);
 		print " Emails ";
 		print_ahref(gen_url(action => "roots", id => $id, path => $path), "Roots", 1);
 		print $q->br();
-		print $q->br();
+		print $q->end_p();
 	}
+
 	print $q->start_table({-style => "table-layout:fixed; width:100%; white-space:nowrap"}) . "\n";
 	print $q->Tr($q->th({-align => "left", -style => "display:inline-block;"}, ["Subject", "From", "Date $order"])) . "\n";
 
