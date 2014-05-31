@@ -214,7 +214,12 @@ sub create_tables($$) {
 	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
-		CREATE INDEX emailsimplicit ON emails(implicit);
+		CREATE INDEX emailsimplicitdate ON emails(implicit, date);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
+		CREATE INDEX emailsimplicitsubjectdate ON emails(implicit, subject, date);
 	);
 	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
@@ -830,7 +835,69 @@ sub db_emails($;%) {
 
 	# Select all email messageids which match conditions
 	$statement = "SELECT * FROM (";
-	$statement .= " SELECT e.id AS id, e.messageid AS messageid, e.date AS date, e.subject AS subject, e.treeid AS treeid, af.email AS email, af.name AS name, e.list AS list, e.offset AS offset, e.implicit AS implicit, e.hasreply AS hasreply FROM emails AS e";
+	$statement .= " SELECT e.id AS id, e.messageid AS messageid, e.date AS date, e.subject AS subject, e.treeid AS treeid, af.email AS email, af.name AS name, e.list AS list, e.offset AS offset, e.implicit AS implicit, e.hasreply AS hasreply FROM (";
+	$statement .= " SELECT * FROM emails";
+
+	if ( exists $args{id} or exists $args{messageid} or exists $args{treeid} or exists $args{date1} or exists $args{date2} or exists $args{implicit} or exists $args{subject} ) {
+		$statement .= " WHERE";
+	}
+
+	if ( exists $args{id} ) {
+		$statement .= " id = ? AND";
+		push(@args, $args{id});
+	}
+
+	if ( exists $args{messageid} ) {
+		$statement .= " messageid = ? AND";
+		push(@args, $args{messageid});
+	}
+
+	if ( exists $args{treeid} ) {
+		$statement .= " treeid = ? AND";
+		push(@args, $args{treeid});
+	}
+
+	if ( exists $args{date1} ) {
+		$statement .= " date >= ? AND";
+		push(@args, $args{date1});
+	}
+
+	if ( exists $args{date2} ) {
+		$statement .= " date < ? AND";
+		push(@args, $args{date2});
+	}
+
+	if ( exists $args{implicit} ) {
+		$statement .= " implicit = ? AND";
+		push(@args, $args{implicit});
+	}
+
+	if ( exists $args{subject} ) {
+		$statement .= " subject LIKE ? AND";
+		push(@args, "%" . $args{subject} . "%");
+	}
+
+	$statement =~ s/AND$//;
+
+	$statement .= "ORDER BY date";
+
+	if ( $args{desc} ) {
+		$statement .= " DESC";
+	}
+
+	if ( exists $args{limit} ) {
+		$statement .= " LIMIT ?";
+		push(@args, $args{limit});
+	}
+
+	# NOTE: OFFSET can be specified only if LIMIT was specified
+	if ( exists $args{limit} and exists $args{offset} ) {
+		$statement .= " OFFSET ?";
+		push(@args, $args{offset});
+	}
+
+	$statement .= " ) AS e";
+
 	$statement .= " LEFT OUTER JOIN addressess AS ssf ON ssf.emailid = e.id LEFT OUTER JOIN address AS af ON af.id = ssf.addressid";
 
 	if ( exists $args{email} or exists $args{name} ) {
@@ -838,41 +905,6 @@ sub db_emails($;%) {
 	}
 
 	$statement .= " WHERE";
-
-	if ( exists $args{id} ) {
-		$statement .= " e.id = ? AND";
-		push(@args, $args{id});
-	}
-
-	if ( exists $args{messageid} ) {
-		$statement .= " e.messageid = ? AND";
-		push(@args, $args{messageid});
-	}
-
-	if ( exists $args{treeid} ) {
-		$statement .= " e.treeid = ? AND";
-		push(@args, $args{treeid});
-	}
-
-	if ( exists $args{date1} ) {
-		$statement .= " e.date >= ? AND";
-		push(@args, $args{date1});
-	}
-
-	if ( exists $args{date2} ) {
-		$statement .= " e.date < ? AND";
-		push(@args, $args{date2});
-	}
-
-	if ( exists $args{implicit} ) {
-		$statement .= " e.implicit = ? AND";
-		push(@args, $args{implicit});
-	}
-
-	if ( exists $args{subject} ) {
-		$statement .= " e.subject LIKE ? AND";
-		push(@args, "%" . $args{subject} . "%");
-	}
 
 	if ( exists $args{email} ) {
 		$statement .= " a.email LIKE ? AND";
@@ -889,7 +921,7 @@ sub db_emails($;%) {
 		push(@args, $args{type});
 	}
 
-	$statement .= " (ssf.type = 0 OR ssf.type IS NULL)";
+	$statement .= " ssf.type = 0 OR ssf.type IS NULL";
 	$statement .= " ) AS ee";
 	$statement .= " GROUP BY ee.id";
 	$statement .= " ORDER BY ee.date";
@@ -898,16 +930,6 @@ sub db_emails($;%) {
 		$statement .= " DESC";
 	}
 
-	if ( exists $args{limit} ) {
-		$statement .= " LIMIT ?";
-		push(@args, $args{limit});
-	}
-
-	# NOTE: OFFSET can be specified only if LIMIT was specified
-	if ( exists $args{limit} and exists $args{offset} ) {
-		$statement .= " OFFSET ?";
-		push(@args, $args{offset});
-	}
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
