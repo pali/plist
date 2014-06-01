@@ -1162,9 +1162,10 @@ sub db_tree($$;$$$$) {
 	foreach ( @{$graph} ) {
 		my $id1 = $_->{id1};
 		my $id2 = $_->{id2};
+		my $type = $_->{type};
 		return undef unless exists $graph{$id1} and exists $graphr{$id2}; # This should not happen, otherwise bug in database
-		$graph{$id1}->{$id2} = 1;
-		$graphr{$id2}->{$id1} = 1;
+		$graph{$id1}->{$id2} = $type;
+		$graphr{$id2}->{$id1} = $type;
 	}
 
 	my %dates;
@@ -1182,12 +1183,11 @@ sub db_tree($$;$$$$) {
 	}
 
 	# Modified topological sort, but from buttom of graph
-	# FIXME: Information about type of edge (in-reply-to, references) is really not used and needed?
 	while ( %output ) {
 
-		# Choose vertex with smallest output degree
+		# Choose vertex with smallest output degree, preffer non implicit
 		# TODO: Instead sort use heap, it has better time complexity
-		my $id1 = (sort { scalar keys %{$output{$a}} <=> scalar keys %{$output{$b}} } keys %output)[0];
+		my $id1 = (sort { $emails{$a}->{implicit} <=> $emails{$b}->{implicit} || scalar keys %{$output{$a}} <=> scalar keys %{$output{$b}} } keys %output)[0];
 
 		# It should be zero, if not loop detected and all edges from this vertex will be cut
 		delete $output{$id1};
@@ -1199,8 +1199,8 @@ sub db_tree($$;$$$$) {
 			delete $output{$id2}->{$id1};
 		}
 
-		# Add all output edges from vertext $id1 to final tree
-		foreach ( keys %{$graph{$id1}} ) {
+		# Add all output edges from vertext $id1 to final tree, preffer in-reply-to edges (they have value 0)
+		foreach ( sort { $graph{$id1}->{$a} <=> $graph{$id1}->{$b} } keys %{$graph{$id1}} ) {
 			my $id2 = $_;
 			next if exists $treer{$id2};
 			next if djs_find(\%djs_parent, \%djs_size, $id1) == djs_find(\%djs_parent, \%djs_size, $id2);
