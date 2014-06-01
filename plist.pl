@@ -186,6 +186,9 @@ sub index_tree_get($$$) {
 
 	my ($tree, $emails) = $index->db_tree($messageid, 0, 0);
 	if ( not $tree or not $tree->{root} ) {
+		($tree, $emails) = $index->db_tree($messageid, 0, 2);
+	}
+	if ( not $tree or not $tree->{root} ) {
 		print "Error: Tree not found\n";
 		return;
 	}
@@ -196,27 +199,26 @@ sub index_tree_get($$$) {
 		$email = $emails->{$_};
 	}
 
-	if ( not $email ) {
-		print "Error: Email not found\n";
-		return;
-	}
+	if ( $email ) {
 
-	my $id = $email->{id};
-	my $implicit = $email->{implicit};
-	my $date = $email->{date};
-	my $subject = $email->{subject};
-	my $from = $email->{name} . " <" . $email->{email} . ">";
+		my $id = $email->{id};
+		my $implicit = $email->{implicit};
+		my $date = $email->{date};
+		my $subject = $email->{subject};
+		my $from = $email->{name} . " <" . $email->{email} . ">";
 
-	print $fh "Internal id: $id\n";
-	print $fh "Id: $messageid\n";
-	print $fh "From: $from\n";
+		print $fh "Internal id: $id\n";
+		print $fh "Id: $messageid\n";
+		print $fh "From: $from\n";
 
-	if ( $date ) {
-		print $fh "Date: $date\n";
-	}
+		if ( $date ) {
+			print $fh "Date: $date\n";
+		}
 
-	if ( $subject ) {
-		print $fh "Subject: $subject\n";
+		if ( $subject ) {
+			print $fh "Subject: $subject\n";
+		}
+
 	}
 
 	my $root = ${$tree->{root}}[0];
