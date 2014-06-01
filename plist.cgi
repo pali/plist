@@ -42,9 +42,9 @@ sub print_p($) {
 	print $q->p($q->escapeHTML($text));
 }
 
-sub print_ahref($$;$) {
-	my ($href, $text, $nobr) = @_;
-	print $q->a({href => $href}, $q->escapeHTML($text));
+sub print_ahref($$;$@) {
+	my ($href, $text, $nobr, @args) = @_;
+	print $q->a({-href => $href, @args}, $q->escapeHTML($text));
 	print $q->br() . "\n" unless $nobr;
 }
 
@@ -229,12 +229,12 @@ if ( not $action ) {
 		$subject = "unknown" unless $subject;
 		print $q->start_Tr();
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print_ahref(gen_url(action => "view", id => $mid), $subject, 1);
+		print_ahref(gen_url(action => "view", id => $mid), $subject, 1, -title => $subject);
 		print $q->end_td();
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print_ahref(gen_url(action => "search", name => $name), $name, 1) if $name;
+		print_ahref(gen_url(action => "search", name => $name), $name, 1, -title => $name) if $name;
 		print " " if $name and $email;
-		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1) if $email;
+		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1, -title => $email) if $email;
 		print $q->end_td();
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
 		print $q->escapeHTML($date) if $date;
@@ -391,14 +391,14 @@ sub print_tree($$$$$$) {
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
 		print $q->span({-style => "width:" . $len * 70 / $depth . "%; max-width:" . $len * 16 . "px; display:inline-block;"}, "&nbsp;");
 		print "&bull;&nbsp;";
-		print_ahref(gen_url(action => "view", id => $mid), $subject, 1) if $subject;
+		print_ahref(gen_url(action => "view", id => $mid), $subject, 1, -title => $subject) if $subject;
 		print "unknown" unless $subject;
 		print $q->end_td();
 
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print_ahref(gen_url(action => "search", name => $name), $name, 1) if $name;
+		print_ahref(gen_url(action => "search", name => $name), $name, 1, -title => $name) if $name;
 		print " " if $name and $email;
-		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1) if $email;
+		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1, -title => $email) if $email;
 		print $q->end_td();
 
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
@@ -595,7 +595,7 @@ if ( $action eq "get-bin" ) {
 		$subject = "unknown" unless $subject;
 		print $q->start_Tr();
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print_ahref(gen_url(action => "tree", id => $mid), $subject, 1);
+		print_ahref(gen_url(action => "tree", id => $mid), $subject, 1, -title => $subject);
 		print $q->end_td();
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
 		print $q->escapeHTML($date) if $date;
@@ -859,12 +859,12 @@ if ( $action eq "get-bin" ) {
 		$subject = "unknown" unless $subject;
 		print $q->start_Tr();
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print_ahref(gen_url(action => "view", id => $mid), $subject, 1);
+		print_ahref(gen_url(action => "view", id => $mid), $subject, 1, -title => $subject);
 		print $q->end_td();
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print_ahref(gen_url(action => "search", name => $name), $name, 1) if $name;
+		print_ahref(gen_url(action => "search", name => $name), $name, 1, -title => $name) if $name;
 		print " " if $name and $email;
-		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1) if $email;
+		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1, -title => $email) if $email;
 		print $q->end_td();
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
 		print $q->escapeHTML($date) if $date;
