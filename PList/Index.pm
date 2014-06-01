@@ -1161,27 +1161,18 @@ sub db_tree($$;$$$$) {
 	my %emails;
 	$emails{$_->{id}} = $_ foreach @{$emails};
 
-	my %graphr; # reverse
+	my %graph;
+	my %graphr;
+
+	$graph{$_} = {} foreach keys %emails;
+	$graphr{$_} = {} foreach keys %emails;
 
 	foreach ( @{$graph} ) {
 		my $id1 = $_->{id1};
 		my $id2 = $_->{id2};
-		my $type = $_->{type};
-		$graphr{$id2} = [] unless $graphr{$id2};
-		push(@{$graphr{$id2}}, [$id1, $type]);
-	}
-
-	# Make sure that every email has only one in-reply-to edge (other set to references)
-	foreach ( keys %graphr ) {
-		my $reply = 0;
-		foreach ( @{$graphr{$_}} ) {
-			next if $_->[1] != 0;
-			if ( not $reply ) {
-				$reply = 1;
-			} else {
-				$_->[1] = 1;
-			}
-		}
+		return undef unless exists $graph{$id1} and exists $graphr{$id2}; # This should not happen, otherwise bug in database
+		$graph{$id1}->{$id2} = 1;
+		$graphr{$id2}->{$id1} = 1;
 	}
 
 	my %dates;
@@ -1191,58 +1182,41 @@ sub db_tree($$;$$$$) {
 	my %djs_size;
 	djs_makeset(\%djs_parent, \%djs_size, $_->{id}) foreach @{$emails};
 
-	if ( (scalar keys %graphr) != 0 ) {
-
-		# First add in-reply-to edges
-		foreach ( @{$emails} ) {
-			my $id2 = $_->{id};
-			next if exists $treer{$id2};
-			next unless $graphr{$id2};
-			foreach ( @{$graphr{$id2}} ) {
-				my $id1 = $_->[0];
-				my $type = $_->[1];
-				next if $type != 0;
-				next if djs_find(\%djs_parent, \%djs_size, $id1) == djs_find(\%djs_parent, \%djs_size, $id2);
-				djs_merge(\%djs_parent, \%djs_size, $id1, $id2);
-				$treer{$id2} = $id1;
-				if ( $emails{$id1}->{implicit} and defined $emails{$id2}->{date} ) {
-					if ( ( not exists $dates{$id1} ) or ( $desc and $dates{$id1} < $emails{$id2}->{date} ) or ( not $desc and $dates{$id1} > $emails{$id2}->{date} ) ) {
-						$dates{$id1} = $emails{$id2}->{date};
-					}
-				}
-			}
-		}
-
+	# Vertex not processed (with list of neighbors)
+	my %output;
+	foreach ( keys %graph ) {
+		my %h = %{$graph{$_}};
+		$output{$_} = \%h;
 	}
 
-	if ( (scalar keys %graphr) != 0 and (scalar keys %graphr) != (scalar keys %treer) + 1 ) {
+	# Modified topological sort, but from buttom of graph
+	# FIXME: Information about type of edge (in-reply-to, references) is really not used and needed?
+	while ( %output ) {
 
-		# Then add unambiguous references edges
-		foreach ( @{$emails} ) {
-			my $id2 = $_->{id};
+		# Choose vertex with smallest output degree
+		# TODO: Instead sort use heap, it has better time complexity
+		my $id1 = (sort { scalar keys %{$output{$a}} <=> scalar keys %{$output{$b}} } keys %output)[0];
+
+		# It should be zero, if not loop detected and all edges from this vertex will be cut
+		delete $output{$id1};
+
+		# Remove all output edges to vertex $id1
+		foreach ( keys %{$graphr{$id1}} ) {
+			my $id2 = $_;
+			next unless exists $output{$id2};
+			delete $output{$id2}->{$id1};
+		}
+
+		# Add all output edges from vertext $id1 to final tree
+		foreach ( keys %{$graph{$id1}} ) {
+			my $id2 = $_;
 			next if exists $treer{$id2};
-			next unless $graphr{$id2};
-			my $pos = -1;
-			my $i = -1;
-			foreach ( @{$graphr{$id2}} ) {
-				++$i;
-				my $id1 = $_->[0];
-				my $type = $_->[1];
-				next if $type != 1;
-				if ( $pos != -1 ) {
-					$pos = -1;
-					last;
-				}
-				$pos = $i;
-			}
-			my $id1 = $graphr{$id2}->[$pos];
-			if ( djs_find(\%djs_parent, \%djs_size, $id1) != djs_find(\%djs_parent, \%djs_size, $id2) ) {
-				djs_merge(\%djs_parent, \%djs_size, $id1, $id2);
-				$treer{$id2} = $id1;
-				if ( $emails{$id1}->{implicit} and defined $emails{$id2}->{date} ) {
-					if ( ( not exists $dates{$id1} ) or ( $desc and $dates{$id1} < $emails{$id2}->{date} ) or ( not $desc and $dates{$id1} > $emails{$id2}->{date} ) ) {
-						$dates{$id1} = $emails{$id2}->{date};
-					}
+			next if djs_find(\%djs_parent, \%djs_size, $id1) == djs_find(\%djs_parent, \%djs_size, $id2);
+			djs_merge(\%djs_parent, \%djs_size, $id1, $id2);
+			$treer{$id2} = $id1;
+			if ( $emails{$id1}->{implicit} and defined $emails{$id2}->{date} ) {
+				if ( ( not exists $dates{$id1} ) or ( $desc and $dates{$id1} < $emails{$id2}->{date} ) or ( not $desc and $dates{$id1} > $emails{$id2}->{date} ) ) {
+					$dates{$id1} = $emails{$id2}->{date};
 				}
 			}
 		}
@@ -1251,53 +1225,38 @@ sub db_tree($$;$$$$) {
 
 	my $root;
 
-	if ( (scalar keys %graphr) != (scalar keys %treer) + 1 ) {
+	# Select candidates for root
+	my %processed;
+	my @roots;
 
-		# Select candidates for root
-		my %processed;
-		my @roots;
-
-		foreach ( @{$emails} ) {
-			my $id = $_->{id};
-			next if $processed{$id};
+	foreach ( @{$emails} ) {
+		my $id = $_->{id};
+		next if $processed{$id};
+		$processed{$id} = 1;
+		my $next = 0;
+		while ( $treer{$id} ) {
+			$id = $treer{$id};
+			$next = 1 if $processed{$id};
+			last if $next;
 			$processed{$id} = 1;
-			my $next = 0;
-			while ( $treer{$id} ) {
-				$id = $treer{$id};
-				$next = 1 if $processed{$id};
-				last if $next;
-				$processed{$id} = 1;
-			}
-			next if $next;
-			push(@roots, $id);
 		}
+		next if $next;
+		push(@roots, $id);
+	}
 
-		return undef unless @roots; # This should not happen, otherwise bug in database
+	return undef unless @roots; # This should not happen, otherwise bug in database
 
-		# Set oldest email as root
-		# In case that all candicates are implicit emails (with NULL date) first will be selected
-		$root = $roots[0];
-		my $date = "inf";
-		foreach ( @roots ) {
-			my $newdate = $emails{$_}->{date};
-			$newdate = $dates{$_} unless defined $newdate;
-			next unless defined $newdate;
-			next unless $date > $newdate;
-			$date = $newdate;
-			$root = $_;
-		}
-
-		# TODO: add other references edges
-
-	} else {
-
-		# Set root from treer (there is only one)
-		foreach ( keys %treer ) {
-			next if $treer{$_};
-			$root = $_;
-			last;
-		}
-
+	# Set oldest email as root
+	# In case that all candicates are implicit emails (with NULL date) first will be selected
+	$root = $roots[0];
+	my $date = "inf";
+	foreach ( @roots ) {
+		my $newdate = $emails{$_}->{date};
+		$newdate = $dates{$_} unless defined $newdate;
+		next unless defined $newdate;
+		next unless $date > $newdate;
+		$date = $newdate;
+		$root = $_;
 	}
 
 	return undef unless defined $root; # This should not happen, otherwise bug
