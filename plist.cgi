@@ -389,7 +389,7 @@ sub print_tree($$$$$$) {
 		print $q->start_Tr();
 
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print $q->span({-style => "width:" . $len * 70 / $depth . "%; max-width:" . $len * 16 . "px; display:inline-block;"}, "&nbsp;");
+		print $q->span({-style => "width:" . sprintf("%.3f", $len * 70 / $depth) . "%; max-width:" . $len * 16 . "px; display:inline-block;"}, "&nbsp;");
 		print "&bull;&nbsp;";
 		print_ahref(gen_url(action => "view", id => $mid), $subject, 1, -title => $subject) if $subject;
 		print "unknown" unless $subject;
