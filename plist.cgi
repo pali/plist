@@ -22,7 +22,7 @@ my $path;
 sub print_start_html($;$@) {
 	my ($title, $noh2, @header) = @_;
 	print $q->header(@header);
-	print $q->start_html(-lang => "", -head => $q->meta({-http_equiv => "Content-Type", -content => "text/html; charset=utf-8"}), -title => $title);
+	print $q->start_html(-lang => "", -head => $q->meta({-http_equiv => "Content-Type", -content => "text/html; charset=utf-8"}), -title => $title, -style => {-code => "a { text-decoration:none; } a:hover { background-color:yellow; }"} );
 	print $q->h2($q->escapeHTML($title)) . "\n" unless $noh2;
 }
 
