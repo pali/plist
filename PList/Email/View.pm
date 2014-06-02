@@ -44,6 +44,12 @@ END
 
 my $style_template_default = <<END;
 <style type='text/css'>
+a {
+	text-decoration: none;
+}
+a:hover {
+	background-color: yellow;
+}
 div.view {
 	margin: 5px;
 	padding: 5px;
