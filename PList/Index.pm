@@ -1153,19 +1153,33 @@ sub db_tree($$;$$$$) {
 	my %emails;
 	$emails{$_->{id}} = $_ foreach @{$emails};
 
-	my %graph;
-	my %graphr;
+	# in-reply-to
+	my %graph0;
+	my %graphr0;
 
-	$graph{$_} = {} foreach keys %emails;
-	$graphr{$_} = {} foreach keys %emails;
+	$graph0{$_} = [] foreach keys %emails;
+	$graphr0{$_} = [] foreach keys %emails;
+
+	# references
+	my %graph1;
+	my %graphr1;
+
+	$graph1{$_} = [] foreach keys %emails;
+	$graphr1{$_} = [] foreach keys %emails;
 
 	foreach ( @{$graph} ) {
 		my $id1 = $_->{id1};
 		my $id2 = $_->{id2};
 		my $type = $_->{type};
-		return undef unless exists $graph{$id1} and exists $graphr{$id2}; # This should not happen, otherwise bug in database
-		$graph{$id1}->{$id2} = $type;
-		$graphr{$id2}->{$id1} = $type;
+		if ( $type == 0 ) {
+			return undef unless exists $graph0{$id1} and exists $graphr0{$id2}; # This should not happen, otherwise bug in database
+			push(@{$graph0{$id1}}, $id2);
+			push(@{$graphr0{$id2}}, $id1);
+		} else {
+			return undef unless exists $graph1{$id1} and exists $graphr1{$id2}; # This should not happen, otherwise bug in database
+			push(@{$graph1{$id1}}, $id2);
+			push(@{$graphr1{$id2}}, $id1);
+		}
 	}
 
 	my %dates;
@@ -1175,32 +1189,57 @@ sub db_tree($$;$$$$) {
 	my %djs_size;
 	djs_makeset(\%djs_parent, \%djs_size, $_->{id}) foreach @{$emails};
 
-	# Vertex not processed (with list of neighbors)
-	my %output;
-	foreach ( keys %graph ) {
-		my %h = %{$graph{$_}};
-		$output{$_} = \%h;
-	}
+	# Vertices not processed (with list of neighbors)
+	my %output0;
+	my %output1;
+
+	$output0{$_} = { map { $_ => 1 } @{$graph0{$_}} } foreach keys %graph0;
+	$output1{$_} = { map { $_ => 1 } @{$graph1{$_}} } foreach keys %graph1;
 
 	# Modified topological sort, but from buttom of graph
-	while ( %output ) {
+	while ( %output0 or %output1 ) {
 
-		# Choose vertex with smallest output degree, preffer non implicit
-		# TODO: Instead sort use heap, it has better time complexity
-		my $id1 = (sort { $emails{$a}->{implicit} <=> $emails{$b}->{implicit} || scalar keys %{$output{$a}} <=> scalar keys %{$output{$b}} } keys %output)[0];
+		my @keys0;
+		my @keys1;
 
-		# It should be zero, if not loop detected and all edges from this vertex will be cut
-		delete $output{$id1};
-
-		# Remove all output edges to vertex $id1
-		foreach ( keys %{$graphr{$id1}} ) {
-			my $id2 = $_;
-			next unless exists $output{$id2};
-			delete $output{$id2}->{$id1};
+		foreach ( keys %output0, keys %output1 ) {
+			push(@keys0, $_) unless $emails{$_}->{implicit};
+			push(@keys1, $_) if $emails{$_}->{implicit};
 		}
 
-		# Add all output edges from vertext $id1 to final tree, preffer in-reply-to edges (they have value 0)
-		foreach ( sort { $graph{$id1}->{$a} <=> $graph{$id1}->{$b} } keys %{$graph{$id1}} ) {
+		my $id1;
+		my $c1;
+
+		# Choose vertex with smallest output degree, preffer non implicit
+		# TODO: Instead sequence scan use heap, it has better time complexity
+		foreach ( @keys0, @keys1 ) {
+			my $c2 = 0;
+			$c2 += scalar keys %{$output0{$_}} if exists $output0{$_};
+			$c2 += scalar keys %{$output1{$_}} if exists $output1{$_};
+			if ( not defined $id1 ) {
+				$id1 = $_;
+				$c1 = $c2;
+				next;
+			}
+			if ( $c1 > $c2 ) {
+				$id1 = $_;
+				$c1 = $c2;
+			}
+		}
+
+		# It should be zero, if not loop detected and all edges from this vertex will be cut
+		delete $output0{$id1};
+		delete $output1{$id1};
+
+		# Remove all output edges to vertex $id1
+		foreach ( @{$graphr0{$id1}}, @{$graphr1{$id1}} ) {
+			my $id2 = $_;
+			delete $output0{$id2}->{$id1} if exists $output0{$id2};
+			delete $output1{$id2}->{$id1} if exists $output1{$id2};
+		}
+
+		# Add all output edges from vertext $id1 to final tree, preffer in-reply-to edges
+		foreach ( @{$graph0{$id1}}, @{$graph1{$id1}} ) {
 			my $id2 = $_;
 			next if exists $treer{$id2};
 			next if djs_find(\%djs_parent, \%djs_size, $id1) == djs_find(\%djs_parent, \%djs_size, $id2);
