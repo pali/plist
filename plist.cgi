@@ -266,7 +266,7 @@ if ( not $action ) {
 
 }
 
-my $address_template = "<a href='" . gen_url(action => "search", -name => "<TMPL_VAR ESCAPE=URL NAME=NAMEURL>") . "'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='" . gen_url(action => "search", -email => "<TMPL_VAR ESCAPE=URL NAME=EMAILURL>") . "'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
+my $address_template = "<a href='" . gen_url(action => "search", type => "from", -name => "<TMPL_VAR ESCAPE=URL NAME=NAMEURL>") . "'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='" . gen_url(action => "search", type => "from", -email => "<TMPL_VAR ESCAPE=URL NAME=EMAILURL>") . "'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
 
 my $subject_template = "<a href='" . gen_url(action => "tree", -id => "<TMPL_VAR ESCAPE=URL NAME=ID>") . "'><TMPL_VAR ESCAPE=HTML NAME=SUBJECT></a>";
 
