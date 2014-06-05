@@ -20,27 +20,30 @@ sub new($$) {
 		$is_fh = !$@ && defined $fd;
 	}
 
-	my @args;
-
-	if ( $is_fh ) {
-		push(@args, "_", "_fh", $arg);
-	} else {
-		push(@args, $arg);
+	if ( not $is_fh ) {
+		open(my $fh, "<:mmap", $arg) or return undef;
+		$arg = $fh;
 	}
 
-	my $mbox = Email::Folder::Mbox->new(@args);
+	binmode($arg);
+
+	# NOTE: We need to eat first line otherwise Email::Folder::Mbox will not work with _fh key
+	my $line = <$arg>;
+
+	# HACK: We can set file handle for Email::Folder::Mbox via special key _fh and then filename will be ignored
+	my $mbox = Email::Folder::Mbox->new("_", _fh => $arg);
 	return undef unless ref $mbox;
 
-	my $next = $mbox->next_message();
-	my $nextref = \$next;
-	$nextref = undef unless defined $next;
-
 	my $priv = {
+		fh => $arg,
 		mbox => $mbox,
-		next => \$nextref,
 	};
 
-	return bless $priv, $class;
+	bless $priv, $class;
+
+	$priv->{next} = $priv->readnextref();
+
+	return $priv;
 
 }
 
@@ -55,6 +58,32 @@ sub eof($) {
 
 }
 
+sub readnextref($) {
+
+	my ($priv) = @_;
+
+	# NOTE: Email::Folder::Mbox does not return message with header From line
+	# This code will try to read previous line and later try to match From header
+	my $fh = $priv->{fh};
+	my $pos = tell($fh);
+	my $str;
+	my $seek = $pos-300;
+	$seek = 0 if $seek < 0;
+	seek($fh, $seek, 0);
+	read($fh, $str, $pos-$seek);
+	seek($fh, $pos, 0);
+
+	my $next = $priv->{mbox}->next_message();
+	return undef unless defined $next;
+
+	if ( $str =~ /.*(From [^\n]*)\n/ ) {
+		$next = $1 . "\n" . $next . "\n";
+	}
+
+	return \$next;
+
+}
+
 sub readnext($) {
 
 	my ($priv) = @_;
@@ -62,10 +91,7 @@ sub readnext($) {
 	my $message = $priv->{next};
 	return undef unless $message;
 
-	my $next = $priv->{mbox}->next_message();
-	my $nextref = \$next;
-	$nextref = undef unless defined $next;
-	$priv->{next} = $nextref;
+	$priv->{next} = $priv->readnextref();
 
 	return PList::Email::MIME::from_str($message);
 
