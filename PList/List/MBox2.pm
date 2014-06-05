@@ -63,6 +63,9 @@ sub readnext($) {
 	$message->write($fh);
 	close($fh);
 
+	$message->destruct();
+	$message = undef;
+
 	return PList::Email::MIME::from_str(\$str);
 
 }
