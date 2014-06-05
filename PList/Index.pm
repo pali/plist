@@ -404,17 +404,10 @@ sub add_email($$) {
 
 	my ($priv, $pemail) = @_;
 
-	my $header = $pemail->header("0");
-
-	if ( not $header ) {
-		$@ = "Corrupted email";
-		return 0;
-	}
-
 	my $dbh = $priv->{dbh};
 	my $driver = $priv->{driver};
 
-	my $id = $header->{id};
+	my $id = $pemail->id();
 	my $rid;
 
 	my $statement;
@@ -444,6 +437,13 @@ sub add_email($$) {
 
 	if ( $ret and $ret->{$id} ) {
 		$rid = $ret->{$id}->{id};
+	}
+
+	my $header = $pemail->header("0");
+
+	if ( not $header ) {
+		$@ = "Corrupted email";
+		return 0;
 	}
 
 	# TODO: Increase listfile name number if file is too big
@@ -767,7 +767,8 @@ sub add_list($$;$) {
 			next;
 		}
 		if ( not $priv->add_email($pemail) ) {
-			warn "Cannot add email with id '" . $pemail->header("0")->{id} . "': $@\n" unless $ignorewarn;
+			my $err = $@;
+			warn "Cannot add email with id '" . $pemail->id() . "': $err\n" unless $ignorewarn;
 			next;
 		}
 		++$count;
