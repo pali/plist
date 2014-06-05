@@ -25,8 +25,8 @@ sub help() {
 	print "index view <dir>\n";
 	print "index create <dir> [<driver>] [<params>] [<username>] [<password>]\n";
 	print "index regenerate <dir>\n";
-	print "index add-list <dir> [<list>]\n";
-	print "index add-mbox <dir> [<mbox>]\n";
+	print "index add-list <dir> [<list>] [silent]\n";
+	print "index add-mbox <dir> [<mbox>] [silent]\n";
 	print "index add-mime <dir> [<mime>]\n";
 	print "index get-bin <dir> <id> [<bin>]\n";
 	print "index get-part <dir> <id> <part> [<file>]\n";
@@ -521,23 +521,25 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "add-list" ) {
 
 		my $listfile = shift @ARGV;
+		my $silent = shift @ARGV;
 		help() if @ARGV;
 		my $list = open_list($listfile, 0);
 		$listfile = "STDIN" unless $listfile;
 
 		print "Adding list file '$listfile' to index dir '$indexdir'...\n";
-		my ($count, $total) = $index->add_list($list);
+		my ($count, $total) = $index->add_list($list, $silent);
 		print "Done ($count/$total emails)\n";
 
 	} elsif ( $command eq "add-mbox" ) {
 
 		my $mboxfile = shift @ARGV;
+		my $silent = shift @ARGV;
 		help() if @ARGV;
 		my $mbox = open_mbox($mboxfile);
 		$mboxfile = "STDIN" unless $mboxfile;
 
 		print "Adding mbox file '$mboxfile' to index dir '$indexdir'...\n";
-		my ($count, $total) = $index->add_list($mbox);
+		my ($count, $total) = $index->add_list($mbox, $silent);
 		print "Done ($count/$total emails)\n";
 
 	} elsif ( $command eq "add-mime" ) {
