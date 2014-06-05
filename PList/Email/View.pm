@@ -263,7 +263,7 @@ sub part_to_str($$$$) {
 
 				my $html_policy = ${$config}{html_policy};
 
-				if ( $mimetype eq "text/html" and ( $html_policy == 3 or $html_policy == 2 ) ) {
+				if ( $mimetype eq "text/html" and ( $html_policy == 4 or $html_policy == 3 ) ) {
 					my $data = $pemail->data($partid);
 					$output = decode_utf8(${$data});
 				} elsif ( $mimetype eq "text/plain" or $mimetype eq "text/plain-from-html" or $textpreview ) {
