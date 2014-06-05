@@ -232,9 +232,9 @@ if ( not $action ) {
 		print_ahref(gen_url(action => "view", id => $mid), $subject, 1, -title => $subject);
 		print $q->end_td();
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print_ahref(gen_url(action => "search", name => $name), $name, 1, -title => $name) if $name;
+		print_ahref(gen_url(action => "search", type => "from", name => $name), $name, 1, -title => $name) if $name;
 		print " " if $name and $email;
-		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1, -title => $email) if $email;
+		print_ahref(gen_url(action => "search", type => "from", email => $email), "<" . $email . ">", 1, -title => $email) if $email;
 		print $q->end_td();
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
 		print $q->escapeHTML($date) if $date;
@@ -396,9 +396,9 @@ sub print_tree($$$$$$) {
 		print $q->end_td();
 
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print_ahref(gen_url(action => "search", name => $name), $name, 1, -title => $name) if $name;
+		print_ahref(gen_url(action => "search", type => "from", name => $name), $name, 1, -title => $name) if $name;
 		print " " if $name and $email;
-		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1, -title => $email) if $email;
+		print_ahref(gen_url(action => "search", type => "from", email => $email), "<" . $email . ">", 1, -title => $email) if $email;
 		print $q->end_td();
 
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
@@ -876,9 +876,9 @@ if ( $action eq "get-bin" ) {
 		print_ahref(gen_url(action => "view", id => $mid), $subject, 1, -title => $subject);
 		print $q->end_td();
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print_ahref(gen_url(action => "search", name => $name), $name, 1, -title => $name) if $name;
+		print_ahref(gen_url(action => "search", type => "from", name => $name), $name, 1, -title => $name) if $name;
 		print " " if $name and $email;
-		print_ahref(gen_url(action => "search", email => $email), "<" . $email . ">", 1, -title => $email) if $email;
+		print_ahref(gen_url(action => "search", type => "from", email => $email), "<" . $email . ">", 1, -title => $email) if $email;
 		print $q->end_td();
 		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
 		print $q->escapeHTML($date) if $date;
