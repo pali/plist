@@ -561,12 +561,24 @@ sub read_email($$$;$) {
 sub maybe_init($) {
 
 	my ($self) = @_;
-	my $date = $self->{date};
-	my $email = $self->{email};
 
 	if ( not $self->{init} ) {
 
 		$self->{init} = 1;
+
+		my $date = $self->{date};
+		my $str = $self->{str};
+
+		my $email;
+		{
+			# Method Email::MIME::new calling Email::MIME::ContentType::parse_content_type()
+			# so make sure that strict parsing is turned off
+			local $Email::MIME::ContentType::STRICT_PARAMS = 0;
+			$email = new Email::MIME($str);
+		}
+		if ( not defined $email ) {
+			die "Error: Email::MIME returned undef";
+		}
 
 		my $part = {
 			part => "$first_prefix",
@@ -577,6 +589,11 @@ sub maybe_init($) {
 
 		$self->add_part($part);
 		$self->read_email($email, "$first_prefix", $date);
+
+		# Consistency check
+		if ( $self->{id} ne $self->header("0")->{id} ) {
+			die "Error: Email::MIME reported different Message-Id header";
+		}
 
 	}
 
@@ -650,22 +667,27 @@ sub from_str($) {
 		}
 	}
 
-	my $email;
-	{
-		# Method Email::MIME::new calling Email::MIME::ContentType::parse_content_type()
-		# so make sure that strict parsing is turned off
-		local $Email::MIME::ContentType::STRICT_PARAMS = 0;
-		$email = new Email::MIME($str);
-	}
-	if ( not defined $email ) {
-		return undef;
+	my $id;
+	if ( ${$str} =~ /(\n|^)Message-Id:(.*)\n/i ) {
+		my @ids = ids($2);
+		$id = $ids[0] if @ids;
 	}
 
 	my $pemail = PList::Email::new("PList::Email::MIME");
+
 	$pemail->{datarefs} = {};
-	$pemail->{id} = messageid($email);
-	$pemail->{email} = $email;
+	$pemail->{id} = $id;
+	$pemail->{str} = $str;
 	$pemail->{date} = $date;
+
+	if ( not $id ) {
+		$pemail->maybe_init();
+		if ( not $pemail->header("0") ) {
+			return undef;
+		}
+		$pemail->{id} = $pemail->header("0")->{id};
+	}
+
 	return $pemail;
 
 }
