@@ -57,6 +57,9 @@ div.view {
 }
 span.plaintext {
 	white-space: pre-wrap;
+}
+span.plaintextmonospace {
+	white-space: pre-wrap;
 	font-family: monospace;
 }
 </style>
@@ -92,6 +95,12 @@ my $plaintext_template_default = <<END;
 </TMPL_IF>
 END
 chomp($plaintext_template_default);
+
+my $plaintextmonospace_template_default = <<END;
+<TMPL_IF NAME=BODY><span class='plaintextmonospace'><TMPL_VAR ESCAPE=HTML NAME=BODY></span>
+</TMPL_IF>
+END
+chomp($plaintextmonospace_template_default);
 
 my $multipart_template_default = "<TMPL_IF NAME=BODY><TMPL_LOOP NAME=BODY><TMPL_VAR NAME=PART></TMPL_LOOP></TMPL_IF>";
 
@@ -269,7 +278,21 @@ sub part_to_str($$$$) {
 				} elsif ( $mimetype eq "text/plain" or $mimetype eq "text/plain-from-html" or $textpreview ) {
 					my $data = $pemail->data($partid);
 					$data = decode_utf8(${$data});
-					my $plaintext_template = HTML::Template->new(scalarref => ${$config}{plaintext_template}, die_on_bad_params => 0, utf8 => 1);
+					my $monospace = ${$config}{plain_monospace};
+					if ( $monospace == 1 ) {
+						if ( $mimetype eq "text/plain-from-html" ) {
+							$monospace = 0;
+						} else {
+							# TODO: Add support for patch/diff detection
+							$monospace = 2;
+						}
+					}
+					my $plaintext_template;
+					if ( $monospace ) {
+						$plaintext_template = HTML::Template->new(scalarref => ${$config}{plaintextmonospace_template}, die_on_bad_params => 0, utf8 => 1);
+					} else {
+						$plaintext_template = HTML::Template->new(scalarref => ${$config}{plaintext_template}, die_on_bad_params => 0, utf8 => 1);
+					}
 					$plaintext_template->param(ID => $id);
 					$plaintext_template->param(PART => $partid);
 					$plaintext_template->param(BODY => $data);
@@ -333,6 +356,7 @@ sub part_to_str($$$$) {
 # config:
 # html_output 0 or 1
 # html_policy always(4) allow(3) strip(2) plain(1) never(0)
+# plain_monospace always(2) detect(1) never(0)
 # time_zone local
 # date_format "%a, %d %b %Y %T %z"
 # enabled_mime_types
@@ -346,6 +370,7 @@ sub part_to_str($$$$) {
 # message_template
 # view_template
 # plaintext_template
+# plaintextmonospace_template
 # multipart_template
 # attachment_template
 
@@ -357,6 +382,9 @@ sub to_str($;%) {
 	$config{html_output} = 1 unless defined $config{html_output};
 	$config{html_policy} = 1 unless defined $config{html_policy};
 	$config{html_policy} = 1 if ( $config{html_policy} < 0 || $config{html_policy} > 4 );
+
+	$config{plain_monospace} = 1 unless defined $config{plain_monospace};
+	$config{plain_monospace} = 1 if ( $config{plain_monospace} < 0 || $config{plain_monospace} > 2 );
 
 	# Time zone & Date format
 	$config{time_zone} = "local" unless $config{time_zone};
@@ -374,6 +402,7 @@ sub to_str($;%) {
 	$config{message_template} = \$message_template_default unless defined $config{message_template};
 	$config{view_template} = \$view_template_default unless defined $config{view_template};
 	$config{plaintext_template} = \$plaintext_template_default unless defined $config{plaintext_template};
+	$config{plaintextmonospace_template} = \$plaintextmonospace_template_default unless defined $config{plaintextmonospace_template};
 	$config{multipart_template} = \$multipart_template_default unless defined $config{multipart_template};
 	$config{attachment_template} = \$attachment_template_default unless defined $config{attachment_template};
 
