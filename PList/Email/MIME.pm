@@ -14,13 +14,13 @@ use Email::Address;
 use Email::MIME;
 use Email::MIME::ContentType;
 
-use Encode qw(decode encode_utf8);
+use Encode qw(decode decode_utf8 encode_utf8);
 use Encode::Detect;
 
 use File::MimeInfo::Magic qw(mimetype extensions);
 
 use HTML::Strip;
-use HTML::Entities;
+use HTML::Entities qw(decode_entities);
 
 my $first_prefix = 0;
 
@@ -245,7 +245,13 @@ sub html_strip($) {
 	$html =~ s/(?<=[^\n])(?=<br[^>]*>[^\n])/\n/g;
 	$html =~ s/(?=<div[^>]*>)/\n/g;
 
-	return HTML::Strip->new()->parse($html);
+	# NOTE: HTML::Strip does not support utf8 strings correctly, workaround is to decode html entities after decoding utf8 string
+	# See: https://rt.cpan.org/Public/Bug/Display.html?id=42834#txn-705624
+	$html = HTML::Strip->new(decode_entities => 0)->parse($html);
+	$html = decode_utf8($html);
+	$html = decode_entities($html);
+
+	return $html;
 
 }
 
