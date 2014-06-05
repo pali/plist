@@ -354,8 +354,8 @@ sub to_str($;%) {
 
 	my ($pemail, %config) = @_;
 
-	$config{html_output} = 1 unless $config{html_output};
-	$config{html_policy} = 1 unless $config{html_policy};
+	$config{html_output} = 1 unless defined $config{html_output};
+	$config{html_policy} = 1 unless defined $config{html_policy};
 	$config{html_policy} = 1 if ( $config{html_policy} < 0 || $config{html_policy} > 4 );
 
 	# Time zone & Date format
@@ -364,18 +364,18 @@ sub to_str($;%) {
 
 	# TODO: Set default templates based on $html_output
 	# TODO: Add support for $html_output == 0
-	$config{disabled_mime_types} = \@disabled_mime_types_default unless $config{disabled_mime_types};
-	$config{base_template} = \$base_template_default unless $config{base_template};
-	$config{style_template} = \$style_template_default unless $config{style_template};
-	$config{address_template} = \$address_template_default unless $config{address_template};
-	$config{subject_template} = \$subject_template_default unless $config{subject_template};
-	$config{download_template} = \$download_template_default unless $config{download_template};
-	$config{imagepreview_template} = \$imagepreview_template_default unless $config{imagepreview_template};
-	$config{message_template} = \$message_template_default unless $config{message_template};
-	$config{view_template} = \$view_template_default unless $config{view_template};
-	$config{plaintext_template} = \$plaintext_template_default unless $config{plaintext_template};
-	$config{multipart_template} = \$multipart_template_default unless $config{multipart_template};
-	$config{attachment_template} = \$attachment_template_default unless $config{attachment_template};
+	$config{disabled_mime_types} = \@disabled_mime_types_default unless defined $config{disabled_mime_types};
+	$config{base_template} = \$base_template_default unless defined $config{base_template};
+	$config{style_template} = \$style_template_default unless defined $config{style_template};
+	$config{address_template} = \$address_template_default unless defined $config{address_template};
+	$config{subject_template} = \$subject_template_default unless defined $config{subject_template};
+	$config{download_template} = \$download_template_default unless defined $config{download_template};
+	$config{imagepreview_template} = \$imagepreview_template_default unless defined $config{imagepreview_template};
+	$config{message_template} = \$message_template_default unless defined $config{message_template};
+	$config{view_template} = \$view_template_default unless defined $config{view_template};
+	$config{plaintext_template} = \$plaintext_template_default unless defined $config{plaintext_template};
+	$config{multipart_template} = \$multipart_template_default unless defined $config{multipart_template};
+	$config{attachment_template} = \$attachment_template_default unless defined $config{attachment_template};
 
 	my @enabled_mime_types = $config{enabled_mime_types} ? @{$config{enabled_mime_types}} : ();
 	my @disabled_mime_types = $config{disabled_mime_types} ? @{$config{disabled_mime_types}} : ();
