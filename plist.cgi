@@ -471,9 +471,23 @@ if ( $action eq "get-bin" ) {
 
 } elsif ( $action eq "view" ) {
 
+	my $policy = $q->param("policy");
+	my $monospace = $q->param("monospace");
+	my $timezone = $q->param("timezone");
+	my $dateformat = $q->param("dateformat");
+
 	error("Param id was not specified") unless $id;
 
-	my %config = (address_template => \$address_template, subject_template => \$subject_template, download_template => \$download_template, imagepreview_template => \$imagepreview_template);
+	my %config = (
+		html_policy => $policy,
+		plain_monospace => $monospace,
+		time_zone => $timezone,
+		date_format => $dateformat,
+		address_template => \$address_template,
+		subject_template => \$subject_template,
+		download_template => \$download_template,
+		imagepreview_template => \$imagepreview_template,
+	);
 
 	my $str = $index->view($id, %config);
 	error("Email with $id does not exist in archive $indexdir") unless $str;
