@@ -19,6 +19,13 @@ sub new($) {
 
 }
 
+sub id($) {
+
+	my ($self) = @_;
+	return ${${$self->{headers}}{0}}{id};
+
+}
+
 sub part($$) {
 
 	my ($self, $part) = @_;
