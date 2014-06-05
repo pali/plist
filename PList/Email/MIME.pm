@@ -3,7 +3,8 @@ package PList::Email::MIME;
 use strict;
 use warnings;
 
-use base "PList::Email";
+use vars qw($AUTOLOAD);
+my $parent = "PList::Email";
 
 use DateTime;
 use DateTime::Format::Mail;
@@ -557,9 +558,60 @@ sub read_email($$$;$) {
 
 }
 
+sub maybe_init($) {
+
+	my ($self) = @_;
+	my $date = $self->{date};
+	my $email = $self->{email};
+
+	if ( not $self->{init} ) {
+
+		$self->{init} = 1;
+
+		my $part = {
+			part => "$first_prefix",
+			size => 0,
+			type => "message",
+			mimetype => "message/rfc822",
+		};
+
+		$self->add_part($part);
+		$self->read_email($email, "$first_prefix", $date);
+
+	}
+
+}
+
+sub DESTROY {
+
+}
+
+sub AUTOLOAD {
+
+	my $self = shift;
+	my $func = $AUTOLOAD;
+	my @args = @_;
+
+	$self->maybe_init();
+
+	$func =~ s/.*:://;
+
+	my $super = $parent . "::" . $func;
+	$self->$super(@args);
+
+}
+
+sub id($) {
+
+	my ($self) = @_;
+	return $self->{id};
+
+}
+
 sub data($$;$) {
 
 	my ($self, $part, $ofh) = @_;
+	$self->maybe_init();
 	if ( $ofh ) {
 		no warnings "utf8";
 		return print $ofh ${$self->{datarefs}->{$part}};
@@ -598,8 +650,6 @@ sub from_str($) {
 		}
 	}
 
-	my %datarefs;
-
 	my $email;
 	{
 		# Method Email::MIME::new calling Email::MIME::ContentType::parse_content_type()
@@ -612,18 +662,10 @@ sub from_str($) {
 	}
 
 	my $pemail = PList::Email::new("PList::Email::MIME");
-	$pemail->{datarefs} = \%datarefs;
-
-	my $part = {
-		part => "$first_prefix",
-		size => 0,
-		type => "message",
-		mimetype => "message/rfc822",
-	};
-
-	$pemail->add_part($part);
-
-	$pemail->read_email($email, "$first_prefix", $date);
+	$pemail->{datarefs} = {};
+	$pemail->{id} = messageid($email);
+	$pemail->{email} = $email;
+	$pemail->{date} = $date;
 	return $pemail;
 
 }
