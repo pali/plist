@@ -407,7 +407,7 @@ sub add_email($$) {
 	my $header = $pemail->header("0");
 
 	if ( not $header ) {
-		warn "Corrupted email\n";
+		$@ = "Corrupted email";
 		return 0;
 	}
 
@@ -438,7 +438,7 @@ sub add_email($$) {
 	};
 
 	if ( $ret and $ret->{$id} and not $ret->{$id}->{implicit} ) {
-		warn "Email with id '$id' already in database\n";
+		$@ = "Email already in database";
 		return 0;
 	}
 
@@ -453,15 +453,15 @@ sub add_email($$) {
 
 	my $list = new PList::List::Binary($priv->{dir} . "/" . $listfile, 1);
 	if ( not $list ) {
-		warn "Cannot open listfile '$listfile'\n";
 		eval { $dbh->rollback(); };
+		$@ = "Cannot open listfile '$listfile'";
 		return 0;
 	};
 
 	$offset = $list->append($pemail);
 	if ( not defined $offset ) {
-		warn "Cannot append email to listfile '$listfile'\n";
 		eval { $dbh->rollback(); };
+		$@ = "Cannot append email to listfile '$listfile'";
 		return 0;
 	};
 
@@ -752,9 +752,9 @@ sub add_email($$) {
 
 }
 
-sub add_list($$) {
+sub add_list($$;$) {
 
-	my ($priv, $list) = @_;
+	my ($priv, $list, $ignorewarn) = @_;
 
 	my $count = 0;
 	my $total = 0;
@@ -763,11 +763,11 @@ sub add_list($$) {
 		++$total;
 		my $pemail = $list->readnext();
 		if ( not $pemail ) {
-			warn "Cannot read email\n";
+			warn "Cannot read email\n" unless $ignorewarn;
 			next;
 		}
 		if ( not $priv->add_email($pemail) ) {
-			warn "Cannot add email with id '" . $pemail->header("0")->{id} . "'\n";
+			warn "Cannot add email with id '" . $pemail->header("0")->{id} . "': $@\n" unless $ignorewarn;
 			next;
 		}
 		++$count;
