@@ -28,7 +28,7 @@ sub print_start_html($;$@) {
 
 sub print_start_table($$) {
 	my ($cols, $widths) = @_;
-	print $q->start_table({-style => "table-layout:fixed; width:100%; white-space:nowrap;"}) . "\n";
+	print $q->start_table({-style => "table-layout:fixed; width:100%; white-space:nowrap; border-spacing:10px 2px;"}) . "\n";
 	print $q->col({-style => "width:$_;"}) foreach @{$widths};
 	print $q->start_thead();
 	print $q->start_Tr();
