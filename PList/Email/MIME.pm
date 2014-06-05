@@ -40,8 +40,8 @@ sub lengthbytes($) {
 sub subject($) {
 
 	my ($email) = @_;
-	if ( defined $email->header("Subject") ) {
-		my $str = $email->header("Subject");
+	my $str = $email->header("Subject");
+	if ( defined $str ) {
 		$str =~ s/\s/ /g;
 		$str =~ s/^\s+//;
 		$str =~ s/\s+$//;
