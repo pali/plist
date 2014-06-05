@@ -122,12 +122,9 @@ sub references($) {
 sub messageid($) {
 
 	my ($email) = @_;
-	my $id = $email->header("Message-Id");
-	# NOTE: Too short message id cannot be used as unique identifier
-	if ( $id and length($id) > 4 ) {
-		$id =~ s/^\s*<(.*)>\s*$/$1/;
-		$id =~ s/[\s\\\/]//g;
-		return $id;
+	my @ids = ids($email->header("Message-Id"));
+	if ( @ids ) {
+		return $ids[0];
 	} else {
 		# Generate some stable unique message-id which is needed for indexing
 		my $hash = sha1_hex($email->as_string());
