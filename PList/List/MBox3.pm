@@ -31,7 +31,8 @@ sub new($$) {
 	my $line = <$arg>;
 
 	# HACK: We can set file handle for Email::Folder::Mbox via special key _fh and then filename will be ignored
-	my $mbox = Email::Folder::Mbox->new("_", _fh => $arg);
+	# NOTE: When jwz_From_ is set to 1 message separator is string "^From "
+	my $mbox = Email::Folder::Mbox->new("_", _fh => $arg, jwz_From_ => 1);
 	return undef unless ref $mbox;
 
 	my $priv = {
