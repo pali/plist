@@ -11,6 +11,8 @@ use Time::Piece;
 
 binmode(\*STDOUT, ":utf8");
 
+$CGI::DISABLE_UPLOADS = 1;
+
 # global variables
 my $q;
 my $script;
