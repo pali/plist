@@ -341,7 +341,9 @@ sub to_fh($$) {
 		}
 	}
 
-	return 1;
+	my $ret = tell($fh);
+	$ret = 1 unless $ret;
+	return $ret;
 
 }
 
@@ -363,8 +365,10 @@ sub to_str($) {
 	my ($pemail) = @_;
 
 	my $str;
-	if ( to_file($pemail, \$str) ) {
-		return $str;
+	my $len;
+
+	if ( $len = to_file($pemail, \$str) ) {
+		return (\$str, $len);
 	} else {
 		return undef;
 	}
