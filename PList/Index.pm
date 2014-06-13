@@ -1390,9 +1390,9 @@ sub db_tree($$;$$$$) {
 
 }
 
-sub db_replies($$;$$$) {
+sub db_replies($$;$) {
 
-	my ($priv, $id, $up, $desc, $rid) = @_;
+	my ($priv, $id, $up) = @_;
 
 	my $dbh = $priv->{dbh};
 
@@ -1407,23 +1407,13 @@ sub db_replies($$;$$$) {
 		$id2 = "1";
 	}
 
-	if ( $desc ) {
-		$desc = "DESC";
-	} else {
-		$desc = "";
-	}
-
-	my $where = "messageid";
-	$where = "id" if ( $rid );
-
 	# Select all emails which are in-reply-to or references (up or down) to specified email
 	$statement = qq(
 		SELECT DISTINCT e2.id, e2.messageid, e2.implicit, e2.treeid, r.type
 			FROM emails AS e1
 			JOIN replies AS r ON r.emailid$id1 = e1.id
 			JOIN emails AS e2 ON e2.id = r.emailid$id2
-			WHERE e1.$where = ?
-			ORDER BY e2.date $desc
+			WHERE e1.messageid = ?
 		;
 	);
 
@@ -1459,7 +1449,6 @@ sub db_replies($$;$$$) {
 	my $limit = "";
 	if ( $up ) {
 		$limit = "LIMIT 1";
-		$desc = "";
 	}
 
 	# Select all emails which has same (non empty) subject as specified email, do not have in-reply-to header and are send before specified email
@@ -1477,8 +1466,8 @@ sub db_replies($$;$$$) {
 				e1.date IS NOT NULL AND
 				e2.date IS NOT NULL AND
 				e$id1.date >= e$id2.date AND
-				e1.$where = ?
-			ORDER BY e2.date $desc
+				e1.messageid = ?
+			ORDER BY e2.date
 			$limit
 		;
 	);
