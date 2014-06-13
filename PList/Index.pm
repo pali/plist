@@ -531,7 +531,7 @@ sub add_one_email($$$$) {
 		return 0;
 	};
 
-	$statement = "SELECT MAX(treeid)+1 FROM emails;";
+	$statement = "SELECT (SELECT MAX(treeid) FROM emails) + 1;";
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
