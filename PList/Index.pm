@@ -231,6 +231,11 @@ sub create_tables($$) {
 	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
+		CREATE INDEX emailsimplicitsubjectiddate ON emails(implicit, subjectid, date);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
 		CREATE INDEX emailsimplicitsubjectdate ON emails(implicit, subject, date);
 	);
 	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
