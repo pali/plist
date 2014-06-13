@@ -141,10 +141,9 @@ sub address($) {
 
 	my ($email_address) = @_;
 
-	my $address;
+	my $address = $email_address->address;
 
-	if ( $email_address->address ) {
-		$address = $email_address->address;
+	if ( $address ) {
 		$address =~ s/\s//g;
 	}
 
@@ -152,10 +151,9 @@ sub address($) {
 		$address = "nobody\@nohost";
 	}
 
-	my $name;
+	my $name = $email_address->name;
 
-	if ( $email_address->name ) {
-		$name = $email_address->name;
+	if ( $name ) {
 		$name =~ s/\s/ /g;
 		$name =~ s/^\s+//;
 		$name =~ s/\s+$//;
