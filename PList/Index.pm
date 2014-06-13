@@ -55,6 +55,7 @@ sub new($$) {
 	my $password;
 
 	my $description;
+	my $listsize;
 
 	while (<$fh>) {
 		next if $_ =~ /^\s*#/;
@@ -64,6 +65,7 @@ sub new($$) {
 		$username = $2 if $1 eq "username";
 		$password = $2 if $1 eq "password";
 		$description = $2 if $1 eq "description";
+		$listsize = $2 if $1 eq "listsize";
 	}
 
 	close($fh);
@@ -78,11 +80,16 @@ sub new($$) {
 		return undef;
 	}
 
+	if ( not $listsize ) {
+		$listsize = 100 * 1024 * 1024; # 100MB
+	}
+
 	my $priv = {
 		dir => $dir,
 		dbh => $dbh,
 		driver => $driver,
 		description => $description,
+		listsize => $listsize,
 	};
 
 	bless $priv, $class;
@@ -740,18 +747,56 @@ sub add_one_email($$$$) {
 
 }
 
+sub reopen_listfile($;$$) {
+
+	my ($priv, $list, $listfile) = @_;
+
+	if ( $list and $listfile and ( not -f $priv->{dir} . "/" . $listfile or -s $priv->{dir} . "/" . $listfile < $priv->{listsize} ) ) {
+		return ($list, $listfile);
+	}
+
+	if ( not $listfile ) {
+
+		my $dh;
+		my @files;
+
+		opendir($dh, $priv->{dir});
+		@files = sort grep(/^[0-9]+\.list$/ && -f $_, readdir($dh));
+		closedir($dh);
+
+		if ( not @files ) {
+			$listfile = "00000.list";
+		} else {
+			$listfile = $files[-1];
+		}
+
+	}
+
+	if ( -f $priv->{dir} . "/" . $listfile and -s $priv->{dir} . "/" . $listfile >= $priv->{listsize} ) {
+		$listfile =~ s/\.list$//;
+		$listfile = sprintf("%.5d.list", $listfile+1);
+	}
+
+	$list = new PList::List::Binary($priv->{dir} . "/" . $listfile, 1);
+	if ( not $list ) {
+		$@ = "Cannot open listfile '$listfile'";
+		return undef;
+	}
+
+	return ($list, $listfile);
+
+}
+
 sub add_email($$;$) {
 
 	my ($priv, $pemail, $ignorewarn) = @_;
 
-	# TODO: Increase listfile name number if file is too big
-	my $listfile = "00000.list";
-
-	my $list = new PList::List::Binary($priv->{dir} . "/" . $listfile, 1);
-	if ( not $list ) {
-		warn "Cannot open listfile '$listfile'\n" unless $ignorewarn;
+	my ($list, $listfile) = $priv->reopen_listfile();
+	if ( not $list or not $listfile ) {
+		my $err = $@;
+		warn "Cannot add email: $err\n" unless $ignorewarn;
 		return 0;
-	};
+	}
 
 	my $ret = $priv->add_one_email($pemail, $list, $listfile);
 	if ( not $ret ) {
@@ -771,20 +816,20 @@ sub add_list($$;$) {
 	my $count = 0;
 	my $total = 0;
 
-	# TODO: Increase listfile name number if file is too big
-	my $listfile = "00000.list";
-
-	my $list2 = new PList::List::Binary($priv->{dir} . "/" . $listfile, 1);
-	if ( not $list2 ) {
-		warn "Cannot open listfile '$listfile'\n" unless $ignorewarn;
-		return 0;
-	};
+	my $list2;
+	my $listfile;
 
 	while ( not $list->eof() ) {
 		++$total;
 		my $pemail = $list->readnext();
 		if ( not $pemail ) {
 			warn "Cannot read email\n" unless $ignorewarn;
+			next;
+		}
+		($list2, $listfile) = $priv->reopen_listfile($list2, $listfile);
+		if ( not $list2 or not $listfile ) {
+			my $err = $@;
+			warn "Cannot add email with id '" . $pemail->id() . "': $err\n" unless $ignorewarn;
 			next;
 		}
 		if ( not $priv->add_one_email($pemail, $list2, $listfile) ) {
