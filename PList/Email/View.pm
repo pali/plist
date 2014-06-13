@@ -153,7 +153,7 @@ sub part_to_str($$$$) {
 
 	my ($pemail, $partid, $nodes, $config) = @_;
 
-	my $id = $pemail->header("0")->{id};
+	my $id = $pemail->id();
 	my $part = $pemail->part($partid);
 	my $type = $part->{type};
 
