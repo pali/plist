@@ -430,6 +430,7 @@ if ( not $mod or not $command ) {
 		my $output = open_output($binfile, ":raw");
 
 		my $str;
+		my $len;
 
 		{
 			local $/=undef;
@@ -439,10 +440,10 @@ if ( not $mod or not $command ) {
 		my $pemail = PList::Email::MIME::from_str(\$str);
 		die "Cannot read email\n" unless $pemail;
 
-		$str = PList::Email::Binary::to_str($pemail);
+		($str, $len) = PList::Email::Binary::to_str($pemail);
 		die "Cannot parse email\n" unless $str;
 
-		print $output $str;
+		print $output ${$str};
 
 	} elsif ( $command eq "get-part" ) {
 
