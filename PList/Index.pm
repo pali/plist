@@ -400,9 +400,9 @@ sub normalize_subject($) {
 
 }
 
-sub add_email($$) {
+sub add_one_email($$$$) {
 
-	my ($priv, $pemail) = @_;
+	my ($priv, $pemail, $list, $listfile) = @_;
 
 	my $dbh = $priv->{dbh};
 	my $driver = $priv->{driver};
@@ -446,19 +446,7 @@ sub add_email($$) {
 		return 0;
 	}
 
-	# TODO: Increase listfile name number if file is too big
-
-	my $listfile = "00000.list";
-	my $offset;
-
-	my $list = new PList::List::Binary($priv->{dir} . "/" . $listfile, 1);
-	if ( not $list ) {
-		eval { $dbh->rollback(); };
-		$@ = "Cannot open listfile '$listfile'";
-		return 0;
-	};
-
-	$offset = $list->append($pemail);
+	my $offset = $list->append($pemail);
 	if ( not defined $offset ) {
 		eval { $dbh->rollback(); };
 		$@ = "Cannot append email to listfile '$listfile'";
@@ -752,12 +740,45 @@ sub add_email($$) {
 
 }
 
+sub add_email($$;$) {
+
+	my ($priv, $pemail, $ignorewarn) = @_;
+
+	# TODO: Increase listfile name number if file is too big
+	my $listfile = "00000.list";
+
+	my $list = new PList::List::Binary($priv->{dir} . "/" . $listfile, 1);
+	if ( not $list ) {
+		warn "Cannot open listfile '$listfile'\n" unless $ignorewarn;
+		return 0;
+	};
+
+	my $ret = $priv->add_one_email($pemail, $list, $listfile);
+	if ( not $ret ) {
+		my $err = $@;
+		warn "Cannot add email: $err\n" unless $ignorewarn;
+		return 0;
+	}
+
+	return 1;
+
+}
+
 sub add_list($$;$) {
 
 	my ($priv, $list, $ignorewarn) = @_;
 
 	my $count = 0;
 	my $total = 0;
+
+	# TODO: Increase listfile name number if file is too big
+	my $listfile = "00000.list";
+
+	my $list2 = new PList::List::Binary($priv->{dir} . "/" . $listfile, 1);
+	if ( not $list2 ) {
+		warn "Cannot open listfile '$listfile'\n" unless $ignorewarn;
+		return 0;
+	};
 
 	while ( not $list->eof() ) {
 		++$total;
@@ -766,7 +787,7 @@ sub add_list($$;$) {
 			warn "Cannot read email\n" unless $ignorewarn;
 			next;
 		}
-		if ( not $priv->add_email($pemail) ) {
+		if ( not $priv->add_one_email($pemail, $list2, $listfile) ) {
 			my $err = $@;
 			warn "Cannot add email with id '" . $pemail->id() . "': $err\n" unless $ignorewarn;
 			next;
