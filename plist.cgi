@@ -419,7 +419,7 @@ if ( $action eq "get-bin" ) {
 
 	error("Param id was not specified") unless $id;
 	my $pemail = $index->email($id);
-	error("Email with $id does not exist in archive $indexdir") unless $pemail;
+	error("Email with id $id does not exist in archive $indexdir") unless $pemail;
 	print $q->header(-type => "application/octet-stream", -attachment => "$id.bin", -charset => "");
 	binmode(\*STDOUT, ":raw");
 	PList::Email::Binary::to_fh($pemail, \*STDOUT);
@@ -431,7 +431,7 @@ if ( $action eq "get-bin" ) {
 
 	my $part = $q->unescape($path);
 	my $pemail = $index->email($id);
-	error("Email with $id does not exist in archive $indexdir") unless $pemail;
+	error("Email with id $id does not exist in archive $indexdir") unless $pemail;
 	error("Part $part of email with $id does not exist in archive $indexdir") unless $pemail->part($part);
 	my $date = $pemail->header("0")->{date};
 	my $size = $pemail->part($part)->{size};
@@ -492,7 +492,7 @@ if ( $action eq "get-bin" ) {
 	);
 
 	my $str = $index->view($id, %config);
-	error("Email with $id does not exist in archive $indexdir") unless $str;
+	error("Email with id $id does not exist in archive $indexdir") unless $str;
 
 	my $size;
 	{
