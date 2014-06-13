@@ -878,11 +878,8 @@ sub db_date($$;$$) {
 		$sth->execute(@args);
 		$ret = $sth->fetchall_arrayref();
 	} or do {
-		eval { $dbh->rollback(); };
 		return undef;
 	};
-
-	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
 
 	return $ret;
 
@@ -1006,11 +1003,8 @@ sub db_emails($;%) {
 		$sth->execute(@args);
 		$ret = $sth->fetchall_arrayref({});
 	} or do {
-		eval { $dbh->rollback(); };
 		return undef;
 	};
-
-	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
 
 	return $ret;
 
@@ -1077,11 +1071,8 @@ sub db_emails_str($$;%) {
 		$sth->execute(@args);
 		$ret = $sth->fetchall_arrayref({});
 	} or do {
-		eval { $dbh->rollback(); };
 		return undef;
 	};
-
-	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
 
 	return $ret;
 
@@ -1111,11 +1102,8 @@ sub db_treeid($$$) {
 		$sth->execute($id);
 		$ret = $sth->fetchall_arrayref();
 	} or do {
-		eval { $dbh->rollback(); };
 		return undef;
 	};
-
-	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
 
 	return undef unless $ret and $ret->[0];
 	return $ret->[0]->[0];
@@ -1144,11 +1132,8 @@ sub db_graph($$) {
 		$sth->execute($treeid);
 		$ret = $sth->fetchall_arrayref({});
 	} or do {
-		eval { $dbh->rollback(); };
 		return undef;
 	};
-
-	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
 
 	return $ret;
 
@@ -1447,7 +1432,6 @@ sub db_replies($$;$$$) {
 		$sth->execute($id);
 		$ret = $sth->fetchall_arrayref();
 	} or do {
-		eval { $dbh->rollback(); };
 		return undef;
 	};
 
@@ -1469,7 +1453,6 @@ sub db_replies($$;$$$) {
 	}
 
 	if ( $up and ( @reply or @references ) ) {
-		eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
 		return (\@reply, \@references);
 	}
 
@@ -1505,11 +1488,8 @@ sub db_replies($$;$$$) {
 		$sth->execute($id);
 		$ret = $sth->fetchall_arrayref();
 	} or do {
-		eval { $dbh->rollback(); };
 		return (\@reply, \@references);
 	};
-
-	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
 
 	return (\@reply, \@references) unless ( $ret and @{$ret} );
 
@@ -1577,11 +1557,8 @@ sub db_roots($$;%) {
 		$sth->execute(@args);
 		$ret = $sth->fetchall_arrayref({});
 	} or do {
-		eval { $dbh->rollback(); };
 		return undef;
 	};
-
-	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
 
 	return $ret;
 
@@ -1609,11 +1586,8 @@ sub email($$) {
 		$sth->execute($id);
 		$ret = $sth->fetchall_hashref("messageid");
 	} or do {
-		eval { $dbh->rollback(); };
 		return undef;
 	};
-
-	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; };
 
 	return undef unless $ret and $ret->{$id};
 
