@@ -1451,30 +1451,58 @@ sub db_replies($$;$) {
 		$limit = "LIMIT 1";
 	}
 
-	# Select all emails which has same (non empty) subject as specified email, do not have in-reply-to header and are send before specified email
+	my $hasreply1 = "";
+	my $hasreply2 = "";
+	if ( $up ) {
+		$hasreply2 = "hasreply = 0 AND";
+	} else {
+		$hasreply1 = "hasreply = 0 AND";
+	}
+
 	$statement = qq(
-		SELECT DISTINCT e2.id, e2.messageid, e2.implicit, e2.treeid
-			FROM emails AS e1
-			JOIN emails AS e2 ON e2.subjectid = e1.subjectid
+		SELECT id, subjectid, date
+			FROM emails
 			WHERE
-				e1.id != e2.id AND
-				e1.implicit = 0 AND
-				e2.implicit = 0 AND
-				e$id1.hasreply = 0 AND
-				e1.subjectid != 1 AND
-				e1.subjectid != 2 AND
-				e1.date IS NOT NULL AND
-				e2.date IS NOT NULL AND
-				e$id1.date >= e$id2.date AND
-				e1.messageid = ?
-			ORDER BY e2.date
-			$limit
+				implicit = 0 AND
+				$hasreply1
+				subjectid != 1 AND
+				subjectid != 2 AND
+				date IS NOT NULL AND
+				messageid = ?
 		;
 	);
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute($id);
+		$ret = $sth->fetchall_arrayref({});
+	} or do {
+		return (\@reply, \@references);
+	};
+
+	return (\@reply, \@references) unless ( $ret and @{$ret} );
+
+	my $email = ${$ret}[0];
+
+	# Select all emails which has same (non empty) subject as specified email, do not have in-reply-to header and are send before specified email
+	$statement = qq(
+		SELECT id, messageid, implicit, treeid
+			FROM emails
+			WHERE
+				implicit = 0 AND
+				date IS NOT NULL AND
+				$hasreply2
+				id != ? AND
+				subjectid = ? AND
+				date <= ?
+			ORDER BY date
+			$limit
+		;
+	);
+
+	eval {
+		my $sth = $dbh->prepare_cached($statement);
+		$sth->execute($email->{id}, $email->{subjectid}, $email->{date});
 		$ret = $sth->fetchall_arrayref();
 	} or do {
 		return (\@reply, \@references);
