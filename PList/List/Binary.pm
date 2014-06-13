@@ -8,14 +8,6 @@ use base "PList::List";
 use PList::Email;
 use PList::Email::Binary;
 
-sub lengthbytes($) {
-
-	use bytes;
-	my ($str) = @_;
-	return length($str);
-
-}
-
 sub new($$;$) {
 
 	my ($class, $filename, $append) = @_;
@@ -64,13 +56,13 @@ sub append($$) {
 
 	my $fh = $priv->{fh};
 
-	my $str = PList::Email::Binary::to_str($pemail);
+	my ($str, $len) = PList::Email::Binary::to_str($pemail);
 	return undef unless $str;
 
 	my $pos = tell($fh);
 
-	print $fh pack("V", lengthbytes($str));
-	print $fh $str;
+	print $fh pack("V", $len);
+	print $fh ${$str};
 
 	return $pos;
 
