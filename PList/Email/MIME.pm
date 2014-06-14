@@ -663,8 +663,8 @@ sub from_str($) {
 	}
 
 	my $id;
-	if ( ${$str} =~ /(\n|^)Message-Id:(.*)\n/i ) {
-		my @ids = ids($2);
+	if ( ${$str} =~ /\nMessage-Id:(.*)\n/i ) {
+		my @ids = ids($1);
 		$id = $ids[0] if @ids;
 	}
 
