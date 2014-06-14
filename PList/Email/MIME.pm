@@ -6,8 +6,7 @@ use warnings;
 use vars qw($AUTOLOAD);
 my $parent = "PList::Email";
 
-use DateTime;
-use DateTime::Format::Mail;
+use Date::Parse;
 
 use Digest::SHA qw(sha1_hex);
 
@@ -80,10 +79,8 @@ sub date($$) {
 
 	foreach ( reverse @headers ) {
 		next unless $_;
-		my $datetime;
-		eval { $datetime = DateTime::Format::Mail->new(loose => 1)->parse_datetime($_); };
+		my $datetime = str2time($_);
 		next unless $datetime;
-		$datetime = $datetime->epoch();
 		return $datetime unless $date;
 		# Skip if datetime is in future or difference is more than 5 days
 		next if $datetime > $date or $date - $datetime > 60*60*24*5;
