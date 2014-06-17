@@ -7,6 +7,7 @@ use PList::Index;
 use PList::Email::Binary;
 
 use CGI qw(-no_xhtml -utf8 -oldstyle_urls);
+use Date::Format;
 use Time::Piece;
 
 binmode(\*STDOUT, ":utf8");
@@ -279,11 +280,9 @@ my $imagepreview_template = "<img src='" . gen_url(action => "download", -id => 
 sub format_date($) {
 
 	my ($date) = @_;
-	$date = gmtime($date) if $date;
-	# TODO: configure format
-	$date = $date->strftime("%F %T") if $date;
-	return $date if $date;
-	return "";
+	return "" unless $date;
+	# TODO: configure format and timezone
+	return time2str("%F %T", $date);
 
 }
 
@@ -437,8 +436,7 @@ if ( $action eq "get-bin" ) {
 	my $size = $pemail->part($part)->{size};
 	my $mimetype = $pemail->part($part)->{mimetype};
 	my $filename = $pemail->part($part)->{filename};
-	$date = gmtime($date) if $date;
-	$date = $date->strftime("%a, %d %b %Y %T GMT") if $date;
+	$date = time2str("%a, %d %b %Y %T GMT", $date, "GMT") if $date;
 	$mimetype = "application/octet-stream" unless $mimetype;
 	$filename = "File-$part.bin" unless $filename;
 	$q->charset("") unless $mimetype =~ /^text\//;
