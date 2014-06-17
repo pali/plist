@@ -331,6 +331,12 @@ sub read_part($$$$$) {
 		$charset = undef;
 	}
 
+	# If discrete is set to multipart, but we do not have any subparts, ignore wrong Content-Type header - it is not multipart
+	if ( $discrete eq "multipart" and not $subpart->subparts ) {
+		$discrete = "application";
+		$composite = "octet-stream";
+	}
+
 	my $partstr = "$prefix/${$partid}";
 	my $filename = $subpart->filename();
 	my $description = $subpart->header("Content-Description");
