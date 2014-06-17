@@ -585,6 +585,8 @@ sub maybe_init($) {
 		$self->add_part($part);
 		$self->read_email($email, "$first_prefix", $date);
 
+		$self->{id} = $self->header("0")->{id} unless $self->{id};
+
 		# Consistency check
 		if ( $self->{id} ne $self->header("0")->{id} ) {
 			die "Error: Email::MIME reported different Message-Id header";
