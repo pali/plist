@@ -3,6 +3,8 @@
 use strict;
 use warnings;
 
+use lib '.';
+
 use PList::Email;
 use PList::Email::MIME;
 use PList::Email::Binary;
