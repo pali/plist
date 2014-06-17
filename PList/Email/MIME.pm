@@ -640,31 +640,28 @@ sub add_data($$$) {
 
 }
 
-sub from_str($) {
+sub from_str($;$$) {
 
-	my ($str) = @_;
-
-	my $date;
-
-	# Check if email contains MBox header line and use received date
-	if ( ${$str} =~ /^From ([^\n]*)\n/ ) {
-		my $line = $1;
-		# Remove first MBox header line
-		${$str} =~ s/^From [^\n]*\n//;
-		# Remove leading '>' in each From line
-		${$str} =~ s/^>(>*From )/$1/gm;
-		# MBox line format: from date info
-		if ( $line =~ /^\s*\S+\s*(.{24})/ ) {
-			$date = $1;
-			# NOTE: date must be in asctime format
-			eval { $date = Time::Piece->strptime($date, "%a %b %d %T %Y"); } or do { $date = undef; };
-			$date = $date->epoch() if $date;
-		}
-	}
+	my ($str, $from, $messageid) = @_;
 
 	my $id;
-	if ( ${$str} =~ /\nMessage-Id:(.*)\n/i ) {
-		my @ids = ids($1);
+	my $date;
+
+	if ( $from ) {
+
+		# NOTE: Some MBox archives do not have recipient after From word
+		if ( not $date and $from =~ /^From (.*)/ ) {
+			$date = str2time($1);
+		}
+
+		if ( not $date and $from =~ /^From \s*\S+\s*(.*)/ ) {
+			$date = str2time($1);
+		}
+
+	}
+
+	if ( $messageid ) {
+		my @ids = ids($messageid);
 		$id = $ids[0] if @ids;
 	}
 
