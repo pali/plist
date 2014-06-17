@@ -120,14 +120,21 @@ sub references($) {
 sub messageid($) {
 
 	my ($email) = @_;
-	my @ids = ids($email->header("Message-Id"));
-	if ( @ids ) {
-		return $ids[0];
-	} else {
-		# Generate some stable unique message-id which is needed for indexing
-		my $hash = sha1_hex($email->as_string());
-		return "$hash\@nohost";
+
+	my @arr = $email->header("Message-Id");
+	my @ids = ids(@arr);
+	return $ids[0] if @ids;
+
+	if ( @arr ) {
+		# Some emails have incorrect format of message-id without <...>
+		my $str = $arr[0];
+		$str =~ s/[\s\\\/]//g;
+		return $str if length($str) > 4;
 	}
+
+	# Generate some stable unique message-id which is needed for indexing
+	my $hash = sha1_hex($email->as_string());
+	return "$hash\@nohost";
 
 }
 
