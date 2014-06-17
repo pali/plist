@@ -3,11 +3,11 @@ package PList::Email::View;
 use strict;
 use warnings;
 
-use Encode qw(decode_utf8 encode_utf8);
-
 use PList::Email;
 
-use DateTime;
+use Date::Format;
+
+use Encode qw(decode_utf8 encode_utf8);
 
 use HTML::FromText;
 use HTML::Template;
@@ -137,13 +137,7 @@ sub addressees_data($$) {
 sub date($$) {
 
 	my ($epoch, $config) = @_;
-	eval {
-		my $dt = DateTime->from_epoch(epoch => $epoch);
-		$dt->set_time_zone(${$config}{time_zone});
-		return $dt->strftime(${$config}{date_format});
-	} or do {
-		return $epoch;
-	};
+	return time2str(${$config}{date_format}, $epoch, ${$config}{time_zone});
 
 }
 
@@ -387,7 +381,7 @@ sub to_str($;%) {
 	$config{plain_monospace} = 1 if ( $config{plain_monospace} < 0 || $config{plain_monospace} > 2 );
 
 	# Time zone & Date format
-	$config{time_zone} = "local" unless $config{time_zone};
+	$config{time_zone} = undef if $config{time_zone} and $config{time_zone} eq "local";
 	$config{date_format} = "%a, %d %b %Y %T %z" unless $config{date_format};
 
 	# TODO: Set default templates based on $html_output
