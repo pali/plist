@@ -30,6 +30,11 @@ The new constructor takes extra options.
 
 =over
 
+=item C<fh>
+
+When filename is set to C<"FH"> than Email::Folder::Mbox will read mbox
+archive from filehandle C<fh> instead from disk file C<filename>.
+
 =item C<eol>
 
 This indicates what the line-ending style is to be.  The default is
@@ -71,6 +76,16 @@ In deference to this extract from L<http://www.jwz.org/doc/content-length.html>
 
 Defaults to false.
 
+=item C<unescape>
+
+This boolean value indicates whenever lines which starts with
+
+ /^>+From /
+
+should be unescaped (= removed leading '>' char). This is needed for
+mboxrd and mboxcl variants. But there is no way to detect for used mbox
+variant, so default value is false.
+
 =item C<seek_to>
 
 Seek to an offset when opening the mbox.  When used in combination with
@@ -79,6 +94,14 @@ Seek to an offset when opening the mbox.  When used in combination with
 =item C<tell>
 
 This returns the current filehandle position in the mbox.
+
+=item C<next_from>
+
+This returns the From_ line for next message. Call it before ->next_message.
+
+=item C<messageid>
+
+This returns the messageid of last read message. Call if after ->next_message.
 
 =back
 
@@ -91,13 +114,16 @@ sub defaults {
 sub _open_it {
     my $self = shift;
     my $file = $self->{_file};
+    my $fh = $self->{fh};
 
-    # sanity checking
-    croak "$file does not exist" unless (-e $file);
-    croak "$file is not a file"  unless (-f $file);
+    unless ($file eq "FH" and $fh) {
+        # sanity checking
+        croak "$file does not exist" unless (-e $file);
+        croak "$file is not a file"  unless (-f $file);
 
-    local $/ = $self->{eol};
-    my $fh = $self->_get_fh($file);
+        local $/ = $self->{eol};
+        $fh = $self->_get_fh($file);
+    }
 
     if ($self->{seek_to}) {
         # we were told to seek.  hope it all goes well
@@ -108,6 +134,7 @@ sub _open_it {
         if ($firstline) {
             croak "$file is not an mbox file" unless $firstline =~ /^From /;
         }
+        $self->{from} = $firstline;
     }
 
     $self->{_fh} = $fh;
@@ -124,14 +151,23 @@ sub _get_fh {
 use constant debug => 0;
 my $count;
 
+sub next_from {
+    my $self = shift;
+    $self->_open_it unless $self->{_fh};
+    return $self->{from};
+}
+
 sub next_message {
     my $self = shift;
 
     my $fh = $self->{_fh} || $self->_open_it;
     local $/ = $self->{eol};
 
+    $self->{messageid} = undef;
+
     my $mail = '';
     my $prev = '';
+    my $last;
     my $inheaders = 1;
     ++$count;
     print "$count starting scanning at line $.\n" if debug;
@@ -150,12 +186,16 @@ sub next_message {
                 my $read = '';
                 while (my $bodyline = <$fh>) {
                     last if length $read >= $length;
+                    # unescape From_
+                    $bodyline =~ s/^>(>*From )/$1/ if $self->{unescape};
                     $read .= $bodyline;
                 }
                 # grab the next line (should be /^From / or undef)
                 my $next = <$fh>;
-                return "$mail$/$read"
-                  if !defined $next || $next =~ /^From /;
+                if (!defined $next || $next =~ /^From /) {
+                    $self->{from} = $next;
+                    return "$mail$/$read";
+                }
                 # seek back and scan line-by-line like the header
                 # wasn't here
                 print " Content-Length assertion failed '$next'\n" if debug;
@@ -168,11 +208,18 @@ sub next_message {
                 my $lines = $1;
                 print " Lines: $lines\n" if debug;
                 my $read = '';
-                for (1 .. $lines) { $read .= <$fh> }
+                for (1 .. $lines) {
+                    my $bodyline = <$fh>;
+                    # unescape From_
+                    $bodyline =~ s/^>(>*From )/$1/ if $self->{unescape};
+                    $read .= $bodyline;
+                }
                 <$fh>; # trailing newline
                 my $next = <$fh>;
-                return "$mail$/$read"
-                  if !defined $next || $next =~ /^From /;
+                if (!defined $next || $next =~ /^From /) {
+                    $self->{from} = $next;
+                    return "$mail$/$read";
+                }
                 # seek back and scan line-by-line like the header
                 # wasn't here
                 print " Lines assertion failed '$next'\n" if debug;
@@ -180,12 +227,24 @@ sub next_message {
             }
         }
 
-        last if $prev eq $/ && ($line =~ $self->_from_line_re);
+        if ($prev eq $/ && ($line =~ $self->_from_line_re)) {
+            $mail .= $prev;
+            $last = $line;
+            last;
+        }
+
+        if ($inheaders && !defined $self->{messageid} && ($line =~ /^Message-Id:\s*(.+)/i)) {
+            $self->{messageid} = $1;
+        }
 
         $mail .= $prev;
         $prev = $line;
+
+        # unescape From_
+        $prev =~ s/^>(>*From )/$1/ if $self->{unescape};
     }
     print "$count end of message line $.\n" if debug;
+    $self->{from} = $last;
     return unless $mail;
     return $mail;
 }
@@ -210,6 +269,11 @@ sub _from_line_re {
 sub tell {
     my $self = shift;
     return tell $self->{_fh};
+}
+
+sub messageid {
+    my $self = shift;
+    return $self->{messageid};
 }
 
 1;
