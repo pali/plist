@@ -8,7 +8,6 @@ use PList::Email::View;
 
 use PList::List::Binary;
 
-use Time::Piece;
 use File::Path qw(make_path);
 use DBI;
 use Cwd;
