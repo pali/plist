@@ -354,8 +354,8 @@ if ( not $mod or not $command ) {
 
 		$binfile = "STDIN" unless $binfile;
 
-		$_ = $list->append($pemail);
-		die "Cannot write email from bin file $binfile to list file $listfile\n" unless defined $_;
+		my $ret = $list->append($pemail);
+		die "Cannot write email from bin file $binfile to list file $listfile\n" unless defined $ret;
 
 		print "Written one email from bin file $binfile to list file $listfile\n";
 
