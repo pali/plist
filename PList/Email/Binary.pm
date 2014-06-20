@@ -259,12 +259,18 @@ sub to_fh($$) {
 	my $bin = "";
 	my $offset = 0;
 
+	my %parts = %{$pemail->parts()};
+	my @partkeys = sort keys %parts;
+
+	my %headers = %{$pemail->headers()};
+	my @headerkeys = sort keys %headers;
+
 	# Header is utf8 encoded
 	binmode $fh, ":raw:utf8";
 
 	print $fh "Parts:\n";
-	foreach (sort keys %{$pemail->parts()}) {
-		$_ = ${$pemail->parts()}{$_};
+	foreach (@partkeys) {
+		$_ = $parts{$_};
 		print $fh " ";
 		print $fh $_->{part};
 		print $fh " ";
@@ -291,8 +297,8 @@ sub to_fh($$) {
 		$offset += $_->{size};
 	}
 
-	foreach (sort keys %{$pemail->headers()}) {
-		$_ = ${$pemail->headers()}{$_};
+	foreach (@headerkeys) {
+		$_ = $headers{$_};
 		print $fh "Part:\n";
 		print $fh " $_->{part}\n";
 		if ( $_->{from} and @{$_->{from}} ) {
@@ -334,8 +340,8 @@ sub to_fh($$) {
 	# Data are binary raw (no utf8)
 	binmode $fh, ":raw";
 
-	foreach (sort keys %{$pemail->parts()}) {
-		$_ = ${$pemail->parts()}{$_};
+	foreach (@partkeys) {
+		$_ = $parts{$_};
 		if ($_->{size} != 0) {
 			$pemail->data($_->{part}, $fh);
 		}
