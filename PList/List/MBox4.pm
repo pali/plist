@@ -56,10 +56,10 @@ sub readnext($) {
 	my ($mbox) = @_;
 
 	my $from = ${$mbox}->next_from();
-	my $message = ${$mbox}->next_message();
+	my $message = ${$mbox}->next_messageref();
 	my $messageid = ${$mbox}->messageid();
 
-	return PList::Email::MIME::from_str(\$message, $from, $messageid);
+	return PList::Email::MIME::from_str($message, $from, $messageid);
 
 }
 
