@@ -270,68 +270,68 @@ sub to_fh($$) {
 
 	print $fh "Parts:\n";
 	foreach (@partkeys) {
-		$_ = $parts{$_};
+		my $part = $parts{$_};
 		print $fh " ";
-		print $fh $_->{part};
+		print $fh $part->{part};
 		print $fh " ";
-		if ( $_->{size} == 0 ) {
+		if ( $part->{size} == 0 ) {
 			print $fh "0";
 		} else {
 			print $fh $offset;
 		}
 		print $fh " ";
-		print $fh $_->{size};
+		print $fh $part->{size};
 		print $fh " ";
-		print $fh $_->{type};
+		print $fh $part->{type};
 		print $fh " ";
-		print $fh $_->{mimetype};
-		if ( $_->{filename} ) {
+		print $fh $part->{mimetype};
+		if ( $part->{filename} ) {
 			print $fh " ";
-			print $fh $_->{filename};
-			if ( $_->{description} ) {
+			print $fh $part->{filename};
+			if ( $part->{description} ) {
 				print $fh " ";
-				print $fh $_->{description};
+				print $fh $part->{description};
 			}
 		}
 		print $fh "\n";
-		$offset += $_->{size};
+		$offset += $part->{size};
 	}
 
 	foreach (@headerkeys) {
-		$_ = $headers{$_};
+		my $header = $headers{$_};
 		print $fh "Part:\n";
-		print $fh " $_->{part}\n";
-		if ( $_->{from} and @{$_->{from}} ) {
+		print $fh " $header->{part}\n";
+		if ( $header->{from} and @{$header->{from}} ) {
 			print $fh "From:\n";
-			print $fh " $_\n" foreach (@{$_->{from}});
+			print $fh " $_\n" foreach (@{$header->{from}});
 		}
-		if ( $_->{to} and @{$_->{to}} ) {
+		if ( $header->{to} and @{$header->{to}} ) {
 			print $fh "To:\n";
-			print $fh " $_\n" foreach (@{$_->{to}});
+			print $fh " $_\n" foreach (@{$header->{to}});
 		}
-		if ( $_->{cc} and @{$_->{cc}} ) {
+		if ( $header->{cc} and @{$header->{cc}} ) {
 			print $fh "Cc:\n";
-			print $fh " $_\n" foreach (@{$_->{cc}});
+			print $fh " $_\n" foreach (@{$header->{cc}});
 		}
-		if ( $_->{reply} and @{$_->{reply}} ) {
+		if ( $header->{reply} and @{$header->{reply}} ) {
 			print $fh "Reply:\n";
-			print $fh " $_\n" foreach (@{$_->{reply}});
+			print $fh " $_\n" foreach (@{$header->{reply}});
 		}
-		if ( $_->{references} and @{$_->{references}} ) {
+		if ( $header->{references} and @{$header->{references}} ) {
 			print $fh "References:\n";
-			print $fh " $_\n" foreach (@{$_->{references}});
+			print $fh " $_\n" foreach (@{$header->{references}});
 		}
-		if ( $_->{id} ) {
+		if ( $header->{id} ) {
 			print $fh "Id:\n";
-			print $fh " $_->{id}\n";
+			print $fh " $header->{id}\n";
 		}
-		if ( $_->{date} ) {
+		if ( $header->{date} ) {
 			print $fh "Date:\n";
-			print $fh " $_->{date}\n";
+			print $fh " $header->{date}\n";
 		}
-		if ( $_->{subject} ) {
+		if ( $header->{subject} ) {
 			print $fh "Subject:\n";
-			print $fh " $_->{subject}\n";
+			print $fh " $header->{subject}\n";
 		}
 	}
 
@@ -341,9 +341,9 @@ sub to_fh($$) {
 	binmode $fh, ":raw";
 
 	foreach (@partkeys) {
-		$_ = $parts{$_};
-		if ($_->{size} != 0) {
-			$pemail->data($_->{part}, $fh);
+		my $part = $parts{$_};
+		if ($part->{size} != 0) {
+			$pemail->data($part->{part}, $fh);
 		}
 	}
 
