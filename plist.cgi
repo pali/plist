@@ -282,7 +282,7 @@ sub format_date($) {
 	my ($date) = @_;
 	return "" unless $date;
 	# TODO: configure format and timezone
-	return time2str("%F %T", $date);
+	return time2str("%Y-%m-%d %T", $date);
 
 }
 
