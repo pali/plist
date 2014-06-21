@@ -52,7 +52,10 @@ foreach my $mbox (@mboxes) {
 	}
 	my $time = (stat($mbox))[9];
 	if ( not exists $timestamps{$mbox} or $timestamps{$mbox} < $time ) {
-		my $ret = system("$Bin/plist.pl", "index", "add-mbox", $indexdir, $mbox, $silent);
+		my $script = "$Bin/plist.pl";
+		my @args = ("index", "add-mbox", $indexdir, $mbox);
+		push(@args, $silent) if defined $silent;
+		my $ret = system($script, @args);
 		if ( $ret == 0 ) {
 			$timestamps{$mbox} = $time;
 			$count++;
