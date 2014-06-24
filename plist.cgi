@@ -252,7 +252,7 @@ if ( not $action ) {
 
 	print $q->h3("Actions:");
 	print $q->start_p() . "\n";
-	print_ahref(gen_url(action => "browse"), "Browse by year");
+#	print_ahref(gen_url(action => "browse"), "Browse by year");
 	print_ahref(gen_url(action => "search"), "Search emails");
 	print_ahref(gen_url(action => "trees"), "Show all trees");
 	print_ahref(gen_url(action => "emails"), "Show all emails");
