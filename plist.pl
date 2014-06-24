@@ -3,7 +3,8 @@
 use strict;
 use warnings;
 
-use lib '.';
+use FindBin qw($Bin);
+use lib $Bin;
 
 use PList::Email;
 use PList::Email::MIME;
