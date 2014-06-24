@@ -869,6 +869,7 @@ sub db_date($$;$$) {
 		push(@args, $iformat, $value);
 	}
 
+	# FIXME: This SELECT is slow. Do not use SQL function but rather store values day, month and year to table emails
 	$statement = qq(
 		SELECT DISTINCT $func
 			FROM emails
