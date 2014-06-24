@@ -3,6 +3,9 @@
 use strict;
 use warnings;
 
+use FindBin qw($Bin);
+use lib $Bin;
+
 use PList::Index;
 use PList::Email::Binary;
 
