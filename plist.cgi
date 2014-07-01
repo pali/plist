@@ -510,7 +510,7 @@ if ( $action eq "get-bin" ) {
 } elsif ( $action eq "browse" ) {
 
 	my $year = $id;
-	(my $month, my $day, $_) = split("/", $path, 3);
+	(my $month, my $day, undef) = split("/", $path, 3);
 
 	if ( not $year ) {
 		print_start_html("Archive $indexdir - Browse emails");
@@ -559,7 +559,7 @@ if ( $action eq "get-bin" ) {
 } elsif ( $action eq "roots" ) {
 
 	my $year = $id;
-	(my $month, my $day, $_) = split("/", $path, 3);
+	(my $month, my $day, undef) = split("/", $path, 3);
 	(my $date1, my $date2) = parse_date($year, $month, $day);
 
 	my $desc = $q->param("desc");
@@ -648,7 +648,7 @@ if ( $action eq "get-bin" ) {
 } elsif ( $action eq "trees" ) {
 
 	my $year = $id;
-	(my $month, my $day, $_) = split("/", $path, 3);
+	(my $month, my $day, undef) = split("/", $path, 3);
 	(my $date1, my $date2) = parse_date($year, $month, $day);
 
 	my $limit = $q->param("limit");
@@ -736,7 +736,7 @@ if ( $action eq "get-bin" ) {
 } elsif ( $action eq "search" or $action eq "emails" ) {
 
 	my $year = $id;
-	(my $month, my $day, $_) = split("/", $path, 3);
+	(my $month, my $day, undef) = split("/", $path, 3);
 	(my $date1, my $date2) = parse_date($year, $month, $day);
 
 	my $str = $q->param("str");
