@@ -170,7 +170,19 @@ $action = "" unless $action and $indexdir;
 $id = "" unless $id and $action;
 $path = "" unless $path and $id;
 
-error("Missing '/' at the end of URL") if ( $slash ne "/" ) or ( length $indexdir and not $indexdir =~ /\/$/ ) or ( length $action and not $action =~ /\/$/ ) or ( length $id and not $id =~ /\/$/ );
+# Check if each variable from uri ends with slash
+if ( ( $slash ne "/" ) or ( length $indexdir and not $indexdir =~ /\/$/ ) or ( length $action and not $action =~ /\/$/ ) or ( length $id and not $id =~ /\/$/ ) ) {
+	# Compose original url
+	# NOTE: when .htaccess rewrite is in use and uri contains char '+' CGI.pm module not working correctly
+	# Possible fix is to use path to script from get_script_url() function and compose orignal url from base and path_info
+	my $url = $q->url(-base=>1) . $script . $q->path_info();
+	if ( $url and not $url =~ /\/$/ ) {
+		print $q->redirect($url . "/");
+		exit 0;
+	} else {
+		error("Missing '/' at the end of URL");
+	}
+}
 
 chop($indexdir) if $indexdir =~ /\/$/;
 chop($action) if $action =~ /\/$/;
