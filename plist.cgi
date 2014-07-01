@@ -158,15 +158,18 @@ sub get_script_url() {
 $q = new CGI;
 $q->charset("utf-8");
 
-$script = get_script_url();
-($_, $indexdir, $action, $id, $path) = split(/(?<=\/)/, $q->path_info(), 5);
+my $slash;
 
+$script = get_script_url();
+($slash, $indexdir, $action, $id, $path) = split(/(?<=\/)/, $q->path_info(), 5);
+
+$slash = "" unless $slash;
 $indexdir = "" unless $indexdir;
 $action = "" unless $action and $indexdir;
 $id = "" unless $id and $action;
 $path = "" unless $path and $id;
 
-error("Missing '/' at the end of URL") if ( length $indexdir and not $indexdir =~ /\/$/ ) or ( length $action and not $action =~ /\/$/ ) or ( length $id and not $id =~ /\/$/ );
+error("Missing '/' at the end of URL") if ( $slash ne "/" ) or ( length $indexdir and not $indexdir =~ /\/$/ ) or ( length $action and not $action =~ /\/$/ ) or ( length $id and not $id =~ /\/$/ );
 
 chop($indexdir) if $indexdir =~ /\/$/;
 chop($action) if $action =~ /\/$/;
