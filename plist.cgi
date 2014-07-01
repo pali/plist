@@ -146,12 +146,13 @@ sub gen_url {
 
 sub get_script_url() {
 	my $uri = $q->unescape($q->request_uri()); # request uri is escaped
-	return undef unless $uri;
+	return "" unless $uri;
 	$uri =~ s/\?.*$//s; # remove query string
 	$uri =~ s/\+/ /g; # there is no difference between unescaped space and plus chars
 	my $path_info = $q->path_info();
 	$path_info =~ s/\+/ /g; # be consistent with uri
 	$uri =~ s/\Q$path_info\E$//; # remove path_info
+	return "" unless $uri;
 	return $uri;
 }
 
