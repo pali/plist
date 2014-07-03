@@ -1,4 +1,4 @@
-package PList::List::MBox4;
+package PList::List::MBox;
 
 use strict;
 use warnings;
