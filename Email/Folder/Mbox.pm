@@ -1,111 +1,15 @@
-package Email::Folder::Mbox;
 use strict;
+use warnings;
+package Email::Folder::Mbox;
+{
+  $Email::Folder::Mbox::VERSION = '0.858';
+}
+# ABSTRACT: reads raw RFC822 mails from an mbox file
 use Carp;
 use IO::File;
 use Email::Folder::Reader;
-use base 'Email::Folder::Reader';
+use parent 'Email::Folder::Reader';
 
-=head1 NAME
-
-Email::Folder::Mbox - reads raw RFC822 mails from an mbox file
-
-=head1 SYNOPSIS
-
-This isa Email::Folder::Reader - read about its API there.
-
-=head1 DESCRIPTION
-
-Does exactly what it says on the tin - fetches raw RFC822 mails from an
-mbox.
-
-The mbox format is described at http://www.qmail.org/man/man5/mbox.html
-
-We attempt to read an mbox as through it's the mboxcl2 variant,
-falling back to regular mbox mode if there is no C<Content-Length>
-header to be found.
-
-=head2 OPTIONS
-
-The new constructor takes extra options.
-
-=over
-
-=item C<fh>
-
-When filename is set to C<"FH"> than Email::Folder::Mbox will read mbox
-archive from filehandle C<fh> instead from disk file C<filename>.
-
-=item C<eol>
-
-This indicates what the line-ending style is to be.  The default is
-C<"\n">, but for handling files with mac line-endings you would want
-to specify C<eol =E<gt> "\x0d">
-
-=item C<jwz_From_>
-
-The value is taken as a boolean that governs what is used match as a
-message seperator.
-
-If false we use the mutt style
-
- /^From \S+\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)/
- /^From (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)/;
-
-If true we use
-
- /^From /
-
-In deference to this extract from L<http://www.jwz.org/doc/content-length.html>
-
- Essentially the only safe way to parse that file format is to
- consider all lines which begin with the characters ``From ''
- (From-space), which are preceded by a blank line or
- beginning-of-file, to be the division between messages.  That is, the
- delimiter is "\n\nFrom .*\n" except for the very first message in the
- file, where it is "^From .*\n".
-
- Some people will tell you that you should do stricter parsing on
- those lines: check for user names and dates and so on.  They are
- wrong.  The random crap that has traditionally been dumped into that
- line is without bound; comparing the first five characters is the
- only safe and portable thing to do. Usually, but not always, the next
- token on the line after ``From '' will be a user-id, or email
- address, or UUCP path, and usually the next thing on the line will be
- a date specification, in some format, and usually there's nothing
- after that.  But you can't rely on any of this.
-
-Defaults to false.
-
-=item C<unescape>
-
-This boolean value indicates whenever lines which starts with
-
- /^>+From /
-
-should be unescaped (= removed leading '>' char). This is needed for
-mboxrd and mboxcl variants. But there is no way to detect for used mbox
-variant, so default value is false.
-
-=item C<seek_to>
-
-Seek to an offset when opening the mbox.  When used in combination with
-->tell you may be able to resume reading, with a trailing wind.
-
-=item C<tell>
-
-This returns the current filehandle position in the mbox.
-
-=item C<next_from>
-
-This returns the From_ line for next message. Call it before ->next_message.
-
-=item C<messageid>
-
-This returns the messageid of last read message. Call if after ->next_message.
-
-=back
-
-=cut
 
 sub defaults {
     ( eol => "\n")
@@ -114,16 +18,13 @@ sub defaults {
 sub _open_it {
     my $self = shift;
     my $file = $self->{_file};
-    my $fh = $self->{fh};
 
-    unless ($file eq "FH" and $fh) {
-        # sanity checking
-        croak "$file does not exist" unless (-e $file);
-        croak "$file is not a file"  unless (-f $file);
+    # sanity checking
+    croak "$file does not exist" unless (-e $file);
+    croak "$file is not a file"  unless (-f $file);
 
-        local $/ = $self->{eol};
-        $fh = $self->_get_fh($file);
-    }
+    local $/ = $self->{eol};
+    my $fh = $self->_get_fh($file);
 
     if ($self->{seek_to}) {
         # we were told to seek.  hope it all goes well
@@ -134,7 +35,6 @@ sub _open_it {
         if ($firstline) {
             croak "$file is not an mbox file" unless $firstline =~ /^From /;
         }
-        $self->{from} = $firstline;
     }
 
     $self->{_fh} = $fh;
@@ -151,23 +51,14 @@ sub _get_fh {
 use constant debug => 0;
 my $count;
 
-sub next_from {
-    my $self = shift;
-    $self->_open_it unless $self->{_fh};
-    return $self->{from};
-}
-
-sub next_messageref {
+sub next_message {
     my $self = shift;
 
     my $fh = $self->{_fh} || $self->_open_it;
     local $/ = $self->{eol};
 
-    $self->{messageid} = undef;
-
     my $mail = '';
     my $prev = '';
-    my $last;
     my $inheaders = 1;
     ++$count;
     print "$count starting scanning at line $.\n" if debug;
@@ -181,22 +72,18 @@ sub next_messageref {
             # look for a content length header, and try to use that
             if ($mail =~ m/^Content-Length: (\d+)$/mi) {
                 $mail .= $prev;
+                $prev = '';
                 my $length = $1;
                 print " Content-Length: $length\n" if debug;
                 my $read = '';
                 while (my $bodyline = <$fh>) {
                     last if length $read >= $length;
-                    # unescape From_
-                    $bodyline =~ s/^>(>*From )/$1/ if $self->{unescape};
                     $read .= $bodyline;
                 }
                 # grab the next line (should be /^From / or undef)
                 my $next = <$fh>;
-                if (!defined $next || $next =~ /^From /) {
-                    $self->{from} = $next;
-                    $mail .= "$/$read";
-                    return \$mail;
-                }
+                return "$mail$/$read"
+                  if !defined $next || $next =~ /^From /;
                 # seek back and scan line-by-line like the header
                 # wasn't here
                 print " Content-Length assertion failed '$next'\n" if debug;
@@ -206,22 +93,15 @@ sub next_messageref {
             # much the same, but with Lines:
             if ($mail =~ m/^Lines: (\d+)$/mi) {
                 $mail .= $prev;
+                $prev = '';
                 my $lines = $1;
                 print " Lines: $lines\n" if debug;
                 my $read = '';
-                for (1 .. $lines) {
-                    my $bodyline = <$fh>;
-                    # unescape From_
-                    $bodyline =~ s/^>(>*From )/$1/ if $self->{unescape};
-                    $read .= $bodyline;
-                }
+                for (1 .. $lines) { $read .= <$fh> }
                 <$fh>; # trailing newline
                 my $next = <$fh>;
-                if (!defined $next || $next =~ /^From /) {
-                    $self->{from} = $next;
-                    $mail .= "$/$read";
-                    return \$mail;
-                }
+                return "$mail$/$read"
+                  if !defined $next || $next =~ /^From /;
                 # seek back and scan line-by-line like the header
                 # wasn't here
                 print " Lines assertion failed '$next'\n" if debug;
@@ -229,33 +109,14 @@ sub next_messageref {
             }
         }
 
-        if ($prev eq $/ && ($line =~ $self->_from_line_re)) {
-            $mail .= $prev;
-            $last = $line;
-            last;
-        }
-
-        if ($inheaders && !defined $self->{messageid} && ($line =~ /^Message-Id:\s*(.+)/i)) {
-            $self->{messageid} = $1;
-        }
+        last if $prev eq $/ && ($line =~ $self->_from_line_re);
 
         $mail .= $prev;
         $prev = $line;
-
-        # unescape From_
-        $prev =~ s/^>(>*From )/$1/ if $self->{unescape};
     }
     print "$count end of message line $.\n" if debug;
-    $self->{from} = $last;
     return unless $mail;
-    return \$mail;
-}
-
-sub next_message {
-    my $self = shift;
-    my $ref = $self->next_messageref;
-    return unless $ref;
-    return ${$ref};
+    return $mail;
 }
 
 my @FROM_RE;
@@ -280,32 +141,114 @@ sub tell {
     return tell $self->{_fh};
 }
 
-sub messageid {
-    my $self = shift;
-    return $self->{messageid};
-}
-
 1;
 
 __END__
 
+=pod
+
+=encoding UTF-8
+
+=head1 NAME
+
+Email::Folder::Mbox - reads raw RFC822 mails from an mbox file
+
+=head1 VERSION
+
+version 0.858
+
+=head1 SYNOPSIS
+
+This isa Email::Folder::Reader - read about its API there.
+
+=head1 DESCRIPTION
+
+Does exactly what it says on the tin - fetches raw RFC822 mails from an
+mbox.
+
+The mbox format is described at http://www.qmail.org/man/man5/mbox.html
+
+We attempt to read an mbox as through it's the mboxcl2 variant,
+falling back to regular mbox mode if there is no C<Content-Length>
+header to be found.
+
+=head2 OPTIONS
+
+The new constructor takes extra options.
+
+=over
+
+=item C<eol>
+
+This indicates what the line-ending style is to be.  The default is
+C<"\n">, but for handling files with mac line-endings you would want
+to specify C<eol =E<gt> "\x0d">
+
+=item C<jwz_From_>
+
+The value is taken as a boolean that governs what is used match as a
+message separator.
+
+If false we use the mutt style
+
+ /^From \S+\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)/
+ /^From (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)/;
+
+If true we use
+
+ /^From /
+
+In deference to this extract from L<http://www.jwz.org/doc/content-length.html>
+
+  Essentially the only safe way to parse that file format is to
+  consider all lines which begin with the characters ``From ''
+  (From-space), which are preceded by a blank line or
+  beginning-of-file, to be the division between messages.  That is, the
+  delimiter is "\n\nFrom .*\n" except for the very first message in the
+  file, where it is "^From .*\n".
+
+  Some people will tell you that you should do stricter parsing on
+  those lines: check for user names and dates and so on.  They are
+  wrong.  The random crap that has traditionally been dumped into that
+  line is without bound; comparing the first five characters is the
+  only safe and portable thing to do. Usually, but not always, the next
+  token on the line after ``From '' will be a user-id, or email
+  address, or UUCP path, and usually the next thing on the line will be
+  a date specification, in some format, and usually there's nothing
+  after that.  But you can't rely on any of this.
+
+Defaults to false.
+
+=item C<seek_to>
+
+Seek to an offset when opening the mbox.  When used in combination with
+->tell you may be able to resume reading, with a trailing wind.
+
+=item C<tell>
+
+This returns the current filehandle position in the mbox.
+
+=back
+
 =head1 AUTHORS
+
+=over 4
+
+=item *
 
 Simon Wistow <simon@thegestalt.org>
 
+=item *
+
 Richard Clamp <richardc@unixbeard.net>
 
-=head1 COPYING
+=back
 
-Copyright 2003, Simon Wistow
+=head1 COPYRIGHT AND LICENSE
 
-Distributed under the same terms as Perl itself.
+This software is copyright (c) 2006 by Simon Wistow.
 
-This software is under no warranty and will probably ruin your life,
-kill your friends, burn your house and bring about the apocolapyse.
-
-=head1 SEE ALSO
-
-L<Email::LocalDelivery>, L<Email::Folder>
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =cut
