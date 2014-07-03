@@ -14,9 +14,6 @@ use PList::Email::View;
 
 use PList::List;
 use PList::List::MBox;
-use PList::List::MBox2;
-use PList::List::MBox3;
-use PList::List::MBox4;
 use PList::List::Binary;
 
 use PList::Index;
@@ -61,10 +58,7 @@ sub open_mbox($) {
 	if ( not $filename ) {
 		$filename = \*STDIN;
 	}
-#	my $list = new PList::List::MBox($filename);
-#	my $list = new PList::List::MBox2($filename);
-#	my $list = new PList::List::MBox3($filename);
-	my $list = new PList::List::MBox4($filename);
+	my $list = new PList::List::MBox($filename);
 	die "Cannot open mbox file $filename\n" unless $list;
 	return $list;
 
