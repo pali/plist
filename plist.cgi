@@ -402,7 +402,10 @@ sub print_tree($$$$$$) {
 		my $subject = $e->{subject};
 		my $name = $e->{name};
 		my $email = $e->{email};
+		my $implicit = $e->{implicit};
 		my $date = format_date($e->{date});
+
+		$subject = "unknown" unless $subject or $implicit;
 
 		$count++;
 
