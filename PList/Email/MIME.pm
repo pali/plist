@@ -708,7 +708,7 @@ sub from_fh($) {
 	binmode($fh, ":raw");
 
 	{
-		local $/=undef;
+		local $/= undef;
 		$str = <$fh>;
 	}
 

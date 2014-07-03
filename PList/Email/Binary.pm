@@ -202,7 +202,7 @@ sub from_fh($;$) {
 	if ( not seek($fh, tell($fh), 0) ) {
 		my $str;
 		{
-			local $/=undef;
+			local $/= undef;
 			$str = <$fh>;
 		}
 		close($fh) if ( $autoclose );
