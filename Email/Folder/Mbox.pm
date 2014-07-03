@@ -83,7 +83,7 @@ sub next_messageref {
             my $pos = tell $fh; # where to go back to if it goes wrong
 
             # look for a content length header, and try to use that
-            if ($mail =~ m/^Content-Length: (\d+)$/mi) {
+            if ($mail =~ m/^Content-Length:\s*(\d+)$/mi) {
                 $mail .= $prev;
                 $prev = '';
                 my $length = $1;
@@ -109,7 +109,7 @@ sub next_messageref {
             }
 
             # much the same, but with Lines:
-            if ($mail =~ m/^Lines: (\d+)$/mi) {
+            if ($mail =~ m/^Lines:\s*(\d+)$/mi) {
                 $mail .= $prev;
                 $prev = '';
                 my $lines = $1;
