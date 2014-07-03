@@ -137,6 +137,7 @@ sub addressees_data($$) {
 sub date($$) {
 
 	my ($epoch, $config) = @_;
+	return undef unless $epoch;
 	return time2str(${$config}{date_format}, $epoch, ${$config}{time_zone});
 
 }
