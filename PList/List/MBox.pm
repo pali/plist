@@ -7,7 +7,7 @@ use base "PList::List";
 
 use PList::Email::MIME;
 
-use Email::Folder::Mbox;
+use Email::Folder::Mbox 0.859;
 
 sub new($$) {
 
