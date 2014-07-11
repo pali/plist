@@ -1608,17 +1608,17 @@ sub db_roots($$;%) {
 
 	my @args;
 
-	my $having = "";
+	my $where = "";
 	my $limit = "";
 
 	if ( exists $args{date1} and exists $args{date2} ) {
-		$having = "HAVING MIN(e.date) >= ? AND MIN(e.date) < ?";
+		$where = "WHERE t.date >= ? AND t.date < ?";
 		push(@args, $args{date1}, $args{date2});
 	} elsif ( exists $args{date1} ) {
-		$having = "HAVING MIN(e.date) >= ?";
+		$where = "WHERE t.date >= ?";
 		push(@args, $args{date1});
 	} elsif ( exists $args{date2} ) {
-		$having = "HAVING MIN(e.date) < ?";
+		$where = "WHERE t.date < ?";
 		push(@args, $args{date2});
 	}
 
@@ -1634,13 +1634,12 @@ sub db_roots($$;%) {
 	}
 
 	$statement = qq(
-		SELECT e.id AS id, e.messageid AS messageid, MIN(e.date) AS date, s.subject AS subject, e.treeid AS treeid, COUNT(treeid) AS count
-			FROM emails AS e
+		SELECT t.emailid AS id, e.messageid AS messageid, t.date AS date, s.subject AS subject, t.id AS treeid, t.count AS count
+			FROM trees AS t
+			JOIN emails AS e ON e.id = t.emailid
 			JOIN subjects AS s ON s.id = e.subjectid
-			WHERE implicit = 0
-			GROUP BY treeid
-			$having
-			ORDER BY MIN(date) $desc
+			$where
+			ORDER BY t.date $desc
 			$limit
 		;
 	);
