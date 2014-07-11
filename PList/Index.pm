@@ -250,6 +250,22 @@ sub create_tables($$) {
 	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
+		CREATE TABLE trees (
+			id		INTEGER PRIMARY KEY NOT NULL $autoincrement,
+			emailid		INTEGER NOT NULL REFERENCES emails(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+			date		INTEGER,
+			count		INTEGER,
+			UNIQUE (emailid) $ignoreconflict
+		);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
+		CREATE INDEX treesdate ON trees(date);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
 		CREATE TABLE replies (
 			id		INTEGER PRIMARY KEY NOT NULL $autoincrement,
 			emailid1	INTEGER NOT NULL REFERENCES emails(id) ON UPDATE CASCADE ON DELETE CASCADE,
@@ -734,6 +750,61 @@ sub add_one_email($$$$) {
 			my $sth = $dbh->prepare_cached($statement);
 			$sth->execute($treeid, $_) foreach (@mergeids);
 			1;
+		} or do {
+			eval { $dbh->rollback(); };
+			return 0;
+		};
+
+		$statement = qq(
+			DELETE
+				FROM trees
+				WHERE id = ?
+			;
+		);
+
+		eval {
+			my $sth = $dbh->prepare_cached($statement);
+			$sth->execute($_) foreach (@mergeids);
+			1;
+		} or do {
+			eval { $dbh->rollback(); };
+			return 0;
+		};
+	}
+
+	if ( $treeid != $newtreeid ) {
+		$statement = qq(
+			UPDATE trees
+				SET
+					emailid = (SELECT MIN(id) FROM emails WHERE treeid = ? AND date = (SELECT MIN(date) FROM emails WHERE implicit = 0 AND treeid = ?)),
+					date = (SELECT MIN(date) FROM emails WHERE implicit = 0 AND treeid = ?),
+					count = (SELECT COUNT(*) FROM emails WHERE treeid = ?)
+				WHERE
+					id = ?
+			;
+		);
+		eval {
+			my $sth = $dbh->prepare_cached($statement);
+			$sth->execute($treeid, $treeid, $treeid, $treeid, $treeid);
+		} or do {
+			eval { $dbh->rollback(); };
+			return 0;
+		};
+	} else {
+		$statement = qq(
+			INSERT INTO trees (id, emailid, date, count)
+				VALUES (
+					?,
+					(SELECT id FROM emails WHERE messageid = ?),
+					?,
+					1
+				)
+				$ignoreconflict
+			;
+		);
+		eval {
+			my $sth = $dbh->prepare_cached($statement);
+			$sth->execute($treeid, $id, $date);
 		} or do {
 			eval { $dbh->rollback(); };
 			return 0;
@@ -1665,6 +1736,8 @@ sub delete($$) {
 	my $statement;
 	my $ret;
 	my $rid;
+	my $treeid;
+	my $treecount;
 
 	$statement = qq(
 		SELECT id, messageid
@@ -1693,9 +1766,33 @@ sub delete($$) {
 	$rid = $ret->{$id}->{id};
 
 	$statement = qq(
+		SELECT id, count
+			FROM trees
+			WHERE emailid = ?
+			LIMIT 1
+		;
+	);
+
+	eval {
+		my $sth = $dbh->prepare_cached($statement);
+		$sth->execute($rid);
+		$ret = $sth->fetchall_hashref("id");
+	} or do {
+		eval { $dbh->rollback(); };
+		close($fh);
+		return 0;
+	};
+
+	if ( $ret and $ret->{$id} ) {
+		$treeid = $ret->{$rid}->{id};
+		$treecount = $ret->{$rid}->{count};
+	}
+
+	$statement = qq(
 		SELECT COUNT(*)
 			FROM replies
 			WHERE emailid2 = ?
+		;
 	);
 
 	eval {
@@ -1715,6 +1812,42 @@ sub delete($$) {
 	}
 
 	my $count = ${${$ret}[0]}[0];
+
+	if ( defined $treeid and defined $treecount ) {
+		if ( $treecount > 1 ) {
+			$statement = qq(
+				UPDATE trees
+					SET
+						emailid = (SELECT MIN(id) FROM emails WHERE id != ? AND treeid = ? AND date = (SELECT MIN(date) FROM emails WHERE id != ? AND implicit = 0 AND treeid = ?))
+						date = (SELECT MIN(date) FROM emails WHERE id != ? AND implicit = 0 AND treeid = ?),
+						count = (SELECT COUNT(*) FROM emails WHERE treeid = ?),
+					WHERE
+						id = ?
+				;
+			);
+			eval {
+				my $sth = $dbh->prepare_cached($statement);
+				$sth->execute($treeid, $treeid, $treeid, $treeid, $treeid);
+			} or do {
+				eval { $dbh->rollback(); };
+				return 0;
+			};
+		} else {
+			$statement = qq(
+				DELETE
+					FROM trees
+					WHERE id = ?
+				;
+			);
+			eval {
+				my $sth = $dbh->prepare_cached($statement);
+				$sth->execute($treeid);
+			} or do {
+				eval { $dbh->rollback(); };
+				return 0;
+			};
+		}
+	}
 
 	# Remove email from database or mark it as implicit (if some other email reference it)
 	if ( $count > 0 ) {
