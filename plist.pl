@@ -314,6 +314,8 @@ if ( not $mod or not $command ) {
 		my $mbox = open_mbox($mboxfile);
 		my $list = open_list($listfile, 1);
 
+		$mboxfile = "STDIN" unless $mboxfile;
+
 		my $count = 0;
 		my $success = 0;
 
