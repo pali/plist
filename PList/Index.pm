@@ -95,10 +95,47 @@ sub new($$) {
 
 }
 
-sub description($) {
+sub info($$) {
 
-	my ($priv) = @_;
-	return $priv->{description};
+	my ($priv, $key) = @_;
+
+	return $priv->{driver} if $key eq "driver";
+	return $priv->{description} if $key eq "driver";
+	return $priv->{listsize} if $key eq "listsize";
+
+	if ( $key eq "emailcount" or $key eq "treecount" ) {
+
+		my $dbh = $priv->{dbh};
+		my $statement = "SELECT COUNT(*) FROM ";
+		my $ret;
+
+		if ( $key eq "emailcount" ) {
+			$statement .= "emails";
+		} else {
+			$statement .= "trees";
+		}
+
+		eval {
+			my $sth = $dbh->prepare_cached($statement);
+			$sth->execute();
+			$ret = $sth->fetchall_arrayref();
+		} or do {
+			return "(unknown)";
+		};
+
+		if ( not $ret or not @{$ret} or not ${$ret}[0] ) {
+			return "(unknown)";
+		}
+
+		return ${${$ret}[0]}[0];
+
+	}
+
+	if ( $key eq "emaillast" ) {
+		my $emails = $priv->db_emails(limit => 1, implicit => 0, desc => 1);
+		return undef unless @{$emails};
+		return $emails->[0];
+	}
 
 }
 
