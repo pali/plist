@@ -231,7 +231,7 @@ sub format_date($);
 if ( not $action ) {
 
 	# Show info page
-	my $description = $index->description();
+	my $description = $index->info("description");
 	print_start_html("Archive $indexdir");
 	print $q->start_p() . "\n";
 	print $q->escapeHTML($description) . $q->br() . "\n" if $description;
