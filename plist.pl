@@ -507,11 +507,25 @@ if ( not $mod or not $command ) {
 	my $index = new PList::Index($indexdir);
 	die "Cannot open index dir '$indexdir'\n" unless $index;
 
-	if ( $command eq "view" or $command eq "create" ) {
+	if ( $command eq "view" ) {
 
 		help() if @ARGV;
 
-		# TODO
+		print "Directory: $indexdir\n";
+		print "Description: " . $index->info("description") . "\n";
+		print "SQL driver: " . $index->info("driver") . "\n";
+		print "Average size of list file: " . $index->info("listsize") . " bytes\n";
+		print "Number of email trees: " . $index->info("treecount") . "\n";
+		print "Number of emails: " . $index->info("emailcount") . "\n";
+
+		my $email = $index->info("emaillast");
+		if ( not $email ) {
+			print "Last email: (unknown)\n";
+		} else {
+			print "Last email:";
+			print " from: \"" . $email->{name} . "\" <" . $email->{email} . ">";
+			print " with subject: \"" . $email->{subject} . "\"\n";
+		}
 
 	} elsif ( $command eq "regenerate" ) {
 
