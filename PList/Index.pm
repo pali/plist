@@ -12,6 +12,9 @@ use File::Path qw(make_path);
 use DBI;
 use Cwd;
 
+require DBD::SQLite;
+require DBD::mysql;
+
 # directory structure:
 #
 # [0-9]{5}.list
