@@ -26,6 +26,10 @@ require DBD::mysql;
 # emails:
 # id, messageid, date, subjectid(subjects), subject, treeid, list, offset, implicit, hasreply
 #
+# trees:
+# id, emailid(emails), date, count
+# NOTE: emailid is root of tree, date is smallest non zero and non NULL date from emails for tree, count is number of emails in tree
+#
 # replies:
 # id, emailid1(emails), emailid2(emails), type
 # NOTE: type is: 0 - in-reply-to, 1 - references
