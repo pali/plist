@@ -502,6 +502,9 @@ if ( not $mod or not $command ) {
 		print "Creating index dir '$indexdir'...\n";
 		die "Failed\n" unless PList::Index::create($indexdir, $driver, $params, $username, $password);
 		print "Done\n";
+
+		exit 0;
+
 	}
 
 	my $index = new PList::Index($indexdir);
