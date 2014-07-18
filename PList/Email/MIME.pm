@@ -683,6 +683,9 @@ sub from_str($;$$) {
 	}
 
 	if ( $messageid ) {
+		my $new_messageid;
+		eval { $new_messageid = decode("MIME-Header", $messageid); 1 };
+		$messageid = $new_messageid if $new_messageid;
 		my @ids = ids($messageid);
 		$id = $ids[0] if @ids;
 	}
