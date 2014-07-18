@@ -134,6 +134,7 @@ sub gen_url {
 		$url .= $args if length($args);
 		return $url;
 	} else {
+		# TODO: use relative URL instead absolute $script
 		my $url = $script;
 		$url .= "/" . $newindexdir if length($newindexdir);
 		$url .= "/" . $newaction if length($newaction);
