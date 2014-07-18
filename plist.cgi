@@ -196,26 +196,30 @@ if ( not $indexdir ) {
 
 	# List all directories in current directory
 
+	my @dirs;
+
 	my $dh;
 	if ( not opendir($dh, ".") ) {
 		error("Cannot open directory");
 	}
 
-	print_start_html("List of archives");
-	print $q->start_p() . "\n";
-
-	my $count = 0;
-
 	while ( defined (my $name = readdir($dh)) ) {
 		next if $name =~ /^\./;
 		next unless -d $name;
 		next unless -f "$name/config";
-		++$count;
-		print_ahref(gen_url(indexdir => $name), $name);
+		push(@dirs, $name);
 	}
+
 	closedir($dh);
 
-	print "(No archives)\n" unless $count;
+	print_start_html("List of archives");
+	print $q->start_p() . "\n";
+
+	if ( @dirs ) {
+		print_ahref(gen_url(indexdir => $_), $_) foreach sort { $a cmp $b } @dirs;
+	} else {
+		print "(No archives)\n";
+	}
 
 	print $q->end_p();
 	print $q->end_html();
