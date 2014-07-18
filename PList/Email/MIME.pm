@@ -6,11 +6,18 @@ use warnings;
 use vars qw($AUTOLOAD);
 my $parent = "PList::Email";
 
+BEGIN {
+	# Disable nested comments it will degrade performance and make parsing address unusable on big strings
+	# NOTE: variable COMMENT_NEST_LEVEL must be set before loading module, so keyword "use" cannot be used
+	local $Email::Address::COMMENT_NEST_LEVEL = 1;
+	require Email::Address;
+	import Email::Address;
+}
+
 use Date::Parse;
 
 use Digest::SHA qw(sha1_hex);
 
-use Email::Address;
 use Email::MIME;
 use Email::MIME::ContentType;
 
