@@ -28,7 +28,7 @@ sub help() {
 #	print "index regenerate <dir>\n";
 	print "index add-list <dir> [<list>] [silent]\n";
 	print "index add-mbox <dir> [<mbox>] [silent]\n";
-	print "index add-mime <dir> [<mime>]\n";
+	print "index add-mail <dir> [<mail>]\n";
 	print "index get-bin <dir> <id> [<bin>]\n";
 	print "index get-part <dir> <id> <part> [<file>]\n";
 	print "index get-roots <dir> [desc] [date1] [date2] [limit] [offset]\n";
@@ -44,7 +44,7 @@ sub help() {
 	print "list gen-html <list> <offset> [<html>]\n";
 #	print "list gen-txt <list> <offset> [<txt>]\n";
 	print "bin view [<bin>]\n";
-	print "bin from-mime [<mime>] [<bin>]\n";
+	print "bin from-mail [<mail>] [<bin>]\n";
 	print "bin get-part <part> [<bin>] [<file>]\n";
 	print "bin gen-html [<bin>] [<html>]\n";
 #	print "bin gen-txt [<bin>] [<txt>]\n";
@@ -421,13 +421,13 @@ if ( not $mod or not $command ) {
 		my $pemail = open_bin($binfile);
 		bin_view($pemail);
 
-	} elsif ( $command eq "from-mime" ) {
+	} elsif ( $command eq "from-mail" ) {
 
-		my $mimefile = shift @ARGV;
+		my $mailfile = shift @ARGV;
 		my $binfile = shift @ARGV;
 		help() if @ARGV;
 
-		my $input = open_input($mimefile, ":raw");
+		my $input = open_input($mailfile, ":raw");
 		my $output = open_output($binfile, ":raw");
 
 		my $str;
@@ -561,12 +561,12 @@ if ( not $mod or not $command ) {
 		my ($count, $total) = $index->add_list($mbox, $silent);
 		print "Done ($count/$total emails)\n";
 
-	} elsif ( $command eq "add-mime" ) {
+	} elsif ( $command eq "add-mail" ) {
 
-		my $mimefile = shift @ARGV;
+		my $mailfile = shift @ARGV;
 		help() if @ARGV;
-		my $input = open_input($mimefile, ":raw");
-		$mimefile = "STDIN" unless $mimefile;
+		my $input = open_input($mailfile, ":raw");
+		$mailfile = "STDIN" unless $mailfile;
 
 		my $str;
 
@@ -575,7 +575,7 @@ if ( not $mod or not $command ) {
 			$str = <$input>;
 		}
 
-		print "Adding MIME email file '$mimefile' to index dir '$indexdir'...\n";
+		print "Adding MIME email file '$mailfile' to index dir '$indexdir'...\n";
 		my $pemail = PList::Email::MIME::from_str(\$str);
 		die "Failed (Cannot read email)\n" unless $pemail;
 
