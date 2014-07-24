@@ -62,6 +62,7 @@ sub new($$) {
 
 	my $description;
 	my $listsize;
+	my $nomatchsubject;
 
 	while (<$fh>) {
 		next if $_ =~ /^\s*#/;
@@ -72,6 +73,7 @@ sub new($$) {
 		$password = $2 if $1 eq "password";
 		$description = $2 if $1 eq "description";
 		$listsize = $2 if $1 eq "listsize";
+		$nomatchsubject = $2 if $1 eq "nomatchsubject";
 	}
 
 	close($fh);
@@ -96,6 +98,7 @@ sub new($$) {
 		driver => $driver,
 		description => $description,
 		listsize => $listsize,
+		nonmatchsubject => $nomatchsubject,
 	};
 
 	bless $priv, $class;
@@ -1562,7 +1565,7 @@ sub db_replies($$;$) {
 		}
 	}
 
-	if ( $up and ( @reply or @references ) ) {
+	if ( ( $up and ( @reply or @references ) ) or $priv->{nomatchsubject} ) {
 		return (\@reply, \@references);
 	}
 
