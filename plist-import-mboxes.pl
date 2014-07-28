@@ -3,9 +3,10 @@
 use strict;
 use warnings;
 
-use PList::Index;
-
 use FindBin qw($Bin);
+use lib $Bin;
+
+use PList::Index;
 
 sub help() {
 
