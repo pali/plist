@@ -175,7 +175,7 @@ $path = "" unless $path and $id;
 if ( ( $slash ne "/" ) or ( length $indexdir and not $indexdir =~ /\/$/ ) or ( length $action and not $action =~ /\/$/ ) or ( length $id and not $id =~ /\/$/ ) ) {
 	# Compose original url
 	# NOTE: when .htaccess rewrite is in use and uri contains char '+' CGI.pm module not working correctly
-	# Possible fix is to use path to script from get_script_url() function and compose orignal url from base and path_info
+	# Possible fix is to use path to script from get_script_url() function and compose original url from base and path_info
 	my $url = $q->url(-base=>1) . $script . $q->path_info();
 	if ( $url and not $url =~ /\/$/ ) {
 		print $q->redirect($url . "/");
