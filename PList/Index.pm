@@ -202,7 +202,7 @@ sub create_tables($$) {
 
 	my $statement;
 
-	# NOTE: Higher values are not possible for MySQL INNODB engline
+	# NOTE: Higher values are not possible for MySQL INNODB engine
 	my $text = "TEXT";
 	$text = "VARCHAR(8192) CHARACTER SET utf8" if $driver eq "mysql";
 
@@ -219,7 +219,7 @@ sub create_tables($$) {
 	my $autoincrement = "";
 	$autoincrement = "AUTO_INCREMENT" if $driver eq "mysql";
 
-	# NOTE: Equvalents for MySQL are in INSERT/UPDATE SQL statements
+	# NOTE: Equivalents for MySQL are in INSERT/UPDATE SQL statements
 	my $ignoreconflict = "";
 	$ignoreconflict = "ON CONFLICT IGNORE" if $driver eq "SQLite";
 
@@ -461,8 +461,8 @@ sub regenerate($) {
 
 }
 
-# Remove all leadings strings RE: FW: FWD: and mailinglist name in square brackets
-# After this normalization subject can be used for fiding reply emails if in-reply-to header is missing
+# Remove all leading strings RE: FW: FWD: and mailing list name in square brackets
+# After this normalization subject can be used for finding reply emails if in-reply-to header is missing
 sub normalize_subject($) {
 
 	my ($subject) = @_;
@@ -1371,7 +1371,7 @@ sub db_tree($$;$$$$) {
 	$output0{$_} = { map { $_ => 1 } @{$graph0{$_}} } foreach keys %graph0;
 	$output1{$_} = { map { $_ => 1 } @{$graph1{$_}} } foreach keys %graph1;
 
-	# Modified topological sort, but from buttom of graph
+	# Modified topological sort, but from bottom of graph
 	while ( %output0 or %output1 ) {
 
 		my @keys0;
@@ -1385,7 +1385,7 @@ sub db_tree($$;$$$$) {
 		my $id1;
 		my $c1;
 
-		# Choose vertex with smallest output degree, preffer non implicit
+		# Choose vertex with smallest output degree, prefer non implicit
 		# TODO: Instead sequence scan use heap, it has better time complexity
 		foreach ( @keys0, @keys1 ) {
 			my $c2 = 0;
@@ -1413,7 +1413,7 @@ sub db_tree($$;$$$$) {
 			delete $output1{$id2}->{$id1} if exists $output1{$id2};
 		}
 
-		# Add all output edges from vertext $id1 to final tree, preffer in-reply-to edges
+		# Add all output edges from vertex $id1 to final tree, prefer in-reply-to edges
 		foreach ( @{$graph0{$id1}}, @{$graph1{$id1}} ) {
 			my $id2 = $_;
 			next if exists $treer{$id2};
@@ -1453,7 +1453,7 @@ sub db_tree($$;$$$$) {
 	return undef unless @roots; # This should not happen, otherwise bug in database
 
 	# Set oldest email as root
-	# In case that all candicates are implicit emails (with NULL date) first will be selected
+	# In case that all candidates are implicit emails (with NULL date) first will be selected
 	$root = $roots[0];
 	my $date = "inf";
 	foreach ( @roots ) {
