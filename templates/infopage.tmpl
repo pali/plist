@@ -3,12 +3,12 @@
 <h3>Latest emails:</h3>
 <TMPL_INCLUDE NAME="emails.tmpl"><h3>Actions:</h3>
 <p>
-<TMPL_LOOP NAME=ACTIONS><a href="<TMPL_VAR ESCAPE=URL NAME=URL>"><TMPL_VAR ESCAPE=HTML NAME=ACTION></a><TMPL_UNLESS NAME=__last__><br>
+<TMPL_LOOP NAME=ACTIONS><a href="<TMPL_VAR NAME=URL>"><TMPL_VAR ESCAPE=HTML NAME=ACTION></a><TMPL_UNLESS NAME=__last__><br>
 </TMPL_UNLESS></TMPL_LOOP>
-<form method="get" action="<TMPL_VAR ESCAPE=URL NAME=SEARCHURL>" enctype="application/x-www-form-urlencoded" accept-charset="utf-8">
+<form method="get" action="<TMPL_VAR NAME=SEARCHURL>" enctype="application/x-www-form-urlencoded" accept-charset="utf-8">
 <input type="text" name="str">
 <input type="submit" name="submit" value="Quick Search">
 </form>
 <br>
-<a href="<TMPL_VAR ESCAPE=URL NAME=LISTURL>">Show list of archives</a>
+<a href="<TMPL_VAR NAME=LISTURL>">Show list of archives</a>
 </p>
