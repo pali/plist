@@ -338,6 +338,83 @@ sub parse_date($;$$) {
 
 }
 
+sub gen_tree($$$$$$) {
+
+	my ($index, $id, $desc, $rid, $limitup, $limitdown) = @_;
+
+	my %processed;
+	my @stack;
+
+	my ($tree, $emails) = $index->db_tree($id, $desc, $rid, $limitup, $limitdown);
+	if ( not $tree or not $tree->{root} ) {
+		return;
+	}
+	my $root = ${$tree->{root}}[0];
+	delete $tree->{root};
+
+	%processed = ($root => 1);
+	@stack = ([$root, 0]);
+
+	my $depth = 1;
+
+	while ( @stack ) {
+		my $m = pop(@stack);
+		my ($tid, $len) = @{$m};
+		my $down = $tree->{$tid};
+
+		if ( $depth < $len ) {
+			$depth = $len;
+		}
+
+		if ( $down ) {
+			foreach ( reverse @{$down} ) {
+				if ( not $processed{$_} ) {
+					$processed{$_} = 1;
+					push(@stack, [$_, $len+1]);
+				}
+			}
+		}
+	}
+
+	%processed = ($root => 1);
+	@stack = ([$root, 0]);
+
+	my @tree;
+
+	while ( @stack ) {
+
+		my $m = pop(@stack);
+		my ($tid, $len) = @{$m};
+		my $down = $tree->{$tid};
+
+		if ( $down ) {
+			foreach ( reverse @{$down} ) {
+				if ( not $processed{$_} ) {
+					$processed{$_} = 1;
+					push(@stack, [$_, $len+1]);
+				}
+			}
+		}
+
+		my $e = $emails->{$tid};
+
+		my $mid = $e->{messageid};
+		my $subject = $e->{subject};
+		my $name = $e->{name};
+		my $email = $e->{email};
+		my $implicit = $e->{implicit};
+		my $date = format_date($e->{date});
+
+		$subject = "unknown" unless $subject or $implicit;
+
+		push(@tree, {WIDTH => sprintf("%.3f", $len * 70 / $depth), MAXWIDTH => $len * 16, SUBJECT => $subject, URL => gen_url(action => "view", id => $mid), NAME => $name, SEARCHNAMEURL => gen_url(action => "search", type => "from", name => $name), EMAIL => $email, SEARCHEMAILURL => gen_url(action => "search", type => "from", email => $email), DATE => $date});
+
+	}
+
+	return \@tree;
+
+}
+
 sub print_tree($$$$$$) {
 
 	my ($index, $id, $desc, $rid, $limitup, $limitdown) = @_;
@@ -472,24 +549,25 @@ if ( $action eq "get-bin" ) {
 
 	error("Param id was not specified") unless $id;
 
-	print_start_html("Archive $indexdir - Tree for email $id");
-
 	my $order = "";
 	$order = 1 unless $desc;
-	$order = $q->a({href => gen_url(id => $id, desc => $order)}, $order ? "(DESC)" : "(ASC)");
 
-	print_start_table(["Subject", "From", "Date $order"], ["70%", "30%", "11em"]);
+	my @trees = ({TREE => gen_tree($index, $id, $desc, undef, undef, undef)});
 
-	my $count = print_tree($index, $id, $desc, undef, undef, undef);
+	my $base_template = PList::Template->new("base.tmpl");
+	my $treepage_template = PList::Template->new("treepage.tmpl");
 
-	print $q->end_table() . "\n";
+	$treepage_template->param(TREES => \@trees);
+	$treepage_template->param(SORTSWITCH => "<a href=\"" . gen_url(id => $id, desc => $order) . "\">" . ( $order ? "(DESC)" : "(ASC)" ) . "</a>");
+	$treepage_template->param(ARCHIVE => $indexdir);
+	$treepage_template->param(ARCHIVEURL => gen_url(action => ""));
+	$treepage_template->param(LISTURL => gen_url(indexdir => ""));
 
-	print_p("(No emails)") unless $count;
+	$base_template->param(TITLE => "Archive $indexdir - Tree for email $id");
+	$base_template->param(BODY => $treepage_template->output());
 
-	print $q->br() . "\n";
-	print_ahref(gen_url(action => ""), "Show archive $indexdir");
-	print_ahref(gen_url(indexdir => ""), "Show list of archives");
-	print $q->end_html();
+	print $q->header();
+	print $base_template->output();
 
 } elsif ( $action eq "view" ) {
 
