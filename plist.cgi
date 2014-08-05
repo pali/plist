@@ -503,55 +503,55 @@ if ( $action eq "get-bin" ) {
 	print $q->header(-content_length => $size);
 	print $str;
 
-} elsif ( $action eq "browse" ) {
-
-	my $year = $id;
-	(my $month, my $day, undef) = split("/", $path, 3);
-
-	if ( not $year ) {
-		print_start_html("Archive $indexdir - Browse emails");
-		print $q->start_p() . "\n";
-		print_ahref(gen_url(action => "trees"), "Browse all");
-		print $q->br() . "\n";
-		print $q->b("Browse year:") . $q->br() . "\n";
-		my $years = $index->db_date("%Y");
-		if ( $years and @{$years} ) {
-			print_ahref(gen_url(id => $_->[0]), $_->[0]) foreach @{$years};
-		} else {
-			print "(No years)" . $q->br() . "\n";
-		}
-	} elsif ( not $month ) {
-		print_start_html("Archive $indexdir - Browse emails for $year");
-		print $q->start_p() . "\n";
-		print_ahref(gen_url(action => "trees", id => $year), "Browse all in $year");
-		print $q->br() . "\n";
-		print $q->b("Browse month:") . $q->br() . "\n";
-		my $months = $index->db_date("%m", "%Y", $year);
-		if ( $months and @{$months} ) {
-			print_ahref(gen_url(id => $year, path => $_->[0]), "$year-" . $_->[0]) foreach @{$months};
-		} else {
-			print "(No months)" . $q->br() . "\n";
-		}
-	} else {
-		print_start_html("Archive $indexdir - Browse emails for $year-$month");
-		print $q->start_p() . "\n";
-		print_ahref(gen_url(action => "trees", id => $year, path => $month), "Browse all in $year-$month");
-		print $q->br() . "\n";
-		print $q->b("Browse day:") . $q->br() . "\n";
-		my $days = $index->db_date("%d", "%Y %m", "$year $month");
-		if ( $days and @{$days} ) {
-			print_ahref(gen_url(action => "trees", id => $year, path => $month . "/" . $_->[0]), "$year-$month-" . $_->[0]) foreach @{$days};
-		} else {
-			print "(No days)" . $q->br() . "\n";
-		}
-	}
-
-	print $q->br() . "\n";
-	print_ahref(gen_url(action => ""), "Show archive $indexdir");
-	print_ahref(gen_url(indexdir => ""), "Show list of archives");
-	print $q->end_p();
-	print $q->end_html();
-
+#} elsif ( $action eq "browse" ) {
+#
+#	my $year = $id;
+#	(my $month, my $day, undef) = split("/", $path, 3);
+#
+#	if ( not $year ) {
+#		print_start_html("Archive $indexdir - Browse emails");
+#		print $q->start_p() . "\n";
+#		print_ahref(gen_url(action => "trees"), "Browse all");
+#		print $q->br() . "\n";
+#		print $q->b("Browse year:") . $q->br() . "\n";
+#		my $years = $index->db_date("%Y");
+#		if ( $years and @{$years} ) {
+#			print_ahref(gen_url(id => $_->[0]), $_->[0]) foreach @{$years};
+#		} else {
+#			print "(No years)" . $q->br() . "\n";
+#		}
+#	} elsif ( not $month ) {
+#		print_start_html("Archive $indexdir - Browse emails for $year");
+#		print $q->start_p() . "\n";
+#		print_ahref(gen_url(action => "trees", id => $year), "Browse all in $year");
+#		print $q->br() . "\n";
+#		print $q->b("Browse month:") . $q->br() . "\n";
+#		my $months = $index->db_date("%m", "%Y", $year);
+#		if ( $months and @{$months} ) {
+#			print_ahref(gen_url(id => $year, path => $_->[0]), "$year-" . $_->[0]) foreach @{$months};
+#		} else {
+#			print "(No months)" . $q->br() . "\n";
+#		}
+#	} else {
+#		print_start_html("Archive $indexdir - Browse emails for $year-$month");
+#		print $q->start_p() . "\n";
+#		print_ahref(gen_url(action => "trees", id => $year, path => $month), "Browse all in $year-$month");
+#		print $q->br() . "\n";
+#		print $q->b("Browse day:") . $q->br() . "\n";
+#		my $days = $index->db_date("%d", "%Y %m", "$year $month");
+#		if ( $days and @{$days} ) {
+#			print_ahref(gen_url(action => "trees", id => $year, path => $month . "/" . $_->[0]), "$year-$month-" . $_->[0]) foreach @{$days};
+#		} else {
+#			print "(No days)" . $q->br() . "\n";
+#		}
+#	}
+#
+#	print $q->br() . "\n";
+#	print_ahref(gen_url(action => ""), "Show archive $indexdir");
+#	print_ahref(gen_url(indexdir => ""), "Show list of archives");
+#	print $q->end_p();
+#	print $q->end_html();
+#
 } elsif ( $action eq "roots" ) {
 
 	my $year = $id;
