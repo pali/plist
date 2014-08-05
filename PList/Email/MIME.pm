@@ -513,7 +513,7 @@ sub read_part($$$$$) {
 			# Method Email::MIME::new calling Email::MIME::ContentType::parse_content_type()
 			# so make sure that strict parsing is turned off
 			local $Email::MIME::ContentType::STRICT_PARAMS = 0;
-			$new_email = new Email::MIME($body);
+			$new_email = Email::MIME->new($body);
 		}
 		$pemail->read_email($new_email, $partstr);
 
@@ -589,7 +589,7 @@ sub maybe_init($) {
 			# Method Email::MIME::new calling Email::MIME::ContentType::parse_content_type()
 			# so make sure that strict parsing is turned off
 			local $Email::MIME::ContentType::STRICT_PARAMS = 0;
-			$email = new Email::MIME($str);
+			$email = Email::MIME->new($str);
 		}
 		if ( not defined $email ) {
 			die "Error: Email::MIME returned undef";
