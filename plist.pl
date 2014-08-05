@@ -58,7 +58,7 @@ sub open_mbox($) {
 	if ( not $filename ) {
 		$filename = \*STDIN;
 	}
-	my $list = new PList::List::MBox($filename);
+	my $list = PList::List::MBox->new($filename);
 	die "Cannot open mbox file $filename\n" unless $list;
 	return $list;
 
@@ -67,7 +67,7 @@ sub open_mbox($) {
 sub open_list($$) {
 
 	my ($filename, $append) = @_;
-	my $list = new PList::List::Binary($filename, $append);
+	my $list = PList::List::Binary->new($filename, $append);
 	die "Cannot open list file $filename\n" unless $list;
 	return $list;
 
@@ -507,7 +507,7 @@ if ( not $mod or not $command ) {
 
 	}
 
-	my $index = new PList::Index($indexdir);
+	my $index = PList::Index->new($indexdir);
 	die "Cannot open index dir '$indexdir'\n" unless $index;
 
 	if ( $command eq "view" ) {
