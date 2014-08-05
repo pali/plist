@@ -1,0 +1,16 @@
+<table class="emails">
+<col style="width: 100%;">
+<col style="width: 11em;">
+<thead>
+<tr>
+<th align="left" class="emails">Subject</th>
+<th align="left" class="emails">Date<TMPL_IF NAME=SORTSWITCH> <TMPL_VAR NAME=SORTSWITCH></TMPL_IF></th>
+</tr>
+</thead>
+<TMPL_IF NAME=ROOTS><TMPL_LOOP NAME=ROOTS><tr>
+<td class="emails"><TMPL_IF NAME=URL><a title="<TMPL_VAR ESCAPE=HTML NAME=SUBJECT>" href="<TMPL_VAR ESCAPE=URL NAME=URL>"></TMPL_IF><TMPL_VAR ESCAPE=HTML NAME=SUBJECT><TMPL_IF NAME=URL></a></TMPL_IF></td>
+<td class="emails"><TMPL_VAR ESCAPE=HTML NAME=DATE></td>
+</tr>
+</TMPL_LOOP></TMPL_IF>
+</table>
+<TMPL_UNLESS NAME=EMAILS><p>(no emails)</p></TMPL_UNLESS>

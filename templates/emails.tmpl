@@ -1,0 +1,18 @@
+<table class="emails">
+<col style="width: 70%;">
+<col style="width: 30%;">
+<col style="width: 11em;">
+<thead>
+<tr>
+<th align="left" class="emails">Subject</th>
+<th align="left" class="emails">From</th>
+<th align="left" class="emails">Date<TMPL_IF NAME=SORTSWITCH> <TMPL_VAR NAME=SORTSWITCH></TMPL_IF></th>
+</tr>
+</thead>
+<TMPL_IF NAME=EMAILS><TMPL_LOOP NAME=EMAILS><tr>
+<td class="emails"><TMPL_IF NAME=URL><a title="<TMPL_VAR ESCAPE=HTML NAME=SUBJECT>" href="<TMPL_VAR ESCAPE=URL NAME=URL>"></TMPL_IF><TMPL_VAR ESCAPE=HTML NAME=SUBJECT><TMPL_IF NAME=URL></a></TMPL_IF></td>
+<td class="emails"><TMPL_IF NAME=NAME><a title="<TMPL_VAR ESCAPE=HTML NAME=NAME>" href="<TMPL_VAR ESCAPE=URL NAME=SEARCHNAMEURL>"><TMPL_VAR ESCAPE=HTML NAME=NAME></a> </TMPL_IF><TMPL_IF NAME=EMAIL><a title="<TMPL_VAR ESCAPE=HTML NAME=EMAIL>" href="<TMPL_VAR ESCAPE=URL NAME=SEARCHEMAILURL>">&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a></TMPL_IF></td>
+<td class="emails"><TMPL_IF NAME=DATE><TMPL_VAR ESCAPE=HTML NAME=DATE></TMPL_IF></td>
+</tr></TMPL_LOOP></TMPL_IF>
+</table><TMPL_UNLESS NAME=EMAILS>
+<p>(no emails)</p></TMPL_UNLESS>
