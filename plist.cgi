@@ -886,26 +886,24 @@ if ( $action eq "get-bin" ) {
 	$date2 = "" unless defined $q->param("date2");
 
 	if ( $action eq "search" and not $submit and not $str and not keys %args ) {
+
 		# Show search form
-		print_start_html("Archive $indexdir - Search");
-		print $q->start_form(-method => "GET", -action => gen_url(), -accept_charset => "utf-8");
-		print $q->start_table() . "\n";
-		print $q->Tr($q->td(["Subject:", $q->textfield(-name => "subject")])) . "\n";
-		print $q->Tr($q->td(["Header type:", $q->popup_menu("type", ["", "from", "to", "cc"], "", {"" => "(any)"})])) . "\n";
-		print $q->Tr($q->td(["Name:", $q->textfield(-name => "name")])) . "\n";
-		print $q->Tr($q->td(["Email address:", $q->textfield(-name => "email")])) . "\n";
-		# TODO: Add date1 and date2
-		print $q->Tr($q->td(["Limit results:", $q->popup_menu("limit", ["10", "20", "50", "100", "200", "-1"], "100", {"-1" => "(unlimited)"})])) . "\n";
-		print $q->Tr($q->td(["Sort order:", $q->popup_menu("desc", ["", "1"], "", {"" => "ascending", "1" => "descending"})])) . "\n";
-		print $q->Tr($q->td($q->submit(-name => "submit", -value => "Search"))) . "\n";
-		print $q->end_table() . "\n";
-		print $q->end_form() . "\n";
-		print $q->start_p() . "\n";
-		print_ahref(gen_url(action => ""), "Show archive $indexdir");
-		print_ahref(gen_url(indexdir => ""), "Show list of archives");
-		print $q->end_p();
-		print $q->end_html();
+
+		my $base_template = PList::Template->new("base.tmpl");
+		my $searchpage_template = PList::Template->new("searchpage.tmpl");
+
+		$searchpage_template->param(ARCHIVE => $indexdir);
+		$searchpage_template->param(ARCHIVEURL => gen_url(action => ""));
+		$searchpage_template->param(LISTURL => gen_url(indexdir => ""));
+		$searchpage_template->param(SEARCHURL => gen_url());
+
+		$base_template->param(TITLE => "Archive $indexdir - Search");
+		$base_template->param(BODY => $searchpage_template->output());
+
+		print $q->header();
+		print $base_template->output();
 		exit;
+
 	}
 
 	$args{limit} = $limit+1 if length $limit;
