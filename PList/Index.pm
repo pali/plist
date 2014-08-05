@@ -1012,6 +1012,63 @@ sub db_date($$;$$) {
 
 }
 
+sub db_stat($;$$) {
+
+	my ($priv, $date1, $date2) = @_;
+
+	my $dbh = $priv->{dbh};
+
+	my $statement;
+	my $ret;
+
+	return undef if defined $date1 xor defined $date2;
+
+	if ( not defined $date1 ) {
+
+		$statement = qq(
+			SELECT MIN(date), MAX(date)
+				FROM emails
+				WHERE date IS NOT NULL
+			;
+		);
+
+		eval {
+			my $sth = $dbh->prepare_cached($statement);
+			$sth->execute();
+			$ret = $sth->fetchall_arrayref();
+		} or do {
+			return undef;
+		};
+
+		return undef unless $ret and $ret->[0];
+		return @{$ret->[0]};
+
+	} else {
+
+		$statement = qq(
+			SELECT COUNT(*)
+				FROM emails
+				WHERE
+					date IS NOT NULL AND
+					date >= ? AND
+					date < ?
+		);
+
+		eval {
+			my $sth = $dbh->prepare_cached($statement);
+			$sth->execute($date1, $date2);
+			$ret = $sth->fetchall_arrayref();
+		} or do {
+			return undef;
+		};
+
+		return undef unless $ret and $ret->[0];
+		return $ret->[0]->[0];
+
+	}
+
+}
+
 sub db_emails($;%) {
 
 	my ($priv, %args) = @_;
