@@ -218,7 +218,7 @@ if ( not $indexdir ) {
 
 }
 
-my $index = new PList::Index($indexdir);
+my $index = PList::Index->new($indexdir);
 error("Archive $indexdir does not exist") unless $index;
 
 my $templatedir = $index->info("templatedir");
