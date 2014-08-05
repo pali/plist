@@ -63,6 +63,7 @@ sub new($$) {
 	my $description;
 	my $listsize;
 	my $nomatchsubject;
+	my $templatedir;
 
 	while (<$fh>) {
 		next if $_ =~ /^\s*#/;
@@ -74,6 +75,7 @@ sub new($$) {
 		$description = $2 if $1 eq "description";
 		$listsize = $2 if $1 eq "listsize";
 		$nomatchsubject = $2 if $1 eq "nomatchsubject";
+		$templatedir = $2 if $1 eq "templatedir";
 	}
 
 	close($fh);
@@ -99,6 +101,7 @@ sub new($$) {
 		description => $description,
 		listsize => $listsize,
 		nonmatchsubject => $nomatchsubject,
+		templatedir => $templatedir,
 	};
 
 	bless $priv, $class;
@@ -112,6 +115,7 @@ sub info($$) {
 	return $priv->{driver} if $key eq "driver";
 	return $priv->{description} if $key eq "driver";
 	return $priv->{listsize} if $key eq "listsize";
+	return $priv->{templatedir} if $key eq "templatedir";
 
 	if ( $key eq "emailcount" or $key eq "treecount" ) {
 
