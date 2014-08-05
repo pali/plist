@@ -405,9 +405,9 @@ sub gen_tree($$$$$$) {
 		my $implicit = $e->{implicit};
 		my $date = format_date($e->{date});
 
-		$subject = "unknown" unless $subject or $implicit;
+		$subject = "unknown" if not $subject or $implicit;
 
-		push(@tree, {WIDTH => sprintf("%.3f", $len * 70 / $depth), MAXWIDTH => $len * 16, SUBJECT => $subject, URL => gen_url(action => "view", id => $mid), NAME => $name, SEARCHNAMEURL => gen_url(action => "search", type => "from", name => $name), EMAIL => $email, SEARCHEMAILURL => gen_url(action => "search", type => "from", email => $email), DATE => $date});
+		push(@tree, {WIDTH => sprintf("%.3f", $len * 70 / $depth), MAXWIDTH => $len * 16, SUBJECT => $subject, URL => $implicit ? undef : gen_url(action => "view", id => $mid), NAME => $name, SEARCHNAMEURL => gen_url(action => "search", type => "from", name => $name), EMAIL => $email, SEARCHEMAILURL => gen_url(action => "search", type => "from", email => $email), DATE => $date});
 
 	}
 
