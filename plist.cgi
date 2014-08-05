@@ -10,13 +10,14 @@ use PList::Index;
 use PList::Email::Binary;
 use PList::Template;
 
-use CGI qw(-no_xhtml -utf8 -oldstyle_urls);
+use CGI::Simple;
 use Date::Format;
+use Encode qw(decode_utf8 encode_utf8);
 use Time::Piece;
 
 binmode(\*STDOUT, ":utf8");
 
-$CGI::DISABLE_UPLOADS = 1;
+$CGI::Simple::PARAM_UTF8 = 1;
 
 $ENV{HTML_TEMPLATE_ROOT} |= "$Bin/templates";
 
@@ -40,11 +41,21 @@ sub error($) {
 	exit;
 }
 
+sub escape($) {
+	my ($str) = @_;
+	return $q->url_encode(encode_utf8($str));
+}
+
+sub unescape($) {
+	my ($str) = @_;
+	return decode_utf8($q->url_decode($str));
+}
+
 sub gen_url {
-	my $oldindexdir = $q->escape($indexdir);
-	my $oldaction = $q->escape($action);
-	my $oldid = $q->escape($id);
-	my $oldpath = $q->escape($path);
+	my $oldindexdir = escape($indexdir);
+	my $oldaction = escape($action);
+	my $oldid = escape($id);
+	my $oldpath = escape($path);
 	$oldpath =~ s/%2F/\//g;
 	$oldpath =~ s/%5C/\\/g;
 	my $newindexdir = $oldindexdir;
@@ -56,19 +67,19 @@ sub gen_url {
 		my $key = shift;
 		my $value = shift;
 		if ( $key eq "indexdir" ) {
-			$newindexdir = $q->escape($value);
+			$newindexdir = escape($value);
 		} elsif ( $key eq "-indexdir" ) {
 			$newindexdir = $value;
 		} elsif ( $key eq "action" ) {
-			$newaction = $q->escape($value);
+			$newaction = escape($value);
 		} elsif ( $key eq "-action" ) {
 			$newaction = $value;
 		} elsif ( $key eq "id" ) {
-			$newid = $q->escape($value);
+			$newid = escape($value);
 		} elsif ( $key eq "-id" ) {
 			$newid = $value;
 		} elsif ( $key eq "path" ) {
-			$newpath = $q->escape($value);
+			$newpath = escape($value);
 			$newpath =~ s/%2F/\//g;
 			$newpath =~ s/%5C/\\/g;
 		} elsif ( $key eq "-path" ) {
@@ -76,7 +87,7 @@ sub gen_url {
 		} elsif ( $key =~ /^-(.*)$/ ) {
 			$args .= $1 . "=" . $value . "&" if length $value;
 		} else {
-			$args .= $q->escape($key) . "=" . $q->escape($value) . "&" if length $value;
+			$args .= escape($key) . "=" . escape($value) . "&" if length $value;
 		}
 	}
 	chop($args);
@@ -124,7 +135,7 @@ sub gen_url {
 }
 
 sub get_script_url() {
-	my $uri = $q->unescape($q->request_uri()); # request uri is escaped
+	my $uri = unescape($ENV{'REQUEST_URI'}); # request uri is escaped
 	return "" unless $uri;
 	$uri =~ s/\?.*$//s; # remove query string
 	$uri =~ s/\+/ /g; # there is no difference between unescaped space and plus chars
@@ -135,7 +146,7 @@ sub get_script_url() {
 	return $uri;
 }
 
-$q = new CGI;
+$q = CGI::Simple->new();
 $q->charset("utf-8");
 
 my $slash;
@@ -400,7 +411,7 @@ if ( $action eq "get-bin" ) {
 	error("Param id was not specified") unless $id;
 	error("Param path was not specified") unless $path;
 
-	my $part = $q->unescape($path);
+	my $part = unescape($path);
 	my $pemail = $index->email($id);
 	error("Email with id $id does not exist in archive $indexdir") unless $pemail;
 	error("Part $part of email with $id does not exist in archive $indexdir") unless $pemail->part($part);
