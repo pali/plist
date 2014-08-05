@@ -1,4 +1,3 @@
-<h3>List of archives</h3>
 <p>
 <TMPL_IF NAME=LIST><TMPL_LOOP NAME=LIST><a href="<TMPL_VAR NAME=URL>"><TMPL_VAR ESCAPE=HTML NAME=DIR></a><TMPL_UNLESS NAME=__last__><br>
 </TMPL_UNLESS></TMPL_LOOP><TMPL_ELSE>(No archives)</TMPL_IF>
