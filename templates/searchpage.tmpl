@@ -1,0 +1,54 @@
+<form method="get" action="<TMPL_VAR NAME=SEARCHURL>" enctype="application/x-www-form-urlencoded" accept-charset="utf-8">
+<table>
+<tr>
+<td>Subject:</td>
+<td><input type="text" name="subject"></td>
+</tr>
+<tr>
+<td>Header type:</td>
+<td>
+<select name="type">
+<option selected value="">(any)</option>
+<option value="from">from</option>
+<option value="to">to</option>
+<option value="cc">cc</option>
+</select>
+</td>
+</tr>
+<tr>
+<td>Name:</td>
+<td><input type="text" name="name"></td>
+</tr>
+<!-- TODO: Add date1 and date2 select support -->
+<tr>
+<td>Email address:</td>
+<td><input type="text" name="email"></td>
+</tr>
+<tr>
+<td>Limit results:</td>
+<td>
+<select name="limit">
+<option value="10">10</option>
+<option value="20">20</option>
+<option value="50">50</option>
+<option selected value="100">100</option>
+<option value="200">200</option>
+<option value="-1">(unlimited)</option>
+</select>
+</td>
+</tr>
+<tr>
+<td>Sort order:</td>
+<td>
+<select name="desc">
+<option selected value="">ascending</option>
+<option value="1">descending</option>
+</select>
+</td>
+</tr>
+<tr>
+<td><input type="submit" name="submit" value="Search"></td>
+</tr>
+</table>
+</form>
+<TMPL_INCLUDE NAME="footer.tmpl">
