@@ -236,7 +236,7 @@ if ( not $action ) {
 	my $infopage_template = PList::Template->new("infopage.tmpl");
 
 	my @actions;
-#	push(@actions, {URL => gen_url(action => "browse"), ACTION => "Browse by year"});
+	push(@actions, {URL => gen_url(action => "browse"), ACTION => "Browse by year"});
 	push(@actions, {URL => gen_url(action => "search"), ACTION => "Search emails"});
 	push(@actions, {URL => gen_url(action => "trees"), ACTION => "Show all trees"});
 	push(@actions, {URL => gen_url(action => "emails"), ACTION => "Show all emails"});
@@ -485,55 +485,60 @@ if ( $action eq "get-bin" ) {
 	print $q->header(-content_length => $size);
 	print $str;
 
-#} elsif ( $action eq "browse" ) {
-#
-#	my $year = $id;
-#	(my $month, my $day, undef) = split("/", $path, 3);
-#
-#	if ( not $year ) {
-#		print_start_html("Archive $indexdir - Browse emails");
-#		print $q->start_p() . "\n";
-#		print_ahref(gen_url(action => "trees"), "Browse all");
-#		print $q->br() . "\n";
-#		print $q->b("Browse year:") . $q->br() . "\n";
-#		my $years = $index->db_date("%Y");
-#		if ( $years and @{$years} ) {
-#			print_ahref(gen_url(id => $_->[0]), $_->[0]) foreach @{$years};
-#		} else {
-#			print "(No years)" . $q->br() . "\n";
-#		}
-#	} elsif ( not $month ) {
-#		print_start_html("Archive $indexdir - Browse emails for $year");
-#		print $q->start_p() . "\n";
-#		print_ahref(gen_url(action => "trees", id => $year), "Browse all in $year");
-#		print $q->br() . "\n";
-#		print $q->b("Browse month:") . $q->br() . "\n";
-#		my $months = $index->db_date("%m", "%Y", $year);
-#		if ( $months and @{$months} ) {
-#			print_ahref(gen_url(id => $year, path => $_->[0]), "$year-" . $_->[0]) foreach @{$months};
-#		} else {
-#			print "(No months)" . $q->br() . "\n";
-#		}
-#	} else {
-#		print_start_html("Archive $indexdir - Browse emails for $year-$month");
-#		print $q->start_p() . "\n";
-#		print_ahref(gen_url(action => "trees", id => $year, path => $month), "Browse all in $year-$month");
-#		print $q->br() . "\n";
-#		print $q->b("Browse day:") . $q->br() . "\n";
-#		my $days = $index->db_date("%d", "%Y %m", "$year $month");
-#		if ( $days and @{$days} ) {
-#			print_ahref(gen_url(action => "trees", id => $year, path => $month . "/" . $_->[0]), "$year-$month-" . $_->[0]) foreach @{$days};
-#		} else {
-#			print "(No days)" . $q->br() . "\n";
-#		}
-#	}
-#
-#	print $q->br() . "\n";
-#	print_ahref(gen_url(action => ""), "Show archive $indexdir");
-#	print_ahref(gen_url(indexdir => ""), "Show list of archives");
-#	print $q->end_p();
-#	print $q->end_html();
-#
+} elsif ( $action eq "browse" ) {
+
+	my $year = $id;
+	(my $month, my $day, undef) = split("/", $path, 3);
+
+	my $body = "";
+
+	my $base_template = PList::Template->new("base.tmpl");
+
+	if ( not $year ) {
+
+		$base_template->param(TITLE => "Archive $indexdir - Browse emails");
+
+		my ($min, $max) = $index->db_stat();
+
+		$body .= "Years:<br>\n";
+
+		if ( $min and $max ) {
+			$min = time2str("%Y", $min);
+			$max = time2str("%Y", $max);
+			foreach ($min..$max) {
+				$body .= "<a href=\"" . gen_url(id => $_) . "\">$_</a><br>\n";
+			}
+		} else {
+			$body .= "(No emails)\n";
+		}
+
+	} elsif ( not $month ) {
+
+		$base_template->param(TITLE => "Archive $indexdir - Browse emails for $year");
+
+		$body .= "Months:<br>\n";
+
+		for (1..12) {
+			$body .= "<a href=\"" . gen_url(id => $year, path => $_) . "\">$year-$_</a><br>\n";
+		}
+
+	} else {
+
+		$base_template->param(TITLE => "Archive $indexdir - Browse emails for $year-$month");
+
+		$body .= "Days:<br>\n";
+
+		for (1..31) {
+			$body .= "<a href=\"" . gen_url(action => "emails", id => $year, path => "$month/$_") . "\">$year-$month-$_</a><br>\n";
+		}
+
+	}
+
+	$base_template->param(BODY => $body);
+
+	print $q->header();
+	print $base_template->output();
+
 } elsif ( $action eq "roots" ) {
 
 	my $year = $id;
