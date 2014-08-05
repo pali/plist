@@ -239,22 +239,29 @@ if ( not $indexdir ) {
 my $index = new PList::Index($indexdir);
 error("Archive $indexdir does not exist") unless $index;
 
+my $templatedir = $index->info("templatedir");
+if ( $templatedir and -e $templatedir ) {
+	$ENV{HTML_TEMPLATE_ROOT} = $templatedir;
+}
+
 sub format_date($);
 
 if ( not $action ) {
 
 	# Show info page
-	my $description = $index->info("description");
-	print_start_html("Archive $indexdir");
-	print $q->start_p() . "\n";
-	print $q->escapeHTML($description) . $q->br() . "\n" if $description;
-	print $q->end_p() . "\n";
 
-	print $q->h3("Latest emails:");
-	print_start_table(["Subject", "From", "Date"], ["70%", "30%", "11em"]);
+	my $base_template = PList::Template->new("base.tmpl");
+	my $infopage_template = PList::Template->new("infopage.tmpl");
 
+	my @actions;
+#	push(@actions, {URL => gen_url(action => "browse"), ACTION => "Browse by year"});
+	push(@actions, {URL => gen_url(action => "search"), ACTION => "Search emails"});
+	push(@actions, {URL => gen_url(action => "trees"), ACTION => "Show all trees"});
+	push(@actions, {URL => gen_url(action => "emails"), ACTION => "Show all emails"});
+	push(@actions, {URL => gen_url(action => "roots"), ACTION => "Show all roots of emails"});
+
+	my @emails;
 	my $emails = $index->db_emails(limit => 10, implicit => 0, desc => 1);
-
 	foreach ( @{$emails} ) {
 		my $mid = $_->{messageid};
 		my $date = format_date($_->{date});
@@ -262,41 +269,21 @@ if ( not $action ) {
 		my $email = $_->{email};
 		my $name = $_->{name};
 		$subject = "unknown" unless $subject;
-		print $q->start_Tr();
-		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print_ahref(gen_url(action => "view", id => $mid), $subject, 1, -title => $subject);
-		print $q->end_td();
-		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print_ahref(gen_url(action => "search", type => "from", name => $name), $name, 1, -title => $name) if $name;
-		print " " if $name and $email;
-		print_ahref(gen_url(action => "search", type => "from", email => $email), "<" . $email . ">", 1, -title => $email) if $email;
-		print $q->end_td();
-		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print $q->escapeHTML($date) if $date;
-		print $q->end_td();
-		print $q->end_Tr();
-		print "\n";
+		push(@emails, {SUBJECT => $subject, URL => gen_url(action => "view", id => $mid), NAME => $name, SEARCHNAMEURL => gen_url(action => "search", type => "from", name => $name), EMAIL => $email, SEARCHEMAILURL => gen_url(action => "search", type => "from", email => $email), DATE => $date});
+
 	}
 
-	print $q->end_table() . "\n";
+	$infopage_template->param(DESCRIPTION => $index->info("description"));
+	$infopage_template->param(EMAILS => \@emails);
+	$infopage_template->param(ACTIONS => \@actions);
+	$infopage_template->param(SEARCHURL => gen_url(action => "search"));
+	$infopage_template->param(LISTURL => gen_url(indexdir => ""));
 
-	print_p("(No emails)") unless @{$emails};
+	$base_template->param(TITLE => "Archive $indexdir");
+	$base_template->param(BODY => $infopage_template->output());
 
-	print $q->h3("Actions:");
-	print $q->start_p() . "\n";
-#	print_ahref(gen_url(action => "browse"), "Browse by year");
-	print_ahref(gen_url(action => "search"), "Search emails");
-	print_ahref(gen_url(action => "trees"), "Show all trees");
-	print_ahref(gen_url(action => "emails"), "Show all emails");
-	print_ahref(gen_url(action => "roots"), "Show all roots of emails");
-	print $q->start_form(-method => "GET", -action => gen_url(action => "search"), -accept_charset => "utf-8");
-	print $q->textfield(-name => "str") . "\n";
-	print $q->submit(-name => "submit", -value => "Quick Search") . "\n";
-	print $q->end_form() . "\n";
-	print $q->br() . "\n";
-	print_ahref(gen_url(indexdir => ""), "Show list of archives");
-	print $q->end_p();
-	print $q->end_html();
+	print $q->header();
+	print $base_template->output();
 	exit;
 
 }
