@@ -788,14 +788,6 @@ if ( $action eq "get-bin" ) {
 
 	my $title = "Archive $indexdir - Browse trees";
 	$title .= " (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")" if $nextoffset > $offset;
-	print_start_html($title);
-
-	print "View: Trees ";
-	print_ahref(gen_url(action => "emails", id => $id, path => $path), "Emails", 1);
-	print " ";
-	print_ahref(gen_url(action => "roots", id => $id, path => $path), "Roots", 1);
-	print $q->br();
-	print $q->br();
 
 	my $order = "";
 	$order = 1 unless $desc;
@@ -803,29 +795,35 @@ if ( $action eq "get-bin" ) {
 	my $treeorder = "";
 	$treeorder = 1 unless $treedesc;
 
-	$order = $q->a({href => gen_url(id => $id, path => $path, limit => $limit, offset => 0, desc => $order, treedesc => $treedesc)}, $order ? "(thr DESC)" : "(thr ASC)");
-	$treeorder = $q->a({href => gen_url(id => $id, path => $path, limit => $limit, offset => $offset, desc => $desc, treedesc => $treeorder)}, $treeorder ? "(msg DESC)" : "(msg ASC)");
+	$order = "<a href=\"" . gen_url(id => $id, path => $path, limit => $limit, offset => 0, desc => $order, treedesc => $treedesc) . "\">" . ( $order ? "(thr DESC)" : "(thr ASC)" ) . "</a>";
+	$treeorder = "<a href=\"" . gen_url(id => $id, path => $path, limit => $limit, offset => $offset, desc => $desc, treedesc => $treeorder) . "\">" . ( $treeorder ? "(msg DESC)" : "(msg ASC)" ) . "</a>";
 
-	print_start_table(["Subject", "From", "Date $order" . $q->br() . "$treeorder"], ["70%", "30%", "11em"]);
+	my @trees;
 
 	$iter = -1;
 	foreach ( @{$roots} ) {
 		++$iter;
 		last if $iter >= $nextoffset;
-		print_tree($index, $_->{treeid}, $treedesc, 2, undef, undef);
+		push(@trees, {TREE => gen_tree($index, $_->{treeid}, $treedesc, 2, undef, undef)});
 	}
 
-	print $q->end_table();
+	my $base_template = PList::Template->new("base.tmpl");
+	my $treespage_template = PList::Template->new("treespage.tmpl");
 
-	if ( $neednext ) {
-		print $q->br() . "\n";
-		print_ahref(gen_url(id => $id, path => $path, limit => $limit, offset => $nextoffset, desc => $desc, treedesc => $treedesc), "Show next page");
-	}
+	$treespage_template->param(EMAILSURL => gen_url(action => "emails", id => $id, path => $path));
+	$treespage_template->param(ROOTSURL => gen_url(action => "roots", id => $id, path => $path));
+	$treespage_template->param(NEXTURL => gen_url(id => $id, path => $path, limit => $limit, offset => $nextoffset, desc => $desc, treedesc => $treedesc)) if $neednext;
+	$treespage_template->param(TREES => \@trees);
+	$treespage_template->param(SORTSWITCH => $order . "<br>" . $treeorder);
+	$treespage_template->param(ARCHIVE => $indexdir);
+	$treespage_template->param(ARCHIVEURL => gen_url(action => ""));
+	$treespage_template->param(LISTURL => gen_url(indexdir => ""));
 
-	print $q->br() . "\n";
-	print_ahref(gen_url(action => ""), "Show archive $indexdir");
-	print_ahref(gen_url(indexdir => ""), "Show list of archives");
-	print $q->end_html();
+	$base_template->param(TITLE => $title);
+	$base_template->param(BODY => $treespage_template->output());
+
+	print $q->header();
+	print $base_template->output();
 
 } elsif ( $action eq "search" or $action eq "emails" ) {
 
