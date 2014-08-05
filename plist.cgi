@@ -8,6 +8,7 @@ use lib $Bin;
 
 use PList::Index;
 use PList::Email::Binary;
+use PList::Template;
 
 use CGI qw(-no_xhtml -utf8 -oldstyle_urls);
 use Date::Format;
@@ -16,6 +17,8 @@ use Time::Piece;
 binmode(\*STDOUT, ":utf8");
 
 $CGI::DISABLE_UPLOADS = 1;
+
+$ENV{HTML_TEMPLATE_ROOT} |= "$Bin/templates";
 
 # global variables
 my $q;
@@ -56,9 +59,13 @@ sub print_ahref($$;$@) {
 
 sub error($) {
 	my ($msg) = @_;
-	print_start_html("Error 404", 1, -status => 404);
-	print_p("Error: " . $msg);
-	print $q->end_html();
+	my $base_template = PList::Template->new("base.tmpl");
+	my $errorpage_template = PList::Template->new("errorpage.tmpl");
+	$errorpage_template->param(MSG => $msg);
+	$base_template->param(TITLE => "Error 404");
+	$base_template->param(BODY => $errorpage_template->output());
+	print $q->header(-status => 404);
+	print $base_template->output();
 	exit;
 }
 
