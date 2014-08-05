@@ -577,7 +577,7 @@ if ( $action eq "get-bin" ) {
 	my $base_template = PList::Template->new("base.tmpl");
 	my $rootspage_template = PList::Template->new("rootspage.tmpl");
 
-	$rootspage_template->param(TREESSURL => gen_url(action => "trees", id => $id, path => $path));
+	$rootspage_template->param(TREESURL => gen_url(action => "trees", id => $id, path => $path));
 	$rootspage_template->param(EMAILSURL => gen_url(action => "emails", id => $id, path => $path));
 	$rootspage_template->param(NEXTURL => gen_url(id => $id, path => $path, desc => $desc, limit => $limit, offset => ($offset + $limit))) if $neednext;
 	$rootspage_template->param(PREVURL => gen_url(id => $id, path => $path, desc => $desc, limit => $limit, offset => ($offset - $limit))) if length $limit and $offset >= $limit;
