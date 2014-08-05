@@ -219,18 +219,19 @@ if ( not $indexdir ) {
 
 	closedir($dh);
 
-	print_start_html("List of archives");
-	print $q->start_p() . "\n";
+	my @list;
+	push(@list, {URL => gen_url(indexdir => $_), DIR => $_}) foreach sort { $a cmp $b } @dirs;
 
-	if ( @dirs ) {
-		print_ahref(gen_url(indexdir => $_), $_) foreach sort { $a cmp $b } @dirs;
-	} else {
-		print "(No archives)\n";
-	}
+	my $base_template = PList::Template->new("base.tmpl");
+	my $listpage_template = PList::Template->new("listpage.tmpl");
 
-	print $q->end_p();
-	print $q->end_html();
+	$listpage_template->param(LIST => \@list);
 
+	$base_template->param(TITLE => "List of archives");
+	$base_template->param(BODY => $listpage_template->output());
+
+	print $q->header();
+	print $base_template->output();
 	exit;
 
 }
