@@ -28,35 +28,6 @@ my $action;
 my $id;
 my $path;
 
-sub print_start_html($;$@) {
-	my ($title, $noh2, @header) = @_;
-	print $q->header(@header);
-	print $q->start_html(-lang => "", -head => $q->meta({-http_equiv => "Content-Type", -content => "text/html; charset=utf-8"}), -title => $title, -style => {-code => "a { text-decoration:none; } a:hover { background-color:yellow; }"} );
-	print $q->h2($q->escapeHTML($title)) . "\n" unless $noh2;
-}
-
-sub print_start_table($$) {
-	my ($cols, $widths) = @_;
-	print $q->start_table({-style => "table-layout:fixed; width:100%; white-space:nowrap; border-spacing:10px 2px;"}) . "\n";
-	print $q->col({-style => "width:$_;"}) foreach @{$widths};
-	print $q->start_thead();
-	print $q->start_Tr();
-	print $q->th({-align => "left", -style => "overflow:hidden; text-overflow:ellipsis;"}, $_) foreach @{$cols};
-	print $q->end_Tr();
-	print $q->end_thead() . "\n";
-}
-
-sub print_p($) {
-	my ($text) = @_;
-	print $q->p($q->escapeHTML($text));
-}
-
-sub print_ahref($$;$@) {
-	my ($href, $text, $nobr, @args) = @_;
-	print $q->a({-href => $href, @args}, $q->escapeHTML($text));
-	print $q->br() . "\n" unless $nobr;
-}
-
 sub error($) {
 	my ($msg) = @_;
 	my $base_template = PList::Template->new("base.tmpl");
