@@ -970,48 +970,6 @@ sub add_list($$;$) {
 
 }
 
-sub db_date($$;$$) {
-
-	my ($priv, $oformat, $iformat, $value) = @_;
-
-	my $dbh = $priv->{dbh};
-	my $driver = $priv->{driver};
-
-	my $statement;
-	my @args = ($oformat);
-	my $ret;
-
-	my $func = "date";
-	$func = "FROM_UNIXTIME(date, ?)" if $driver eq "mysql";
-	$func = "strftime(?, date, \"unixepoch\")" if $driver eq "SQLite";
-
-	my $cond = "";
-	if ( defined $iformat and defined $value ) {
-		$cond = " AND $func = ?";
-		push(@args, $iformat, $value);
-	}
-
-	# FIXME: This SELECT is slow. Do not use SQL function but rather store values day, month and year to table emails
-	$statement = qq(
-		SELECT DISTINCT $func
-			FROM emails
-			WHERE date IS NOT NULL
-			$cond
-		;
-	);
-
-	eval {
-		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute(@args);
-		$ret = $sth->fetchall_arrayref();
-	} or do {
-		return undef;
-	};
-
-	return $ret;
-
-}
-
 sub db_stat($;$$) {
 
 	my ($priv, $date1, $date2) = @_;
