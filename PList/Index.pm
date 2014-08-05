@@ -903,7 +903,7 @@ sub reopen_listfile($;$$) {
 		$listfile = sprintf("%.5d.list", $listfile+1);
 	}
 
-	$list = new PList::List::Binary($priv->{dir} . "/" . $listfile, 1);
+	$list = PList::List::Binary->new($priv->{dir} . "/" . $listfile, 1);
 	if ( not $list ) {
 		$@ = "Cannot open listfile '$listfile'";
 		return undef;
@@ -1737,7 +1737,7 @@ sub email($$) {
 	my $listname = $ret->{$id}->{list};
 	my $offset = $ret->{$id}->{offset};
 
-	my $list = new PList::List::Binary($priv->{dir} . "/" . $listname, 0);
+	my $list = PList::List::Binary->new($priv->{dir} . "/" . $listname, 0);
 	return undef unless $list;
 
 	return $list->readat($offset);
