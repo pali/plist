@@ -581,7 +581,7 @@ if ( $action eq "get-bin" ) {
 
 	my $order = "";
 	$order = 1 unless $desc;
-	$order = $q->a({href => gen_url(id => $id, path => $path, desc => $order, limit => $limit, offset => 0)}, $order ? "(DESC)" : "(ASC)");
+	$order = "<a href=\"" . gen_url(id => $id, path => $path, desc => $order, limit => $limit, offset => 0) . "\">" . ( $order ? "(DESC)" : "(ASC)" ) . "</a>";
 
 	my $neednext = 0;
 	my $nextoffset = $offset + scalar @{$roots};
@@ -592,54 +592,35 @@ if ( $action eq "get-bin" ) {
 
 	my $title = "Archive $indexdir - Roots of trees";
 	$title .= " (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")" if $nextoffset > $offset;
-	print_start_html($title);
 
-	print "View: ";
-	print_ahref(gen_url(action => "trees", id => $id, path => $path), "Trees", 1);
-	print " ";
-	print_ahref(gen_url(action => "emails", id => $id, path => $path), "Emails", 1);
-	print " Roots";
-	print $q->br();
-	print $q->br();
-
-	print_start_table(["Subject", "Date $order"], ["100%", "11em"]);
+	my @roots;
 
 	foreach ( @{$roots} ) {
 		my $mid = $_->{messageid};
 		my $subject = $_->{subject};
 		my $date = format_date($_->{date});
 		$subject = "unknown" unless $subject;
-		print $q->start_Tr();
-		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print_ahref(gen_url(action => "tree", id => $mid), $subject, 1, -title => $subject);
-		print $q->end_td();
-		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print $q->escapeHTML($date) if $date;
-		print $q->end_td();
-		print $q->end_Tr();
-		print "\n";
+		push(@roots, {SUBJECT => $subject, URL => gen_url(action => "tree", id => $mid), DATE => $date})
 	}
 
-	print $q->end_table() . "\n";
+	my $base_template = PList::Template->new("base.tmpl");
+	my $rootspage_template = PList::Template->new("rootspage.tmpl");
 
-	print_p("(No emails)") unless @{$roots};
+	$rootspage_template->param(TREESSURL => gen_url(action => "trees", id => $id, path => $path));
+	$rootspage_template->param(EMAILSURL => gen_url(action => "emails", id => $id, path => $path));
+	$rootspage_template->param(NEXTURL => gen_url(id => $id, path => $path, desc => $desc, limit => $limit, offset => ($offset + $limit))) if $neednext;
+	$rootspage_template->param(PREVURL => gen_url(id => $id, path => $path, desc => $desc, limit => $limit, offset => ($offset - $limit))) if length $limit and $offset >= $limit;
+	$rootspage_template->param(ROOTS => \@roots);
+	$rootspage_template->param(SORTSWITCH => $order);
+	$rootspage_template->param(ARCHIVE => $indexdir);
+	$rootspage_template->param(ARCHIVEURL => gen_url(action => ""));
+	$rootspage_template->param(LISTURL => gen_url(indexdir => ""));
 
-	my $printbr = 1;
-	if ( $neednext ) {
-		$printbr = 0;
-		print $q->br() . "\n";
-		print_ahref(gen_url(id => $id, path => $path, desc => $desc, limit => $limit, offset => ($offset + $limit)), "Show next page");
-	}
+	$base_template->param(TITLE => $title);
+	$base_template->param(BODY => $rootspage_template->output());
 
-	if ( length $limit and $offset >= $limit ) {
-		print $q->br() . "\n" if $printbr;
-		print_ahref(gen_url(id => $id, path => $path, desc => $desc, limit => $limit, offset => ($offset - $limit)), "Show previous page");
-	}
-
-	print $q->br() . "\n";
-	print_ahref(gen_url(action => ""), "Show archive $indexdir");
-	print_ahref(gen_url(indexdir => ""), "Show list of archives");
-	print $q->end_html();
+	print $q->header();
+	print $base_template->output();
 
 } elsif ( $action eq "trees" ) {
 
