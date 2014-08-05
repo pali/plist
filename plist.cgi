@@ -922,7 +922,7 @@ if ( $action eq "get-bin" ) {
 
 	my $order = "";
 	$order = 1 unless $desc;
-	$order = $q->a({href => gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order)}, $order ? "(DESC)" : "(ASC)");
+	$order = "<a href=\"" . gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order) . "\">" . ( $order ? "(DESC)" : "(ASC)" ) . "</a>";
 
 	my $neednext = 0;
 	my $nextoffset = $offset + scalar @{$emails};
@@ -936,30 +936,25 @@ if ( $action eq "get-bin" ) {
 	$title .= " Search" if $action eq "search";
 	$title .= " Emails" if $action eq "emails";
 	$title .= " (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")" if $nextoffset > $offset;
-	print_start_html($title);
+
+	my $base_template = PList::Template->new("base.tmpl");
+	my $page_template;
 
 	if ( $action eq "search" and not length $str ) {
-		print $q->start_p();
-		print "Search for query:" . $q->br() . "\n";
-		print "Subject: $subject" . $q->br() . "\n" if length $subject;
-		print "Header type: $type" . $q->br() . "\n" if length $type;
-		print "Name: $name" . $q->br() . "\n" if length $name;
-		print "Email: $email" . $q->br() . "\n" if length $email;
-		print $q->end_p();
+		$page_template = PList::Template->new("searchrespage.tmpl");
+		$page_template->param(SUBJECT => $subject) if length $subject;
+		$page_template->param(TYPE => $subject) if length $type;
+		$page_template->param(NAME => $name) if length $name;
+		$page_template->param(EMAIL => $email) if length $email;
 	}
 
 	if ( $action eq "emails" ) {
-		print $q->start_p();
-		print "View: ";
-		print_ahref(gen_url(action => "trees", id => $id, path => $path), "Trees", 1);
-		print " Emails ";
-		print_ahref(gen_url(action => "roots", id => $id, path => $path), "Roots", 1);
-		print $q->br();
-		print $q->end_p();
+		$page_template = PList::Template->new("emailspage.tmpl");
+		$page_template->param(TREESURL => gen_url(action => "trees", id => $id, path => $path));
+		$page_template->param(ROOTSURL => gen_url(action => "roots", id => $id, path => $path));
 	}
 
-	print_start_table(["Subject", "From", "Date $order"], ["70%", "30%", "11em"]);
-
+	my @emails;
 	foreach ( @{$emails} ) {
 		my $mid = $_->{messageid};
 		my $date = format_date($_->{date});
@@ -967,42 +962,22 @@ if ( $action eq "get-bin" ) {
 		my $email = $_->{email};
 		my $name = $_->{name};
 		$subject = "unknown" unless $subject;
-		print $q->start_Tr();
-		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print_ahref(gen_url(action => "view", id => $mid), $subject, 1, -title => $subject);
-		print $q->end_td();
-		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print_ahref(gen_url(action => "search", type => "from", name => $name), $name, 1, -title => $name) if $name;
-		print " " if $name and $email;
-		print_ahref(gen_url(action => "search", type => "from", email => $email), "<" . $email . ">", 1, -title => $email) if $email;
-		print $q->end_td();
-		print $q->start_td({-style => "overflow:hidden; text-overflow:ellipsis;"});
-		print $q->escapeHTML($date) if $date;
-		print $q->end_td();
-		print $q->end_Tr();
-		print "\n";
+		push(@emails, {SUBJECT => $subject, URL => gen_url(action => "view", id => $mid), NAME => $name, SEARCHNAMEURL => gen_url(action => "search", type => "from", name => $name), EMAIL => $email, SEARCHEMAILURL => gen_url(action => "search", type => "from", email => $email), DATE => $date});
 	}
 
-	print $q->end_table() . "\n";
+	$page_template->param(SORTSWITCH => $order);
+	$page_template->param(EMAILS => \@emails);
+	$page_template->param(NEXTURL => gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc)) if $neednext;
+	$page_template->param(PREVURL => gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit), desc => $desc)) if length $limit and $offset >= $limit;
+	$page_template->param(ARCHIVE => $indexdir);
+	$page_template->param(ARCHIVEURL => gen_url(action => ""));
+	$page_template->param(LISTURL => gen_url(indexdir => ""));
 
-	print_p("(No emails)") unless @{$emails};
+	$base_template->param(TITLE => $title);
+	$base_template->param(BODY => $page_template->output());
 
-	my $printbr = 1;
-	if ( $neednext ) {
-		$printbr = 0;
-		print $q->br() . "\n";
-		print_ahref(gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc), "Show next page");
-	}
-
-	if ( length $limit and $offset >= $limit ) {
-		print $q->br() . "\n" if $printbr;
-		print_ahref(gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit), desc => $desc), "Show previous page");
-	}
-
-	print $q->br() . "\n";
-	print_ahref(gen_url(action => ""), "Show archive $indexdir");
-	print_ahref(gen_url(indexdir => ""), "Show list of archives");
-	print $q->end_html();
+	print $q->header();
+	print $base_template->output();
 
 } else {
 
