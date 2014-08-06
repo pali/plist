@@ -34,8 +34,7 @@ my $base_template_default = <<END;
 <html>
 <head>
 <meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
-<TMPL_IF NAME=STYLE><TMPL_VAR NAME=STYLE>
-</TMPL_IF><TMPL_IF NAME=TITLE><title><TMPL_VAR ESCAPE=HTML NAME=TITLE></title>
+<TMPL_IF NAME=STYLE><TMPL_VAR NAME=STYLE></TMPL_IF><TMPL_IF NAME=TITLE><title><TMPL_VAR ESCAPE=HTML NAME=TITLE></title>
 </TMPL_IF></head>
 <body>
 <TMPL_IF NAME=BODY><TMPL_VAR NAME=BODY></TMPL_IF></body>
@@ -64,7 +63,6 @@ span.plaintextmonospace {
 }
 </style>
 END
-chomp($style_template_default);
 
 my $address_template_default = "<a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAILURL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
 
