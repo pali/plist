@@ -467,11 +467,11 @@ if ( $action eq "get-bin" ) {
 	my $size;
 	{
 		use bytes;
-		$size = length($str);
+		$size = length(${$str});
 	}
 
 	print $q->header(-content_length => $size);
-	print $str;
+	print ${$str};
 
 } elsif ( $action eq "browse" ) {
 

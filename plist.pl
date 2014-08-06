@@ -404,7 +404,7 @@ if ( not $mod or not $command ) {
 		my $output = PList::Email::View::to_str($pemail, %args);
 		die "Cannot generate output\n" unless $output;
 
-		print $fh $output;
+		print $fh ${$output};
 
 	} else {
 
@@ -477,7 +477,7 @@ if ( not $mod or not $command ) {
 		my $str = PList::Email::View::to_str($pemail, %args);
 		die "Cannot generate output\n" unless $str;
 
-		print $output $str;
+		print $output ${$str};
 
 	} else {
 
@@ -634,7 +634,7 @@ if ( not $mod or not $command ) {
 		} else {
 			my $str = $index->view($id, %args);
 			die "Failed\n" unless $str;
-			print $fh $str;
+			print $fh ${$str};
 		}
 
 	} elsif ( $command eq "get-part" ) {

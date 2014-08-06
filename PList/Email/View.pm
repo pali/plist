@@ -450,7 +450,7 @@ sub to_str($;%) {
 	$base_template->param(STYLE => $style);
 	$base_template->param(TITLE => $title);
 	$base_template->param(BODY => $body);
-	return $base_template->output();
+	return \$base_template->output();
 
 }
 
