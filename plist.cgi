@@ -270,14 +270,6 @@ if ( not $action ) {
 
 }
 
-my $address_template = "<a href='" . gen_url(action => "search", type => "from", -name => "<TMPL_VAR ESCAPE=URL NAME=NAMEURL>") . "'><TMPL_VAR ESCAPE=HTML NAME=NAME></a> <a href='" . gen_url(action => "search", type => "from", -email => "<TMPL_VAR ESCAPE=URL NAME=EMAILURL>") . "'>&lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
-
-my $subject_template = "<a href='" . gen_url(action => "tree", -id => "<TMPL_VAR ESCAPE=URL NAME=ID>") . "'><TMPL_VAR ESCAPE=HTML NAME=SUBJECT></a>";
-
-my $download_template = "<b><a href='" . gen_url(action => "download", -id => "<TMPL_VAR ESCAPE=URL NAME=ID>", -path => "<TMPL_VAR NAME=PART>") . "'>Download</a></b>\n";
-
-my $imagepreview_template = "<img src='" . gen_url(action => "download", -id => "<TMPL_VAR ESCAPE=URL NAME=ID>", -path => "<TMPL_VAR NAME=PART>") . "'>\n";
-
 sub format_date($) {
 
 	my ($date) = @_;
@@ -462,16 +454,12 @@ if ( $action eq "get-bin" ) {
 
 	error("Param id was not specified") unless $id;
 
-	my %config = (
-		html_policy => $policy,
-		plain_monospace => $monospace,
-		time_zone => $timezone,
-		date_format => $dateformat,
-		address_template => \$address_template,
-		subject_template => \$subject_template,
-		download_template => \$download_template,
-		imagepreview_template => \$imagepreview_template,
-	);
+	my %config = (cgi_templates => 1);
+
+	$config{html_policy} = $policy if defined $policy;
+	$config{plain_monospace} = $monospace if defined $monospace;
+	$config{time_zone} = $timezone if defined $timezone;
+	$config{date_format} = $dateformat if defined $dateformat;
 
 	my $str = $index->view($id, %config);
 	error("Email with id $id does not exist in archive $indexdir") unless $str;
