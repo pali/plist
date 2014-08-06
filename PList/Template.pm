@@ -26,6 +26,7 @@ sub new($$) {
 sub param($$$) {
 
 	my ($self, $param, $value) = @_;
+	# NOTE: Bug in HTML::Template: Attribute ESCAPE=URL working only on encoded utf8 string. But attribute ESCAPE=HTML working on normal utf8 string
 	$value = encode_utf8($value) if $param =~ /URL$/;
 	return ${$self}->param($param, $value);
 
