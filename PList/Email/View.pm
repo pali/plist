@@ -352,6 +352,7 @@ sub part_to_str($$$$) {
 # date_format "%a, %d %b %Y %T %z"
 # enabled_mime_types
 # disabled_mime_types application/pgp-signature
+# cgi_templates
 # base_template
 # style_template
 # address_template
@@ -380,6 +381,21 @@ sub to_str($;%) {
 	# Time zone & Date format
 	$config{time_zone} = undef if $config{time_zone} and $config{time_zone} eq "local";
 	$config{date_format} = "%a, %d %b %Y %T %z" unless $config{date_format};
+
+	if ( $config{cgi_templates} ) {
+		$config{base_template} = "base.tmpl";
+		$config{style_template} = "style.tmpl";
+		$config{address_template} = "address.tmpl";
+		$config{subject_template} = "subject.tmpl";
+		$config{download_template} = "download.tmpl";
+		$config{imagepreview_template} = "imagepreview.tmpl";
+		$config{message_template} = "message.tmpl";
+		$config{view_template} = "view.tmpl";
+		$config{plaintext_template} = "plaintext.tmpl";
+		$config{plaintextmonospace_template} = "plaintextmonospace.tmpl";
+		$config{multipart_template} = "multipart.tmpl";
+		$config{attachment_template} = "attachment.tmpl";
+	}
 
 	# TODO: Set default templates based on $html_output
 	# TODO: Add support for $html_output == 0
