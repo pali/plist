@@ -20,6 +20,8 @@ use PList::Index;
 
 binmode STDOUT, ":utf8";
 
+$ENV{HTML_TEMPLATE_ROOT} |= "$Bin/templates";
+
 sub help() {
 
 	print "help:\n";
@@ -36,6 +38,7 @@ sub help() {
 	print "index gen-html <dir> <id> [<html>]\n";
 #	print "index gen-txt <dir> <id> [<txt>]\n";
 	print "index del <dir> <id>\n";
+	print "index pregen <dir> [<id>]\n";
 	print "list view <list>\n";
 	print "list add-mbox <list> [<mbox>]\n";
 	print "list add-bin <list> [<bin>]\n";
@@ -662,6 +665,21 @@ if ( not $mod or not $command ) {
 		die "Failed\n" unless $index->delete($id);
 
 		print "Done\n";
+
+	} elsif ( $command eq "pregen" ) {
+
+		my $id = shift @ARGV;
+		help() if @ARGV;
+
+		if ( $id ) {
+			print "Pregenerating email with $id...\n";
+			die "Failed\n" unless $index->pregen_one_email($id);
+			print "Done\n";
+		} else {
+			print "Pregenerating all emails...\n";
+			my ($count, $total) = $index->pregen_all_emails();
+			print "Done ($count/$total emails)\n";
+		}
 
 	} else {
 
