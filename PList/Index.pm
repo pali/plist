@@ -64,6 +64,7 @@ sub new($$) {
 	my $listsize;
 	my $nomatchsubject;
 	my $templatedir;
+	my $autopregen;
 
 	while (<$fh>) {
 		next if $_ =~ /^\s*#/;
@@ -76,6 +77,7 @@ sub new($$) {
 		$listsize = $2 if $1 eq "listsize";
 		$nomatchsubject = $2 if $1 eq "nomatchsubject";
 		$templatedir = $2 if $1 eq "templatedir";
+		$autopregen = $2 if $1 eq "autopregen";
 	}
 
 	close($fh);
@@ -102,6 +104,7 @@ sub new($$) {
 		listsize => $listsize,
 		nonmatchsubject => $nomatchsubject,
 		templatedir => $templatedir,
+		autopregen => $autopregen,
 	};
 
 	bless $priv, $class;
@@ -448,6 +451,77 @@ sub create($;$$$$) {
 	close($fh);
 
 	return 1;
+
+}
+
+sub pregen_one_email($$) {
+
+	my ($priv, $id) = @_;
+
+	my %config = (cgi_templates => 1, nopregen => 1);
+	my $str = $priv->view($id, %config);
+	return 0 unless $str;
+
+	my $dir = $priv->{dir} . "/pregen";
+	unless ( -d $dir ) {
+		mkdir $dir or return 0;
+	}
+
+	my $subdir = substr($id, 0, 2);
+	unless ( -d "$dir/$subdir" ) {
+		mkdir "$dir/$subdir" or return 0;
+	}
+
+	my $file;
+	open($file, ">", "$dir/$subdir/$id.html") or return 0;
+
+	binmode($file, ":raw");
+
+	no warnings "utf8";
+	print $file ${$str};
+	close($file);
+
+	return 1;
+
+}
+
+sub pregen_all_emails($) {
+
+	my ($priv) = @_;
+
+	my $dbh = $priv->{dbh};
+
+	my $statement;
+	my $ret;
+
+	$statement = qq(
+		SELECT messageid
+			FROM emails
+			WHERE implicit = 0
+		;
+	);
+
+	eval {
+		my $sth = $dbh->prepare_cached($statement);
+		$sth->execute();
+		$ret = $sth->fetchall_arrayref();
+	} or do {
+		return undef;
+	};
+
+	return (0, 0) unless $ret and $ret->[0];
+
+	my $count = 0;
+	my $total = 0;
+
+	foreach ( @{$ret} ) {
+		if ( $priv->pregen_one_email($_->[0]) ) {
+			++$count;
+		}
+		++$total;
+	}
+
+	return ($count, $total);
 
 }
 
@@ -868,6 +942,10 @@ sub add_one_email($$$$) {
 		eval { $dbh->rollback(); };
 		return 0;
 	};
+
+	if ( $priv->{autopregen} ) {
+		$priv->pregen_one_email($id);
+	}
 
 	return 1;
 
@@ -1765,6 +1843,30 @@ sub view($$;%) {
 
 	my $pemail = $priv->email($id);
 	return undef unless $pemail;
+
+	if ( not $args{nopregen} ) {
+
+		my $dir = $priv->{dir};
+		my $subdir = substr($id, 0, 2);
+		my $file;
+
+		if ( open($file, "<", "$dir/pregen/$subdir/$id.html") ) {
+
+			my $str;
+
+			binmode($file, ":raw");
+
+			{
+				local $/= undef;
+				$str = <$file>;
+			}
+
+			close($file);
+			return \$str;
+
+		}
+
+	}
 
 	return PList::Email::View::to_str($pemail, %args);
 
