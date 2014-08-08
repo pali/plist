@@ -496,7 +496,7 @@ if ( $action eq "get-bin" ) {
 			$min = time2str("%Y", $min);
 			$max = time2str("%Y", $max);
 			foreach ($min..$max) {
-				$body .= "<a href=\"" . gen_url(id => $_) . "\">$_</a><br>\n";
+				$body .= "<a href=\"" . gen_url(id => $_) . "\">$_ (" . $index->db_stat(parse_date($_)) . ")</a><br>\n";
 			}
 		} else {
 			$body .= "(No emails)\n";
@@ -509,7 +509,7 @@ if ( $action eq "get-bin" ) {
 		$body .= "Months:<br>\n";
 
 		for (1..12) {
-			$body .= "<a href=\"" . gen_url(id => $year, path => $_) . "\">$year-$_</a><br>\n";
+			$body .= "<a href=\"" . gen_url(id => $year, path => $_) . "\">$year-$_ (" . $index->db_stat(parse_date($year, $_)) . ")</a><br>\n";
 		}
 
 	} else {
@@ -527,7 +527,7 @@ if ( $action eq "get-bin" ) {
 		}
 
 		for (1..$max) {
-			$body .= "<a href=\"" . gen_url(action => "emails", id => $year, path => "$month/$_") . "\">$year-$month-$_</a><br>\n";
+			$body .= "<a href=\"" . gen_url(action => "emails", id => $year, path => "$month/$_") . "\">$year-$month-$_ (" . $index->db_stat(parse_date($year, $month, $_)) . ")</a><br>\n";
 		}
 
 	}
