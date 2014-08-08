@@ -516,7 +516,15 @@ if ( $action eq "get-bin" ) {
 
 		$body .= "Days:<br>\n";
 
-		for (1..31) {
+		my @days = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31);
+
+		my $max = $days[$month-1];
+
+		if ( $month == 2 and ( (($year % 4 == 0) and ($year % 100 != 0)) or ($year % 400 == 0) ) ) {
+			$max = 29;
+		}
+
+		for (1..$max) {
 			$body .= "<a href=\"" . gen_url(action => "emails", id => $year, path => "$month/$_") . "\">$year-$month-$_</a><br>\n";
 		}
 
