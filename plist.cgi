@@ -476,7 +476,9 @@ if ( $action eq "get-bin" ) {
 } elsif ( $action eq "browse" ) {
 
 	my $year = $id;
-	(my $month, my $day, undef) = split("/", $path, 3);
+	(my $month, my $ign, undef) = split("/", $path, 3);
+
+	error("Odd param $ign") if $ign;
 
 	my $body = "";
 
