@@ -63,10 +63,13 @@ sub gen_url {
 	my $newid = "";
 	my $newpath = "";
 	my $args = "?";
+	my $fullurl;
 	while ( @_ ) {
 		my $key = shift;
 		my $value = shift;
-		if ( $key eq "indexdir" ) {
+		if ( $key eq "fullurl" ) {
+			$fullurl = $value;
+		} elsif ( $key eq "indexdir" ) {
 			$newindexdir = escape($value);
 		} elsif ( $key eq "-indexdir" ) {
 			$newindexdir = $value;
@@ -95,27 +98,27 @@ sub gen_url {
 	$newaction = "" unless $newaction and $newindexdir;
 	$newid = "" unless $newid and $newaction;
 	$newpath = "" unless $newpath and $newid;
-	if ( $newindexdir eq $oldindexdir and $newaction eq $oldaction and $newid eq $oldid and $newpath eq $oldpath ) {
+	if ( not $fullurl and $newindexdir eq $oldindexdir and $newaction eq $oldaction and $newid eq $oldid and $newpath eq $oldpath ) {
 		return "?" unless length($args);
 		return $args;
 	} else {
 		$args = "/" . $args;
 	}
-	if ( $newindexdir eq $oldindexdir and $newaction eq $oldaction and $newid eq $oldid and length($newpath) and not length($oldpath) ) {
+	if ( not $fullurl and $newindexdir eq $oldindexdir and $newaction eq $oldaction and $newid eq $oldid and length($newpath) and not length($oldpath) ) {
 		return $newpath . $args if length($args);
 		return $newpath;
-	} elsif ( $newindexdir eq $oldindexdir and $newaction eq $oldaction and length($newid) and not length($oldid) ) {
+	} elsif ( not $fullurl and $newindexdir eq $oldindexdir and $newaction eq $oldaction and length($newid) and not length($oldid) ) {
 		my $url = $newid;
 		$url .= "/" . $newpath if length($newpath);
 		$url .= $args if length($args);
 		return $url;
-	} elsif ( $newindexdir eq $oldindexdir and length($newaction) and not length($oldaction) ) {
+	} elsif ( not $fullurl and $newindexdir eq $oldindexdir and length($newaction) and not length($oldaction) ) {
 		my $url = $newaction;
 		$url .= "/" . $newid if length($newid);
 		$url .= "/" . $newpath if length($newpath);
 		$url .= $args if length($args);
 		return $url;
-	} elsif ( length($newindexdir) and not length($oldindexdir) ) {
+	} elsif ( not $fullurl and length($newindexdir) and not length($oldindexdir) ) {
 		my $url = $newindexdir;
 		$url .= "/" . $newaction if length($newaction);
 		$url .= "/" . $newid if length($newid);
@@ -227,6 +230,38 @@ if ( $templatedir and -e $templatedir ) {
 }
 
 sub format_date($);
+
+# Support for mhonarc urls
+# /<year>/ => browse
+# /<year>/<month>/ => trees
+# /<year>/<month>/maillist.html => emails
+# /<year>/<month>/subject.html => roots
+# /<year>/<month>/threads.html => trees
+# /<year>/<month>/author.html => ??? (sort by from field)
+# /<year>/<month>/msg<XXXXX>.html => ??? (email with number XXXXX)
+if ( $action =~ /^[0-9]+$/ ) {
+	if ( not $id ) {
+		print $q->redirect($q->url(-base=>1) . gen_url(action => "browse", id => $action, fullurl => 1));
+		exit;
+	} elsif ( $id =~ /^[0-9]+$/ ) {
+		if ( not $path or $path eq "threads.html" ) {
+			print $q->redirect($q->url(-base=>1) . gen_url(action => "trees", id => $action, path => $id, fullurl => 1));
+			exit;
+		} elsif ( $path eq "maillist.html" ) {
+			print $q->redirect($q->url(-base=>1) . gen_url(action => "emails", id => $action, path => $id, fullurl => 1));
+			exit;
+		} elsif ( $path eq "subject.html" ) {
+			print $q->redirect($q->url(-base=>1) . gen_url(action => "roots", id => $action, path => $id, fullurl => 1));
+			exit;
+		} elsif ( $path eq "author.html" ) { # TODO: Add support for sort by from field
+			print $q->redirect($q->url(-base=>1) . gen_url(action => "emails", id => $action, path => $id, fullurl => 1));
+			exit;
+		} elsif ( $path =~ /^msg[0-9]{5}\.html$/ ) { # TODO: Add support for old emails links
+			print $q->redirect($q->url(-base=>1) . gen_url(action => "", fullurl => 1));
+			exit;
+		}
+	}
+}
 
 if ( not $action ) {
 
