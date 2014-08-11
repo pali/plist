@@ -38,6 +38,7 @@ sub help() {
 	print "index gen-html <dir> <id> [<html>]\n";
 #	print "index gen-txt <dir> <id> [<txt>]\n";
 	print "index del <dir> <id>\n";
+	print "index setspam <dir> <id> <true|false>\n";
 	print "index pregen <dir> [<id>]\n";
 	print "list view <list>\n";
 	print "list add-mbox <list> [<mbox>]\n";
@@ -663,6 +664,27 @@ if ( not $mod or not $command ) {
 
 		print "Deleting email with $id...\n";
 		die "Failed\n" unless $index->delete($id);
+
+		print "Done\n";
+
+	} elsif ( $command eq "setspam" ) {
+
+		my $id = shift @ARGV;
+		help() unless $id;
+		my $val = shift @ARGV;
+		help() unless $val;
+		help() if @ARGV;
+
+		if ( $val eq "false" ) {
+			$val = 0;
+		} elsif ( $val eq "true" ) {
+			$val = 1;
+		} else {
+			help();
+		}
+
+		print "Marking email with $id as " . ( $val ? "" : "not " ) . "spam...\n";
+		die "Failed\n" unless $index->setspam($id, $val);
 
 		print "Done\n";
 
