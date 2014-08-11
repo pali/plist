@@ -460,11 +460,11 @@ sub create($;$$$$) {
 
 }
 
-sub pregen_one_email($$) {
+sub pregen_one_email($$;$) {
 
-	my ($priv, $id) = @_;
+	my ($priv, $id, $pemail) = @_;
 
-	my %config = (cgi_templates => 1, nopregen => 1);
+	my %config = (cgi_templates => 1, nopregen => 1, pemail => $pemail);
 	my $str = $priv->view($id, %config);
 	return 0 unless $str;
 
@@ -952,7 +952,7 @@ sub add_one_email($$$$) {
 	};
 
 	if ( $priv->{autopregen} ) {
-		$priv->pregen_one_email($id);
+		$priv->pregen_one_email($id, $pemail);
 	}
 
 	return 1;
@@ -1887,8 +1887,12 @@ sub view($$;%) {
 
 	my ($priv, $id, %args) = @_;
 
-	my $pemail = $priv->email($id, $args{withspam});
-	return undef unless $pemail;
+	my $pemail = $args{pemail};
+
+	if ( not $pemail ) {
+		$pemail = $priv->email($id, $args{withspam});
+		return undef unless $pemail;
+	}
 
 	if ( not $args{nopregen} ) {
 
@@ -1913,6 +1917,9 @@ sub view($$;%) {
 		}
 
 	}
+
+	delete $args{pemail};
+	delete $args{nopregen};
 
 	return PList::Email::View::to_str($pemail, %args);
 
