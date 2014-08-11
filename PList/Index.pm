@@ -24,7 +24,7 @@ require DBD::mysql;
 # SQL tables:
 #
 # emails:
-# id, messageid, date, subjectid(subjects), subject, treeid, list, offset, implicit, hasreply
+# id, messageid, date, subjectid(subjects), subject, treeid, list, offset, implicit, hasreply, spam
 #
 # trees:
 # id, emailid(emails), date, count
@@ -149,7 +149,7 @@ sub info($$) {
 	}
 
 	if ( $key eq "emaillast" ) {
-		my $emails = $priv->db_emails(limit => 1, implicit => 0, desc => 1);
+		my $emails = $priv->db_emails(limit => 1, implicit => 0, spam => 0, desc => 1);
 		return undef unless @{$emails};
 		return $emails->[0];
 	}
@@ -253,6 +253,7 @@ sub create_tables($$) {
 			offset		INTEGER,
 			implicit	INTEGER NOT NULL,
 			hasreply	INTEGER,
+			spam		INTEGER,
 			UNIQUE (messageid $uniquesize) $ignoreconflict
 		);
 	);
@@ -275,6 +276,11 @@ sub create_tables($$) {
 
 	$statement = qq(
 		CREATE INDEX emailsimplicitdate ON emails(implicit, date);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
+		CREATE INDEX emailsimplicitspamdate ON emails(implicit, spam, date);
 	);
 	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
 
@@ -497,7 +503,7 @@ sub pregen_all_emails($) {
 	$statement = qq(
 		SELECT messageid
 			FROM emails
-			WHERE implicit = 0
+			WHERE implicit = 0 AND spam = 0
 		;
 	);
 
@@ -647,19 +653,21 @@ sub add_one_email($$$$) {
 					list = ?,
 					offset = ?,
 					implicit = 0,
+					spam = 0,
 					hasreply = ?
 				WHERE messageid = ?
 			;
 		);
 	} else {
 		$statement = qq(
-			INSERT INTO emails (date, subjectid, subject, list, offset, implicit, hasreply, messageid)
+			INSERT INTO emails (date, subjectid, subject, list, offset, implicit, spam, hasreply, messageid)
 				VALUES (
 					?,
 					(SELECT id FROM subjects WHERE subject = ?),
 					?,
 					?,
 					?,
+					0,
 					0,
 					?,
 					?
@@ -1064,7 +1072,10 @@ sub db_stat($;$$) {
 		$statement = qq(
 			SELECT MIN(date), MAX(date)
 				FROM emails
-				WHERE date IS NOT NULL
+				WHERE
+					date IS NOT NULL AND
+					implicit = 0 AND
+					spam = 0
 			;
 		);
 
@@ -1087,7 +1098,9 @@ sub db_stat($;$$) {
 				WHERE
 					date IS NOT NULL AND
 					date >= ? AND
-					date < ?
+					date < ? AND
+					implicit = 0 AND
+					spam = 0
 		);
 
 		eval {
@@ -1129,8 +1142,8 @@ sub db_emails($;%) {
 
 	# Select all email messageids which match conditions
 	$statement = "SELECT * FROM (";
-	$statement .= " SELECT e.id AS id, e.messageid AS messageid, e.date AS date, e.subject AS subject, e.treeid AS treeid, af.email AS email, af.name AS name, e.list AS list, e.offset AS offset, e.implicit AS implicit, e.hasreply AS hasreply FROM (";
-	$statement .= " SELECT ee.id AS id, ee.messageid AS messageid, ee.date AS date, ee.subject AS subject, ee.treeid AS treeid, ee.list AS list, ee.offset AS offset, ee.implicit AS implicit, ee.hasreply AS hasreply FROM emails AS ee";
+	$statement .= " SELECT e.id AS id, e.messageid AS messageid, e.date AS date, e.subject AS subject, e.treeid AS treeid, af.email AS email, af.name AS name, e.list AS list, e.offset AS offset, e.implicit AS implicit, e.hasreply AS hasreply, e.spam AS spam FROM (";
+	$statement .= " SELECT ee.id AS id, ee.messageid AS messageid, ee.date AS date, ee.subject AS subject, ee.treeid AS treeid, ee.list AS list, ee.offset AS offset, ee.implicit AS implicit, ee.hasreply AS hasreply, ee.spam AS spam FROM emails AS ee";
 
 	if ( exists $args{email} or exists $args{name} ) {
 		$statement .= " JOIN addressess AS ss ON ss.emailid = ee.id JOIN address AS a ON a.id = ss.addressid";
@@ -1166,6 +1179,11 @@ sub db_emails($;%) {
 	if ( exists $args{implicit} ) {
 		$statement .= " ee.implicit = ? AND";
 		push(@args, $args{implicit});
+	}
+
+	if ( exists $args{spam} ) {
+		$statement .= " ee.spam = ? AND";
+		push(@args, $args{spam});
 	}
 
 	if ( exists $args{subject} ) {
@@ -1243,7 +1261,7 @@ sub db_emails_str($$;%) {
 
 	# Select all email messageids which match conditions
 	$statement = "SELECT * FROM (";
-	$statement .= " SELECT e.id AS id, e.messageid AS messageid, e.date AS date, e.subject AS subject, e.treeid AS treeid, af.email AS email, af.name AS name, e.list AS list, e.offset AS offset, e.implicit AS implicit, e.hasreply AS hasreply FROM emails AS e";
+	$statement .= " SELECT e.id AS id, e.messageid AS messageid, e.date AS date, e.subject AS subject, e.treeid AS treeid, af.email AS email, af.name AS name, e.list AS list, e.offset AS offset, e.implicit AS implicit, e.hasreply AS hasreply, e.spam AS spam FROM emails AS e";
 	$statement .= " LEFT OUTER JOIN addressess AS ssf ON ssf.emailid = e.id LEFT OUTER JOIN address AS af ON af.id = ssf.addressid";
 	$statement .= " JOIN addressess AS ss ON ss.emailid = e.id JOIN address AS a ON a.id = ss.addressid";
 	$statement .= " WHERE ( e.subject LIKE ? OR a.email LIKE ? OR a.name LIKE ? ) AND";
@@ -1265,6 +1283,11 @@ sub db_emails_str($$;%) {
 	if ( exists $args{implicit} ) {
 		$statement .= " e.implicit = ? AND";
 		push(@args, $args{implicit});
+	}
+
+	if ( exists $args{spam} ) {
+		$statement .= " e.spam = ? AND";
+		push(@args, $args{spam});
 	}
 
 	$statement .= " (ssf.type = 0 OR ssf.type IS NULL)";
@@ -1331,20 +1354,27 @@ sub db_treeid($$$) {
 
 }
 
-sub db_graph($$) {
+sub db_graph($$;$) {
 
-	my ($priv, $treeid) = @_;
+	my ($priv, $treeid, $withspam) = @_;
 
 	my $dbh = $priv->{dbh};
 
 	my $statement;
 	my $ret;
 
+	if ( not $withspam ) {
+		$withspam = "AND e1.spam = 0";
+	} else {
+		$withspam = "";
+	}
+
 	$statement = qq(
 		SELECT r.emailid2 AS id1, r.emailid1 AS id2, r.type AS type
 			FROM emails AS e1
 			JOIN replies AS r ON r.emailid2 = e1.id
 			WHERE e1.treeid = ?
+			$withspam
 		;
 	);
 
@@ -1417,7 +1447,7 @@ sub db_tree($$;$$$$) {
 		return undef unless defined $treeid;
 	}
 
-	my $emails = $priv->db_emails(treeid => $treeid, desc => $desc);
+	my $emails = $priv->db_emails(treeid => $treeid, desc => $desc, spam => 0);
 	return undef unless $emails and @{$emails};
 
 	my $graph = $priv->db_graph($treeid, $desc);
@@ -1756,15 +1786,23 @@ sub db_roots($$;%) {
 	my $where = "";
 	my $limit = "";
 
-	if ( exists $args{date1} and exists $args{date2} ) {
-		$where = "WHERE t.date >= ? AND t.date < ?";
-		push(@args, $args{date1}, $args{date2});
-	} elsif ( exists $args{date1} ) {
-		$where = "WHERE t.date >= ?";
+	if ( exists $args{date1} ) {
+		$where .= " t.date >= ? AND";
 		push(@args, $args{date1});
-	} elsif ( exists $args{date2} ) {
-		$where = "WHERE t.date < ?";
+	}
+
+	if ( exists $args{date2} ) {
+		$where .= " t.date < ? AND";
 		push(@args, $args{date2});
+	}
+
+	if ( not $args{withspam} ) {
+		$where .= " e.spam = 0 AND";
+	}
+
+	if ( $where ) {
+		$where = "WHERE" . $where;
+		$where =~ s/AND$//;
 	}
 
 	if ( exists $args{limit} ) {
@@ -1801,19 +1839,26 @@ sub db_roots($$;%) {
 
 }
 
-sub email($$) {
+sub email($$;$) {
 
-	my ($priv, $id) = @_;
+	my ($priv, $id, $withspam) = @_;
 
 	my $dbh = $priv->{dbh};
 
 	my $statement;
 	my $ret;
 
+	if ( not $withspam ) {
+		$withspam = "AND spam = 0";
+	} else {
+		$withspam = "";
+	}
+
 	$statement = qq(
 		SELECT messageid, list, offset
 			FROM emails
 			WHERE implicit = 0 AND messageid = ?
+			$withspam
 			LIMIT 1
 		;
 	);
@@ -1842,7 +1887,7 @@ sub view($$;%) {
 
 	my ($priv, $id, %args) = @_;
 
-	my $pemail = $priv->email($id);
+	my $pemail = $priv->email($id, $args{withspam});
 	return undef unless $pemail;
 
 	if ( not $args{nopregen} ) {
@@ -1881,6 +1926,61 @@ sub data($$$;$) {
 	return undef unless $pemail;
 
 	return $pemail->data($part, $fh);
+
+}
+
+sub setspam($$$) {
+
+	my ($priv, $id, $val) = @_;
+
+	my $dbh = $priv->{dbh};
+	my $statement;
+	my $ret;
+
+	$statement = qq(
+		SELECT id
+			FROM emails
+			WHERE messageid = ?
+		;
+	);
+
+	eval {
+		my $sth = $dbh->prepare_cached($statement);
+		$sth->execute($id);
+		$ret = $sth->fetchall_arrayref();
+	} or do {
+		eval { $dbh->rollback(); };
+		return 0;
+	};
+
+	if ( not $ret or not $ret->[0] ) {
+		warn "Email with id '$id' is not in database\n";
+		return 0;
+	}
+
+	$statement = qq(
+		UPDATE emails
+			SET spam = ?
+			WHERE messageid = ?
+		;
+	);
+
+	eval {
+		my $sth = $dbh->prepare_cached($statement);
+		$sth->execute($val, $id);
+	} or do {
+		eval { $dbh->rollback(); };
+		return 0;
+	};
+
+	eval {
+		$dbh->commit();
+	} or do {
+		eval { $dbh->rollback(); };
+		return 0;
+	};
+
+	return 1;
 
 }
 
