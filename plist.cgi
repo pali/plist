@@ -278,7 +278,7 @@ if ( not $action ) {
 	push(@actions, {URL => gen_url(action => "roots"), ACTION => "Show all roots of emails"});
 
 	my @emails;
-	my $emails = $index->db_emails(limit => 10, implicit => 0, desc => 1);
+	my $emails = $index->db_emails(limit => 10, implicit => 0, spam => 0, desc => 1);
 	foreach ( @{$emails} ) {
 		my $mid = $_->{messageid};
 		my $date = format_date($_->{date});
@@ -813,6 +813,7 @@ if ( $action eq "get-bin" ) {
 	$args{offset} = $offset if $offset;
 	$args{desc} = $desc if $desc;
 	$args{implicit} = 0;
+	$args{spam} = 0;
 
 	my $emails;
 	if ( length $str ) {
