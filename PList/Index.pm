@@ -1188,6 +1188,7 @@ sub db_emails($;%) {
 		push(@args, $args{type});
 	}
 
+	$statement =~ s/ WHERE$//;
 	$statement =~ s/AND$//;
 
 	$statement .= "ORDER BY ee.date";
