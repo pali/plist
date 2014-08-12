@@ -294,8 +294,8 @@ if ( not $action ) {
 	$infopage_template->param(EMAILS => \@emails);
 	$infopage_template->param(ACTIONS => \@actions);
 	$infopage_template->param(SEARCHURL => gen_url(action => "search"));
-	$infopage_template->param(LISTURL => gen_url(indexdir => ""));
 
+	$base_template->param(LISTURL => gen_url(indexdir => ""));
 	$base_template->param(TITLE => "Archive $indexdir");
 	$base_template->param(BODY => $infopage_template->output());
 
@@ -470,10 +470,10 @@ if ( $action eq "get-bin" ) {
 
 	$treepage_template->param(TREES => \@trees);
 	$treepage_template->param(SORTSWITCH => "<a href=\"" . gen_url(id => $id, desc => $order) . "\">" . ( $order ? "(DESC)" : "(ASC)" ) . "</a>");
-	$treepage_template->param(ARCHIVE => $indexdir);
-	$treepage_template->param(ARCHIVEURL => gen_url(action => ""));
-	$treepage_template->param(LISTURL => gen_url(indexdir => ""));
 
+	$base_template->param(ARCHIVE => $indexdir);
+	$base_template->param(ARCHIVEURL => gen_url(action => ""));
+	$base_template->param(LISTURL => gen_url(indexdir => ""));
 	$base_template->param(TITLE => "Archive $indexdir - Tree for email $id");
 	$base_template->param(BODY => $treepage_template->output());
 
@@ -628,14 +628,14 @@ if ( $action eq "get-bin" ) {
 
 	$rootspage_template->param(TREESURL => gen_url(action => "trees", id => $id, path => $path));
 	$rootspage_template->param(EMAILSURL => gen_url(action => "emails", id => $id, path => $path));
-	$rootspage_template->param(NEXTURL => gen_url(id => $id, path => $path, desc => $desc, limit => $limit, offset => ($offset + $limit))) if $neednext;
-	$rootspage_template->param(PREVURL => gen_url(id => $id, path => $path, desc => $desc, limit => $limit, offset => ($offset - $limit))) if length $limit and $offset >= $limit;
 	$rootspage_template->param(ROOTS => \@roots);
 	$rootspage_template->param(SORTSWITCH => $order);
-	$rootspage_template->param(ARCHIVE => $indexdir);
-	$rootspage_template->param(ARCHIVEURL => gen_url(action => ""));
-	$rootspage_template->param(LISTURL => gen_url(indexdir => ""));
 
+	$base_template->param(NEXTURL => gen_url(id => $id, path => $path, desc => $desc, limit => $limit, offset => ($offset + $limit))) if $neednext;
+	$base_template->param(PREVURL => gen_url(id => $id, path => $path, desc => $desc, limit => $limit, offset => ($offset - $limit))) if length $limit and $offset >= $limit;
+	$base_template->param(ARCHIVE => $indexdir);
+	$base_template->param(ARCHIVEURL => gen_url(action => ""));
+	$base_template->param(LISTURL => gen_url(indexdir => ""));
 	$base_template->param(TITLE => $title);
 	$base_template->param(BODY => $rootspage_template->output());
 
@@ -715,13 +715,13 @@ if ( $action eq "get-bin" ) {
 
 	$treespage_template->param(EMAILSURL => gen_url(action => "emails", id => $id, path => $path));
 	$treespage_template->param(ROOTSURL => gen_url(action => "roots", id => $id, path => $path));
-	$treespage_template->param(NEXTURL => gen_url(id => $id, path => $path, limit => $limit, offset => $nextoffset, desc => $desc, treedesc => $treedesc)) if $neednext;
 	$treespage_template->param(TREES => \@trees);
 	$treespage_template->param(SORTSWITCH => $order . "<br>" . $treeorder);
-	$treespage_template->param(ARCHIVE => $indexdir);
-	$treespage_template->param(ARCHIVEURL => gen_url(action => ""));
-	$treespage_template->param(LISTURL => gen_url(indexdir => ""));
 
+	$base_template->param(NEXTURL => gen_url(id => $id, path => $path, limit => $limit, offset => $nextoffset, desc => $desc, treedesc => $treedesc)) if $neednext;
+	$base_template->param(ARCHIVE => $indexdir);
+	$base_template->param(ARCHIVEURL => gen_url(action => ""));
+	$base_template->param(LISTURL => gen_url(indexdir => ""));
 	$base_template->param(TITLE => $title);
 	$base_template->param(BODY => $treespage_template->output());
 
@@ -795,11 +795,11 @@ if ( $action eq "get-bin" ) {
 		my $base_template = PList::Template->new("base.tmpl");
 		my $searchpage_template = PList::Template->new("searchpage.tmpl");
 
-		$searchpage_template->param(ARCHIVE => $indexdir);
-		$searchpage_template->param(ARCHIVEURL => gen_url(action => ""));
-		$searchpage_template->param(LISTURL => gen_url(indexdir => ""));
 		$searchpage_template->param(SEARCHURL => gen_url());
 
+		$base_template->param(ARCHIVE => $indexdir);
+		$base_template->param(ARCHIVEURL => gen_url(action => ""));
+		$base_template->param(LISTURL => gen_url(indexdir => ""));
 		$base_template->param(TITLE => "Archive $indexdir - Search");
 		$base_template->param(BODY => $searchpage_template->output());
 
@@ -871,12 +871,12 @@ if ( $action eq "get-bin" ) {
 
 	$page_template->param(SORTSWITCH => $order);
 	$page_template->param(EMAILS => \@emails);
-	$page_template->param(NEXTURL => gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc)) if $neednext;
-	$page_template->param(PREVURL => gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit), desc => $desc)) if length $limit and $offset >= $limit;
-	$page_template->param(ARCHIVE => $indexdir);
-	$page_template->param(ARCHIVEURL => gen_url(action => ""));
-	$page_template->param(LISTURL => gen_url(indexdir => ""));
 
+	$base_template->param(NEXTURL => gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc)) if $neednext;
+	$base_template->param(PREVURL => gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset - $limit), desc => $desc)) if length $limit and $offset >= $limit;
+	$base_template->param(ARCHIVE => $indexdir);
+	$base_template->param(ARCHIVEURL => gen_url(action => ""));
+	$base_template->param(LISTURL => gen_url(indexdir => ""));
 	$base_template->param(TITLE => $title);
 	$base_template->param(BODY => $page_template->output());
 
