@@ -515,43 +515,45 @@ if ( $action eq "get-bin" ) {
 
 	error("Odd param $ign") if $ign;
 
-	my $body = "";
-
 	my $base_template = PList::Template->new("base.tmpl");
+	my $browsepage_template = PList::Template->new("browsepage.tmpl");
+
+	my @table;
 
 	if ( not $year ) {
 
 		$base_template->param(TITLE => "Archive $indexdir - Browse emails");
+		$browsepage_template->param(HEADER => "Years:");
+		$browsepage_template->param(URL => gen_url(action => "emails"));
+		$browsepage_template->param(VALUE => "(everything)");
 
 		my ($min, $max) = $index->db_stat();
-
-		$body .= "Years:<br>\n";
 
 		if ( $min and $max ) {
 			$min = time2str("%Y", $min);
 			$max = time2str("%Y", $max);
 			foreach ($min..$max) {
-				$body .= "<a href=\"" . gen_url(id => $_) . "\">$_ (" . $index->db_stat(parse_date($_)) . ")</a><br>\n";
+				push(@table, {URL => gen_url(id => $_), VALUE => $_, COUNT => $index->db_stat(parse_date($_))});
 			}
-		} else {
-			$body .= "(No emails)\n";
 		}
 
 	} elsif ( not $month ) {
 
 		$base_template->param(TITLE => "Archive $indexdir - Browse emails for $year");
-
-		$body .= "Months:<br>\n";
+		$browsepage_template->param(HEADER => "Months:");
+		$browsepage_template->param(URL => gen_url(action => "emails", id => $year));
+		$browsepage_template->param(VALUE => "(everything for $year)");
 
 		for (1..12) {
-			$body .= "<a href=\"" . gen_url(id => $year, path => $_) . "\">$year-$_ (" . $index->db_stat(parse_date($year, $_)) . ")</a><br>\n";
+			push(@table, {URL => gen_url(id => $year, path => $_), VALUE => "$year-$_", COUNT => $index->db_stat(parse_date($year, $_))});
 		}
 
 	} else {
 
 		$base_template->param(TITLE => "Archive $indexdir - Browse emails for $year-$month");
-
-		$body .= "Days:<br>\n";
+		$browsepage_template->param(HEADER => "Days:");
+		$browsepage_template->param(URL => gen_url(action => "emails", id => $year, path => $month));
+		$browsepage_template->param(VALUE => "(everything for $year-$month)");
 
 		my @days = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31);
 
@@ -562,12 +564,28 @@ if ( $action eq "get-bin" ) {
 		}
 
 		for (1..$max) {
-			$body .= "<a href=\"" . gen_url(action => "emails", id => $year, path => "$month/$_") . "\">$year-$month-$_ (" . $index->db_stat(parse_date($year, $month, $_)) . ")</a><br>\n";
+			push(@table, {URL => gen_url(action => "emails", id => $year, path => "$month/$_"), VALUE => "$year-$month-$_", COUNT => $index->db_stat(parse_date($year, $month, $_))});
 		}
 
 	}
 
-	$base_template->param(BODY => $body);
+	# Remove table if all counts are zero
+	my $noremove;
+	foreach ( @table ) {
+		if ( $_->{COUNT} != 0 ) {
+			$noremove = 1;
+			last;
+		}
+	}
+
+	@table = () unless $noremove;
+
+	$browsepage_template->param(TABLE => \@table);
+
+	$base_template->param(ARCHIVE => $indexdir);
+	$base_template->param(ARCHIVEURL => gen_url(action => ""));
+	$base_template->param(LISTURL => gen_url(indexdir => ""));
+	$base_template->param(BODY => $browsepage_template->output());
 
 	print $q->header();
 	print $base_template->output();
