@@ -27,6 +27,7 @@ sub help() {
 	print "help:\n";
 	print "index view <dir>\n";
 	print "index create <dir> [<driver>] [<params>] [<username>] [<password>]\n";
+	print "index config <dir> <key> <value>\n";
 #	print "index regenerate <dir>\n";
 	print "index add-list <dir> [<list>] [silent]\n";
 	print "index add-mbox <dir> [<mbox>] [silent]\n";
@@ -533,6 +534,20 @@ if ( not $mod or not $command ) {
 			print " from: \"" . $email->{name} . "\" <" . $email->{email} . ">";
 			print " with subject: \"" . $email->{subject} . "\"\n";
 		}
+
+	} elsif ( $command eq "config" ) {
+
+		my $key = shift @ARGV;
+		help() unless $key;
+
+		my $value = shift @ARGV;
+		help() unless $value;
+
+		help() if @ARGV;
+
+		print "Setting key '$key' to '$value'...\n";
+		die "Failed\n" unless $index->config($key, $value);
+		print "Done\n";
 
 	} elsif ( $command eq "regenerate" ) {
 
