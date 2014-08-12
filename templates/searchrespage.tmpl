@@ -5,6 +5,4 @@ Header type: <TMPL_VAR ESCAPE=HTML NAME=TYPE></TMPL_IF><TMPL_IF NAME=NAME><br>
 Name: <TMPL_VAR ESCAPE=HTML NAME=NAME></TMPL_IF><TMPL_IF NAME=EMAIL><br>
 Email: <TMPL_VAR ESCAPE=HTML NAME=EMAIL></TMPL_IF>
 </p>
-<TMPL_INCLUDE NAME="emails.tmpl"><TMPL_IF NAME=NEXTURL><p><a href="<TMPL_VAR NAME=NEXTURL>">Show next page</a></p>
-</TMPL_IF><TMPL_IF NAME=PREVURL><p><a href="<TMPL_VAR NAME=PREVURL>">Show previous page</a></p>
-</TMPL_IF><TMPL_INCLUDE NAME="footer.tmpl">
+<TMPL_INCLUDE NAME="emails.tmpl">
