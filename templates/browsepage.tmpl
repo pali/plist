@@ -1,0 +1,11 @@
+<TMPL_IF NAME=TABLE><p><a href="<TMPL_VAR NAME=URL>"><TMPL_VAR NAME=VALUE></a></p>
+<table class="browse">
+<thead>
+<tr>
+<th colspan="2"><TMPL_VAR NAME=HEADER></td>
+</thead><TMPL_LOOP NAME=TABLE>
+<tr>
+<td><a href="<TMPL_VAR NAME=URL>"><TMPL_VAR NAME=VALUE></a></td>
+<td>(<TMPL_VAR NAME=COUNT>)</td>
+</tr></TMPL_LOOP>
+</table><TMPL_ELSE><p>(No emails)</p></TMPL_IF>
