@@ -100,6 +100,9 @@ sub new($$) {
 		dir => $dir,
 		dbh => $dbh,
 		driver => $driver,
+		params => $params,
+		username => $username,
+		password => $password,
 		description => $description,
 		listsize => $listsize,
 		nonmatchsubject => $nomatchsubject,
@@ -108,6 +111,50 @@ sub new($$) {
 	};
 
 	bless $priv, $class;
+
+}
+
+sub config($$$) {
+
+	my ($priv, $key, $value) = @_;
+
+	$priv->{driver} = $value if $key eq "driver";
+	$priv->{params} = $value if $key eq "params";
+	$priv->{username} = $value if $key eq "username";
+	$priv->{password} = $value if $key eq "password";
+	$priv->{description} = $value if $key eq "description";
+	$priv->{listsize} = $value if $key eq "listsize";
+	$priv->{nomatchsubject} = $value if $key eq "nomatchsubject";
+	$priv->{templatedir} = $value if $key eq "templatedir";
+	$priv->{autopregen} = $value if $key eq "autopregen";
+
+	my $fh;
+	if ( not open($fh, ">", $priv->{dir} . "/config") ) {
+		warn "Cannot open config file\n";
+		return 0;
+	}
+
+	print $fh "driver=" . $priv->{driver} . "\n" if defined $priv->{driver};
+	print $fh "params=" . $priv->{params} . "\n" if defined $priv->{params};
+	print $fh "username=" . $priv->{username} . "\n" if defined $priv->{username};
+	print $fh "password=" . $priv->{password} . "\n" if defined $priv->{password};
+	print $fh "description=" . $priv->{description} . "\n" if defined $priv->{description};
+	print $fh "listsize=" . $priv->{listsize} . "\n" if defined $priv->{listsize};
+	print $fh "nomatchsubject=" . $priv->{nomatchsubject} . "\n" if defined $priv->{nomatchsubject};
+	print $fh "templatedir=" . $priv->{templatedir} . "\n" if defined $priv->{templatedir};
+	print $fh "autopregen=" . $priv->{autopregen} . "\n" if defined $priv->{autopregen};
+	close($fh);
+
+	if ( $key eq "driver" or $key eq "params" or $key eq "username" or $key eq "password" ) {
+		$priv->{dbh}->disconnect();
+		$priv->{dbh} = db_connect($priv->{dir}, $priv->{driver}, $priv->{params}, $priv->{username}, $priv->{password});
+		if ( not $priv->{dbh} ) {
+			warn "Cannot connect to database\n";
+			return 0;
+		}
+	}
+
+	return 1;
 
 }
 
