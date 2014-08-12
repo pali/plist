@@ -163,9 +163,14 @@ sub info($$) {
 	my ($priv, $key) = @_;
 
 	return $priv->{driver} if $key eq "driver";
-	return $priv->{description} if $key eq "driver";
+	return $priv->{params} if $key eq "params";
+	return $priv->{username} if $key eq "username";
+	return $priv->{password} if $key eq "password";
+	return $priv->{description} if $key eq "description";
 	return $priv->{listsize} if $key eq "listsize";
+	return $priv->{nomatchsubject} if $key eq "nomatchsubject";
 	return $priv->{templatedir} if $key eq "templatedir";
+	return $priv->{autopregen} if $key eq "autopregen";
 
 	if ( $key eq "emailcount" or $key eq "treecount" ) {
 
@@ -200,6 +205,8 @@ sub info($$) {
 		return undef unless @{$emails};
 		return $emails->[0];
 	}
+
+	return undef;
 
 }
 
