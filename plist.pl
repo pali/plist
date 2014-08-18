@@ -536,7 +536,7 @@ if ( not $mod or not $command ) {
 		help() if @ARGV;
 
 		print "Directory: $indexdir\n";
-		print "Description: " . $index->info("description") . "\n";
+		print "Description: " . ( $index->info("description") || "(empty)" ) . "\n";
 		print "SQL driver: " . $index->info("driver") . "\n";
 		print "Average size of list file: " . $index->info("listsize") . " bytes\n";
 		print "Number of email trees: " . $index->info("treecount") . "\n";
