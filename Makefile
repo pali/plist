@@ -21,7 +21,9 @@ DESTDIR :=
 TARGET := $(DESTDIR)$(PREFIX)
 
 SCRIPTS := plist.pl plist-import-mboxes.pl
-DIRS := Email PList
+CGIS := plist.cgi
+FILES := COPYING README .htaccess
+DIRS := Email PList templates
 
 all:
 
@@ -33,8 +35,14 @@ install:
 	for script in $(SCRIPTS); do \
 		install -p -m 755 $$script "$(TARGET)/share/plist/"; \
 		printf '%s\n%s "%s" "%s"\n' "#!/bin/sh" "exec" "$(PREFIX)/share/plist/$$script" '$$@' > "$(TARGET)/bin/$$script"; \
-		chmod +x "$(TARGET)/bin/$$script"; \
+		chmod 755 "$(TARGET)/bin/$$script"; \
 		touch -r "$(TARGET)/share/plist/$$script" "$(TARGET)/bin/$$script"; \
+	done
+	for cgi in $(CGIS); do \
+		install -p -m 755 $$cgi "$(TARGET)/share/plist/"; \
+	done
+	for file in $(FILES); do \
+		install -p -m 644 $$file "$(TARGET)/share/plist/"; \
 	done
 	for dir in $(DIRS); do \
 		cp -a "$$dir" "$(TARGET)/share/plist/"; \
