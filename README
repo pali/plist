@@ -1,0 +1,266 @@
+=== About ===
+
+PList - software for archiving and formatting emails from mailing lists
+
+License: GPLv2+
+Author: Pali Rohár
+Email: pali.rohar@gmail.com
+
+PList is written in Perl and it is developed as replacement for Pipermail, Hypermail or MHonArc. It provides terminal application for manipulating with email archives and also provides web based CGI application for browsing emails via internet browser. For each mailing list archive PList needs directory (called index) where it stores emails and other data. Because widely used MIME or MBox formats are not suitable for fast processing PList stores emails in its own internal binary format. Our terminal application, that converts emails to its internal formats, supports reading archives in various MBox formats and also tries to understand lots of incorrect MIME formatted emails. More detailed description and internals about this PList software can be found in my bachelor thesis: Mailing list archive (in Slovak language).
+
+Features:
+
+ * reading archives in mboxo, mboxrd, mboxcl, mboxcl2 variants of MBox format (plus mix of all these)
+ * reading emails in RFC2822 and MIME formats
+ * incremental imports of MBox archives
+ * auto pregenerating HTML pages for emails
+ * support for HTML templates
+ * support for email attachments
+ * auto detection of charset encoding and mime type of badly formatted MIME parts
+ * stable implementation without randomness (result of importing same emails in any order at any time is still same archive)
+ * interpreting broken emails and those which violate standards in the best possible way
+ * browse emails by years, months or dates
+ * flat and tree based view of email list
+ * sophisticated (and stable) algorithm for grouping emails into threads and subsequently building email trees for these threads
+   - support for building threads across more months and years
+   - using Message-Id, In-Reply-To, References headers and option also for matching by similar subjects
+   - deals with incomplete threads when some emails from In-Reply-To or References headers are missing
+   - rationally build tree from email thread (=transitive closure of directly acyclic graph)
+   - deals with possible cycles, inconsistencies or flaws in email threads
+
+=== Parts ===
+
+Internal Perl modules:
+
+PList::Email
+PList::Email::MIME
+PList::Email::Binary
+PList::Email::View
+PList::List
+PList::List::MBox
+PList::List::Binary
+PList::Index
+PList::Template
+
+Terminal applications:
+
+plist.pl
+plist-import-mboxes.pl
+
+Web based CGI applications:
+
+plist.cgi
+
+=== Installation ===
+
+This software depends on required Perl modules which must be installed. Here is list of these modules:
+
+CGI::Simple
+Cwd
+Date::Format
+Date::Parse
+DBD::mysql
+DBD::SQLite
+DBI
+Digest::SHA
+Email::Address
+Email::Folder::Mbox
+Email::MIME
+Email::MIME::ContentType
+Encode
+Encode::Detect
+File::MimeInfo::Magic
+File::Path
+FindBin
+HTML::Entities
+HTML::FromText
+HTML::Strip
+HTML::Template
+Time::Piece
+
+Additionally Perl module Email::Folder::Mbox needs to be patched otherwise PList will not work. Till now (2014-08-18) patches are not part of last version of Email::Folder::Mbox (0.858) so PList itself contains patched version of Email::Folder::Mbox (marked as version 0.859).
+
+Optionally if Perl module Number::Bytes::Human is installed PList will report size of all mail attachment in human readable format (instead default bytes).
+
+To make sure that PList terminal and CGI applications will work correctly all internal PList modules must be installed into the same directory as program applications or into global Perl modules directory. Installation process could be invoked by command:
+
+$ make install
+
+This command copies everything into /usr/share/plist/ and creates launchers for terminal applications in /usr/bin/. With standard Make variables DESTDIR and PREFIX it is possible to change installation directory and system configuration prefix directory.
+
+=== Configuration ===
+
+PList uses HTML templates for generating HTML pages. Default templates are stored in template directory. Different templates can be used by changing global environmental variable HTML_TEMPLATE_ROOT. This variable must contain absolute path to templates directory. If variable does not exist or is empty then the applications are configured to use default templates directory.
+
+For using web application HTTP web server with CGI scripting support is needed. PList was tested with Apache 2 server. PList CGI script is using PList (index) archives in current working directory, so web server must be correctly configured to access these archives. To configure URL links user can use prepared .htaccess file.
+
+=== Usage ===
+
+*** Terminal application plist.pl ***
+
+$ plist.pl <mode> <command> <args...>
+
+Modes: index, list, bin
+
+** Commands for index mode **
+
+Index mode is used for access to PList (index) archives.
+
+| view <dir> |
+Shows information about archive in <dir>
+
+| create <dir> [<driver>] [<params>] [<username>] [<password>] |
+Creates new empty archive with directory name <dir>. Uses SQL driver <driver>, parameters <params>, username <username> and password <password>. If <driver> is not specified SQLite will be used and database will be stored in <dir>.
+
+| config <dir> <key> <value> |
+Changes configuration value for key of archive <dir>. Possible keys are:
+ * driver, params, username, password - Database connection parameters
+ * description - Description of archive
+ * listsize - Average size of list file (default 104857600 = 100MB)
+ * nomatchsubject - Do not group emails with similar subject to one thread (default 1 = is on)
+ * templatedir - Absolute path for directory with HTML templates (overwrite HTML_TEMPLATE_ROOT)
+ * autopregen - Automatically pregenerates HTML pages for emails (default 0 = is off)
+
+| add-list <dir> [<list>] [silent] |
+Adds emails from file <list> into archive <dir>. File <list> must be in internal binary format (see list mode). If file is not specified stdin will be used. When <silent> argument is used no warnings about duplicate emails will be reported.
+
+| add-mbox <dir> [<mbox>] [silent] |
+Same as add-list but input file must be in one of these MBox formats: mboxo, mboxrd, mboxcl, mboxcl2.
+
+| add-mail <dir> [<mail>] |
+Adds one email from file <mail> into archive <dir>. If input file is not specified stdin will be used. Input file must be in text document with RFC2822 email structure.
+
+| get-bin <dir> <id> [<bin>] |
+Retrieves email with id <id> from archive <dir> and stores it into the file <bin> in internal binary format (see bin mode). If output file is not specified stdout will be used.
+
+| get-part <dir> <id> <part> [<file>] |
+Retrieves specified part <part> of email with id <id> from archive <dir> and stores it into file <file>. To see list of parts in email use command info in bin mode. If output file is not specified stdout will be used.
+
+| get-roots <dir> [desc] [date1] [date2] [limit] [offset] |
+Prints tree roots of email threads from archive <dir>. By default output is in ascending order sorted by dates. If <desc> is specified then descending order will be used. Additional arguments <date1> (start date), <date2> (end date), offset, limit (relative to offset) can be used to filter output. Dates must be specified in unix timestamp.
+
+| get-tree <dir> <id> [<file>] |
+Prints tree (thread) for email specified by id <id> from archive <dir>. Optionally stores tree into file <file> instead of stdout.
+
+| gen-html <dir> <id> [<html>] |
+Generates HTML page for email with id <id> from archive <dir> and stores it into the file <html>. If archive cache contains pregenerated HTML page this cached version will be retrieved. If output file is not specified stdout will be used.
+
+| del <dir> <id> |
+Deletes email with id <id> from archive <dir>.
+
+| setspam <dir> <id> <true|false> |
+Marks email with id <id> as spam (value true) or not spam (value false) in archive <dir>.
+
+| pregen <dir> [<id>] |
+Pregenerates HTML page for email with id <id> from archive <dir>. Page will be stored in archive cache and next call of command gen-html will return this cached version.
+
+
+** Commands for list mode **
+
+List mode is used for reading and writing email lists in internal binary format.
+
+| list view <list> |
+Shows some information (including id, offset and parts) about each email in list file <list>.
+
+| list add-mbox <list> [<mbox>] |
+Adds all emails from MBox file <mbox> into the list file <list>. If input file is not specified then stdin will be used.
+
+| list add-bin <list> [<bin>] |
+Adds one email from file <bin> in internal binary format (see mode bin) into list file <list>. If input file is not specified stdin will be used.
+
+| list get-bin <list> <offset> [<bin>] |
+Retrieves email at offset <offset> from list <list> and stores it into the file <bin> in internal binary format (see bin mode). If output file is not specified stdout will be used.
+
+| list get-part <list> <offset> <part> [<file>] |
+Retrieves email part <part> from email at offset <offset> in list <list> and stores it into the file <file>. If output file is not specified stdout will be used.
+
+| list gen-html <list> <offset> [<html>] |
+Generates HTML page for email at offset <offset> in list <list> and stores it into the file <html>. If output file is not specified stdout will be used.
+
+
+** Commands for bin mode **
+
+Bin mode is used for reading and generating emails in internal binary format.
+
+| bin view [<bin>] |
+Shows email (including parts) from file <bin> which is in internal binary format. If input file is not specified stdin will be used.
+
+| bin from-mail [<mail>] [<bin>] |
+Converts email from file <mail> into binary file <bin>. Input file must be text document with RFC2822 structure. If output file is not specified stdout will be used. If input file is not specified stdin will be used.
+
+| bin get-part <part> [<bin>] [<file>] |
+Retrieves email part <part> from email <bin> and stores it into the file <file>. If output file is not specified stdout will be used.
+
+| bin gen-html [<bin>] [<html>] |
+Generates HTML page for email <bin> and stores it into the file <html>. If output file is not specified stdout will be used.
+
+
+*** Terminal application plist-import-mboxes.pl ***
+
+$ plist-import-mboxes.pl <dir> <mbox1> [<mbox2> ...] [silent]
+
+This application adds all emails from all specified MBox files <mbox1>, <mbox2>, ... into archive <dir>. It skips all MBox files which were already processed and its modification dates were not changed since last run. If last argument is "silent" than no warnings about duplicate emails will be reported.
+
+=== Examples ===
+
+** Index mode **
+
+Create new empty archive with name lkml and use SQLite:
+$ plist.pl index create lkml
+
+Create new empty archive with name test and use MySQL (db name: testdb, server: localhost, username: user, password: password):
+$ plist.pl index create test mysql testdb:localhost user password
+
+Set description of archive lkml to Linux Kernel Mailing List:
+$ plist.pl index config lkml description "Linux Kernel Mailing List"
+
+Enable auto pregenerating of HTML pages for all new emails which will be added to archive test:
+$ plist.pl index config autopregen 1
+
+Add one email from stdin to archive lkml:
+$ plist.pl index add-mail lkml
+
+Add one email from file mail.rfc822 to archive test:
+$ plist.pl index add-mail test mail.rfc822
+
+Add all emails from MBox file archive.mbox to archive lkml (in silent mode - without warnings about duplicate emails):
+$ plist.pl index add-mbox lkml archive.mbox silent
+
+Delete email with id 201406241206@example.org from archive test47:
+$ plist.pl index del test47 201406241206@example.org
+
+Retrieve email with id id4247@test from archive arch and store it into the file file.bin (in internal binary format):
+$ plist.pl index get-bin arch id4247@test file.bin
+
+Retrieve email part 0/0/1 from email with id id4742@test from archive arch and store into the file file.pdf:
+$ plist.pl index get-part arch id4742@test 0/0/1 file.pdf
+
+Generate HTML page from email with id 201406241205@example.org from archive test and store it into the file mail.html:
+$ plist.pl index gen-html test 201406241205@example.org mail.html
+
+Mark email with id spam@example.org in archive arch as spam:
+$ plist.pl index setspam arch spam@example.org true
+
+
+** List mode **
+
+Convert MBox file file.mbox (with all emails) to file file.list (in internal binary list format):
+$ plist.pl list add-mbox file.list file.mbox
+
+Retrieve email which starts at offset 1024 in binary list file file.list and store it into the file file.bin (in internal binary format):
+$ plist.pl list get-bin file.list 1024 file.bin
+
+
+** Bin mode **
+
+Generate HTML page from MIME email which is on stdin and write it to stdout:
+$ plist.pl bin from-mail | plist.pl bin gen-html
+
+
+** Import more MBox files **
+
+Add all emails from MBox files /201401.mbox and /201402.mbox to archive lkml (in silent mode - without warnings about duplicate emails):
+$ plist-import-mboxes.pl lkml /201401.mbox /201402.mbox silent
+
+Add all emails from MBox files with extension .mbox which are in directory tree /lkml/ to archive lkml (silent mode):
+$ plist-import-mboxes.pl lkml $(find /lkml/ -name *.mbox) silent
