@@ -372,7 +372,7 @@ sub gen_tree($$$$$$) {
 
 	my ($tree, $emails) = $index->db_tree($id, $desc, $rid, $limitup, $limitdown);
 	if ( not $tree or not $tree->{root} ) {
-		return;
+		return [];
 	}
 	my $root = ${$tree->{root}}[0];
 	delete $tree->{root};
