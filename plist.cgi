@@ -325,23 +325,23 @@ if ( $authscript ) {
 	$ENV{REMOTE_USER} = $authuser if defined $authuser;
 	$ENV{REMOTE_PASSWORD} = $authpass if defined $authpass;
 	system($authscript);
-	my $ret = $?;
+	my $status = $?;
 	delete $ENV{AUTH_TYPE};
 	delete $ENV{AUTH_DATA};
 	delete $ENV{REMOTE_USER};
 	delete $ENV{REMOTE_PASSWORD};
 
-	if ( $ret < 0 ) {
+	if ( $status == -1 ) {
 		# Cannot execute authorization script
 		error("Cannot execute authorization script");
-	} elsif ( $ret == 1 ) {
+	} elsif ( ($status >> 8) == 1 ) {
 		# Authorization failed
 		error("Authorization failed", "Error: 401", 401, -WWW_Authenticate => "Basic realm=\"$indexdir\"");
-	} elsif ( $ret == 0 ) {
+	} elsif ( ($status >> 8) == 0 ) {
 		# Authorization succeed
 	} else {
 		# Authorization script returned unknown status
-		error("Authorization script returned unknown status");
+		error("Authorization script finished with unknown status $status");
 	}
 }
 
