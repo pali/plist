@@ -878,12 +878,16 @@ if ( $action eq "get-bin" ) {
 	my $base_template = PList::Template->new("base.tmpl");
 	my $page_template;
 
-	if ( $action eq "search" and not length $str ) {
+	if ( $action eq "search") {
 		$page_template = PList::Template->new("searchrespage.tmpl");
-		$page_template->param(SUBJECT => $subject) if length $subject;
-		$page_template->param(TYPE => $subject) if length $type;
-		$page_template->param(NAME => $name) if length $name;
-		$page_template->param(EMAIL => $email) if length $email;
+		if ( length $str ) {
+			$page_template->param(STR => $str);
+		} else {
+			$page_template->param(SUBJECT => $subject) if length $subject;
+			$page_template->param(TYPE => $type) if length $type;
+			$page_template->param(NAME => $name) if length $name;
+			$page_template->param(EMAIL => $email) if length $email;
+		}
 	}
 
 	if ( $action eq "emails" ) {
