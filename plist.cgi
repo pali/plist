@@ -29,6 +29,7 @@ use PList::Template;
 use CGI::Simple;
 use Date::Format;
 use Encode qw(decode_utf8 encode_utf8);
+use MIME::Base64;
 use Time::Piece;
 
 binmode(\*STDOUT, ":utf8");
@@ -45,14 +46,16 @@ my $action;
 my $id;
 my $path;
 
-sub error($) {
-	my ($msg) = @_;
+sub error($;$$@) {
+	my ($msg, $title, $code, @args) = @_;
+	$code = 404 unless defined $code;
+	$title = "Error 404" unless defined $title;
 	my $base_template = PList::Template->new("base.tmpl");
 	my $errorpage_template = PList::Template->new("errorpage.tmpl");
 	$errorpage_template->param(MSG => $msg);
-	$base_template->param(TITLE => "Error 404");
+	$base_template->param(TITLE => $title);
 	$base_template->param(BODY => $errorpage_template->output());
-	print $q->header(-status => 404);
+	print $q->header(-status => $code, @args);
 	print $base_template->output();
 	exit;
 }
@@ -247,8 +250,6 @@ if ( $templatedir and -e $templatedir ) {
 	$ENV{HTML_TEMPLATE_ROOT} = $templatedir;
 }
 
-sub format_date($);
-
 # Support for mhonarc urls
 # /<year>/ => browse
 # /<year>/<month>/ => trees
@@ -280,6 +281,71 @@ if ( $action =~ /^[0-9]+$/ ) {
 		}
 	}
 }
+
+# Check for authorization
+my $authscript = $index->info("authscript");
+if ( $authscript ) {
+	if ( $q->protocol() ne "https" ) {
+		my $url = $q->url(-base=>1);
+		$url =~ s/^http/https/;
+		$url .= $script . $q->path_info();
+		$url .= "?" . $q->query_string() if $q->query_string();
+		if ( $url =~ /^https/ ) {
+			print $q->redirect($url);
+			exit;
+		} else {
+			error("Authorization via HTTPS is required");
+		}
+	}
+
+	my $authstr;
+	my $authtype;
+	my $authdata;
+	my $authuser;
+	my $authpass;
+
+	$authstr = $ENV{HTTP_AUTHORIZATION};
+	if ( not $authstr or not length $authstr ) {
+		error("Authorization Required", "Error: 401", 401, -WWW_Authenticate => "Basic realm=\"$indexdir\"");
+	}
+	if ( $authstr =~ /^(\S*) (.*)/ ) {
+		$authtype = $1;
+		$authdata = $2;
+		if ( $authtype eq "Basic" ) {
+			my $decoded = decode_base64($authdata);
+			if ( $decoded =~ /^(.*):(.*)/ ) {
+				$authuser = $1;
+				$authpass = $2;
+			}
+		}
+	}
+
+	$ENV{AUTH_TYPE} = $authtype if defined $authtype;
+	$ENV{AUTH_DATA} = $authdata if defined $authdata;
+	$ENV{REMOTE_USER} = $authuser if defined $authuser;
+	$ENV{REMOTE_PASSWORD} = $authpass if defined $authpass;
+	system($authscript);
+	my $ret = $?;
+	delete $ENV{AUTH_TYPE};
+	delete $ENV{AUTH_DATA};
+	delete $ENV{REMOTE_USER};
+	delete $ENV{REMOTE_PASSWORD};
+
+	if ( $ret < 0 ) {
+		# Cannot execute authorization script
+		error("Cannot execute authorization script");
+	} elsif ( $ret == 1 ) {
+		# Authorization failed
+		error("Authorization failed", "Error: 401", 401, -WWW_Authenticate => "Basic realm=\"$indexdir\"");
+	} elsif ( $ret == 0 ) {
+		# Authorization succeed
+	} else {
+		# Authorization script returned unknown status
+		error("Authorization script returned unknown status");
+	}
+}
+
+sub format_date($);
 
 if ( not $action ) {
 
