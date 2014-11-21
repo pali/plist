@@ -186,7 +186,9 @@ if ( ( $slash ne "/" ) or ( length $indexdir and not $indexdir =~ /\/$/ ) or ( l
 	# Possible fix is to use path to script from get_script_url() function and compose original url from base and path_info
 	my $url = $q->url(-base=>1) . $script . $q->path_info();
 	if ( $url and not $url =~ /\/$/ ) {
-		print $q->redirect($url . "/");
+		$url .= "/";
+		$url .= "?" . $q->query_string() if $q->query_string();
+		print $q->redirect($url);
 		exit 0;
 	} else {
 		error("Missing '/' at the end of URL");
