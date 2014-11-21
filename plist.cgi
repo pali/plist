@@ -740,7 +740,7 @@ if ( $action eq "get-bin" ) {
 	$iter = -1;
 	foreach ( @{$roots} ) {
 		++$iter;
-		last if $iter >= $nextoffset;
+		last if $neednext and $iter >= $nextoffset;
 		push(@trees, {TREE => gen_tree($index, $_->{treeid}, $treedesc, 2, undef, undef)});
 	}
 
