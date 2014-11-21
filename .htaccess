@@ -1,5 +1,6 @@
 DirectoryIndex plist.cgi
 RewriteEngine on
+RewriteRule ^(.*)$ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},QSA]
 RewriteCond %{REQUEST_URI}::$1 ^(.*)?/(.*)::\2$
-RewriteRule ^(.*)$ - [E=BASE:%1]
-RewriteRule ^((?!plist\.cgi).*)$ %{ENV:BASE}/plist.cgi/$1 [L]
+RewriteRule ^(.*)$ - [E=BASE:%1,QSA]
+RewriteRule ^((?!plist\.cgi).*)$ %{ENV:BASE}/plist.cgi/$1 [QSA,L]
