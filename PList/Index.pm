@@ -82,6 +82,7 @@ sub new($$) {
 	my $nomatchsubject;
 	my $templatedir;
 	my $autopregen;
+	my $auth;
 	my $authscript;
 
 	while (<$fh>) {
@@ -96,6 +97,7 @@ sub new($$) {
 		$nomatchsubject = $2 if $1 eq "nomatchsubject";
 		$templatedir = $2 if $1 eq "templatedir";
 		$autopregen = $2 if $1 eq "autopregen";
+		$auth = $2 if $1 eq "auth";
 		$authscript = $2 if $1 eq "authscript";
 	}
 
@@ -127,6 +129,7 @@ sub new($$) {
 		nonmatchsubject => $nomatchsubject,
 		templatedir => $templatedir,
 		autopregen => $autopregen,
+		auth => $auth,
 		authscript => $authscript,
 	};
 
@@ -147,6 +150,7 @@ sub config($$$) {
 	$priv->{nomatchsubject} = $value if $key eq "nomatchsubject";
 	$priv->{templatedir} = $value if $key eq "templatedir";
 	$priv->{autopregen} = $value if $key eq "autopregen";
+	$priv->{auth} = $value if $key eq "auth";
 	$priv->{authscript} = $value if $key eq "authscript";
 
 	my $fh;
@@ -164,6 +168,7 @@ sub config($$$) {
 	print $fh "nomatchsubject=" . $priv->{nomatchsubject} . "\n" if defined $priv->{nomatchsubject};
 	print $fh "templatedir=" . $priv->{templatedir} . "\n" if defined $priv->{templatedir};
 	print $fh "autopregen=" . $priv->{autopregen} . "\n" if defined $priv->{autopregen};
+	print $fh "auth=" . $priv->{auth} . "\n" if defined $priv->{auth};
 	print $fh "authscript=" . $priv->{authscript} . "\n" if defined $priv->{authscript};
 	close($fh);
 
@@ -193,6 +198,7 @@ sub info($$) {
 	return $priv->{nomatchsubject} if $key eq "nomatchsubject";
 	return $priv->{templatedir} if $key eq "templatedir";
 	return $priv->{autopregen} if $key eq "autopregen";
+	return $priv->{auth} if $key eq "auth";
 	return $priv->{authscript} if $key eq "authscript";
 
 	if ( $key eq "emailcount" or $key eq "treecount" ) {
