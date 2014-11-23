@@ -283,9 +283,13 @@ if ( $action =~ /^[0-9]+$/ ) {
 }
 
 # Check for authorization
-my $authscript = $index->info("authscript");
-if ( $authscript ) {
-	if ( $q->protocol() ne "https" ) {
+my $auth = $index->info("auth");
+
+if ( defined $auth ) {
+
+	my %authkeys = map { $_ => 1 } split(",", $auth);
+
+	if ( $authkeys{secure} and $q->protocol() ne "https" ) {
 		my $url = $q->url(-base=>1);
 		$url =~ s/^http/https/;
 		$url .= $script . $q->path_info();
@@ -294,54 +298,86 @@ if ( $authscript ) {
 			print $q->redirect($url);
 			exit;
 		} else {
-			error("Authorization via HTTPS is required");
+			error("Secure authorization via HTTPS is required");
 		}
 	}
 
-	my $authstr;
-	my $authtype;
-	my $authdata;
 	my $authuser;
 	my $authpass;
 
-	$authstr = $ENV{HTTP_AUTHORIZATION};
-	if ( not $authstr or not length $authstr ) {
-		error("Authorization Required", "Error: 401", 401, -WWW_Authenticate => "Basic realm=\"$indexdir\"");
-	}
-	if ( $authstr =~ /^(\S*) (.*)/ ) {
-		$authtype = $1;
-		$authdata = $2;
-		if ( $authtype eq "Basic" ) {
-			my $decoded = decode_base64($authdata);
-			if ( $decoded =~ /^(.*):(.*)/ ) {
-				$authuser = $1;
-				$authpass = $2;
+	if ( $authkeys{httpbasic} ) {
+
+		my $authstr = $ENV{HTTP_AUTHORIZATION};
+		if ( $authstr and $authstr =~ /^(\S*) (.*)/ ) {
+			my $authtype = $1;
+			my $authdata = $2;
+			if ( $authtype eq "Basic" ) {
+				my $decoded = decode_base64($authdata);
+				if ( $decoded =~ /^(.*):(.*)/ ) {
+					$authuser = $1;
+					$authpass = $2;
+				}
 			}
 		}
+
+		if ( not defined $authuser or not defined $authpass ) {
+			error("Authorization Required", "Error: 401", 401, -WWW_Authenticate => "Basic realm=\"$indexdir\"");
+		}
+
 	}
 
-	$ENV{AUTH_TYPE} = $authtype if defined $authtype;
-	$ENV{AUTH_DATA} = $authdata if defined $authdata;
-	$ENV{REMOTE_USER} = $authuser if defined $authuser;
-	$ENV{REMOTE_PASSWORD} = $authpass if defined $authpass;
-	system($authscript);
-	my $status = $?;
-	delete $ENV{AUTH_TYPE};
-	delete $ENV{AUTH_DATA};
-	delete $ENV{REMOTE_USER};
-	delete $ENV{REMOTE_PASSWORD};
+	if ( $authkeys{script} ) {
 
-	if ( $status == -1 ) {
-		# Cannot execute authorization script
-		error("Cannot execute authorization script");
-	} elsif ( ($status >> 8) == 1 ) {
-		# Authorization failed
-		error("Authorization failed", "Error: 401", 401, -WWW_Authenticate => "Basic realm=\"$indexdir\"");
-	} elsif ( ($status >> 8) == 0 ) {
-		# Authorization succeed
+		my $authscript = $index->info("authscript");
+		if ( not $authscript or not length $authscript ) {
+			error("Authorization script was not configued");
+		}
+
+		my $prevuser = $ENV{REMOTE_USER};
+		my $prevpass = $ENV{REMOTE_PASSWORD};
+
+		$ENV{REMOTE_USER} = $authuser if defined $authuser;
+		$ENV{REMOTE_PASSWORD} = $authpass if defined $authpass;
+
+		system($authscript);
+		my $status = $?;
+
+		if ( defined $prevuser ) {
+			$ENV{REMOTE_USER} = $prevuser;
+		} else {
+			delete $ENV{REMOTE_USER};
+		}
+
+		if ( defined $prevpass ) {
+			$ENV{REMOTE_PASSWORD} = $prevpass;
+		} else {
+			delete $ENV{REMOTE_PASSWORD};
+		}
+
+		if ( $status == -1 ) {
+			# Cannot execute authorization script
+			error("Cannot execute authorization script");
+		} elsif ( ($status >> 8) == 2 ) {
+			# Script sent own output, exit cgi
+			exit;
+		} elsif ( ($status >> 8) == 1 ) {
+			# Authorization failed
+			if ( $authkeys{httpbasic} ) {
+				error("Authorization failed", "Error: 401", 401, -WWW_Authenticate => "Basic realm=\"$indexdir\"");
+			} else {
+				error("Authorization failed");
+			}
+		} elsif ( ($status >> 8) == 0 ) {
+			# Authorization succeed
+		} else {
+			# Authorization script returned unknown status
+			error("Authorization script finished with unknown status $status");
+		}
+
 	} else {
-		# Authorization script returned unknown status
-		error("Authorization script finished with unknown status $status");
+
+		error("Authorization method was not configured");
+
 	}
 }
 
