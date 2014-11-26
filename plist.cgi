@@ -26,6 +26,7 @@ use PList::Index;
 use PList::Email::Binary;
 use PList::Template;
 
+use CGI::Session;
 use CGI::Simple;
 use Date::Format;
 use Encode qw(decode_utf8 encode_utf8);
@@ -34,6 +35,7 @@ use Time::Piece;
 
 binmode(\*STDOUT, ":utf8");
 
+$CGI::Session::NAME = "SID";
 $CGI::Simple::PARAM_UTF8 = 1;
 
 $ENV{HTML_TEMPLATE_ROOT} |= "$Bin/templates";
@@ -46,6 +48,8 @@ my $action;
 my $id;
 my $path;
 
+my $cookie;
+
 sub error($;$$@) {
 	my ($msg, $title, $code, @args) = @_;
 	$code = 404 unless defined $code;
@@ -55,7 +59,7 @@ sub error($;$$@) {
 	$errorpage_template->param(MSG => $msg);
 	$base_template->param(TITLE => $title);
 	$base_template->param(BODY => $errorpage_template->output());
-	print $q->header(-status => $code, @args);
+	print $q->header(-status => $code, -cookie => $cookie, @args);
 	print $base_template->output();
 	exit;
 }
@@ -236,7 +240,7 @@ if ( not $indexdir ) {
 	$base_template->param(TITLE => "List of archives");
 	$base_template->param(BODY => $listpage_template->output());
 
-	print $q->header();
+	print $q->header(-cookie => $cookie);
 	print $base_template->output();
 	exit;
 
@@ -302,82 +306,120 @@ if ( defined $auth ) {
 		}
 	}
 
-	my $authuser;
-	my $authpass;
+	my $s;
 
-	if ( $authkeys{httpbasic} ) {
-
-		my $authstr = $ENV{HTTP_AUTHORIZATION};
-		if ( $authstr and $authstr =~ /^(\S*) (.*)/ ) {
-			my $authtype = $1;
-			my $authdata = $2;
-			if ( $authtype eq "Basic" ) {
-				my $decoded = decode_base64($authdata);
-				if ( $decoded =~ /^(.*):(.*)/ ) {
-					$authuser = $1;
-					$authpass = $2;
-				}
+	if ( $authkeys{session} ) {
+		my $sid = $q->cookie(CGI::Session->name());
+		if ( defined $sid and length $sid ) {
+			# NOTE: CGI::Session::load() will automatically clean all expired sessions
+			$s = CGI::Session->load("driver:db_file", $sid, {FileName => "/var/tmp/plist-cgisessions-" . getpwuid($<) . ".db", UMask => 0600});
+			if ( defined $s and $s->is_empty() ) {
+				$s = undef;
+			}
+			if ( defined $s and $s->remote_addr() ne $q->remote_addr() ) {
+				$s->delete();
+				$s->flush();
+				$s = undef;
+			}
+			if ( defined $s and $s->param("indexdir") ne $indexdir ) {
+				$s = undef;
 			}
 		}
+	}
 
-		if ( not defined $authuser or not defined $authpass ) {
-			error("Authorization Required", "Error: 401", 401, -WWW_Authenticate => "Basic realm=\"$indexdir\"");
+	if ( not defined $s ) {
+
+		my $authuser;
+		my $authpass;
+
+		if ( $authkeys{httpbasic} ) {
+
+			my $authstr = $ENV{HTTP_AUTHORIZATION};
+			if ( $authstr and $authstr =~ /^(\S*) (.*)/ ) {
+				my $authtype = $1;
+				my $authdata = $2;
+				if ( $authtype eq "Basic" ) {
+					my $decoded = decode_base64($authdata);
+					if ( $decoded =~ /^(.*):(.*)/ ) {
+						$authuser = $1;
+						$authpass = $2;
+					}
+				}
+			}
+
+			if ( not defined $authuser or not defined $authpass ) {
+				error("Authorization Required", "Error: 401", 401, -WWW_Authenticate => "Basic realm=\"$indexdir\"");
+			}
+
+		}
+
+		if ( $authkeys{script} ) {
+
+			my $authscript = $index->info("authscript");
+			if ( not $authscript or not length $authscript ) {
+				error("Authorization script was not configued");
+			}
+
+			my $prevuser = $ENV{REMOTE_USER};
+			my $prevpass = $ENV{REMOTE_PASSWORD};
+
+			$ENV{REMOTE_USER} = $authuser if defined $authuser;
+			$ENV{REMOTE_PASSWORD} = $authpass if defined $authpass;
+
+			system($authscript);
+			my $status = $?;
+
+			if ( defined $prevuser ) {
+				$ENV{REMOTE_USER} = $prevuser;
+			} else {
+				delete $ENV{REMOTE_USER};
+			}
+
+			if ( defined $prevpass ) {
+				$ENV{REMOTE_PASSWORD} = $prevpass;
+			} else {
+				delete $ENV{REMOTE_PASSWORD};
+			}
+
+			if ( $status == -1 ) {
+				# Cannot execute authorization script
+				error("Cannot execute authorization script");
+			} elsif ( ($status >> 8) == 2 ) {
+				# Script sent own output, exit cgi
+				exit;
+			} elsif ( ($status >> 8) == 1 ) {
+				# Authorization failed
+				if ( $authkeys{httpbasic} ) {
+					error("Authorization failed", "Error: 401", 401, -WWW_Authenticate => "Basic realm=\"$indexdir\"");
+				} else {
+					error("Authorization failed");
+				}
+			} elsif ( ($status >> 8) == 0 ) {
+				# Authorization succeed
+			} else {
+				# Authorization script returned unknown status
+				error("Authorization script finished with unknown status $status");
+			}
+
+		} else {
+
+			error("Authorization method was not configured");
+
 		}
 
 	}
 
-	if ( $authkeys{script} ) {
-
-		my $authscript = $index->info("authscript");
-		if ( not $authscript or not length $authscript ) {
-			error("Authorization script was not configued");
-		}
-
-		my $prevuser = $ENV{REMOTE_USER};
-		my $prevpass = $ENV{REMOTE_PASSWORD};
-
-		$ENV{REMOTE_USER} = $authuser if defined $authuser;
-		$ENV{REMOTE_PASSWORD} = $authpass if defined $authpass;
-
-		system($authscript);
-		my $status = $?;
-
-		if ( defined $prevuser ) {
-			$ENV{REMOTE_USER} = $prevuser;
-		} else {
-			delete $ENV{REMOTE_USER};
-		}
-
-		if ( defined $prevpass ) {
-			$ENV{REMOTE_PASSWORD} = $prevpass;
-		} else {
-			delete $ENV{REMOTE_PASSWORD};
-		}
-
-		if ( $status == -1 ) {
-			# Cannot execute authorization script
-			error("Cannot execute authorization script");
-		} elsif ( ($status >> 8) == 2 ) {
-			# Script sent own output, exit cgi
-			exit;
-		} elsif ( ($status >> 8) == 1 ) {
-			# Authorization failed
-			if ( $authkeys{httpbasic} ) {
-				error("Authorization failed", "Error: 401", 401, -WWW_Authenticate => "Basic realm=\"$indexdir\"");
-			} else {
-				error("Authorization failed");
+	if ( $authkeys{session} ) {
+		if ( not defined $s ) {
+			$s = CGI::Session->new("driver:db_file", undef, {FileName => "/var/tmp/plist-cgisessions-" . getpwuid($<) . ".db", UMask => 0600});
+			if ( not defined $s ) {
+				error("Cannot create session");
 			}
-		} elsif ( ($status >> 8) == 0 ) {
-			# Authorization succeed
-		} else {
-			# Authorization script returned unknown status
-			error("Authorization script finished with unknown status $status");
+			$s->param("indexdir", $indexdir);
+			$s->expire("1h");
+			$s->flush();
+			$cookie = $q->cookie(-name => $s->name(), -value => $s->id(), -expires => "+1h", -path => gen_url(action => "", fullurl => 1), -domain => "." . $q->virtual_host(), -secure => $authkeys{secure});
 		}
-
-	} else {
-
-		error("Authorization method was not configured");
-
 	}
 }
 
@@ -419,7 +461,7 @@ if ( not $action ) {
 	$base_template->param(TITLE => "Archive $indexdir");
 	$base_template->param(BODY => $infopage_template->output());
 
-	print $q->header();
+	print $q->header(-cookie => $cookie);
 	print $base_template->output();
 	exit;
 
@@ -549,7 +591,7 @@ if ( $action eq "get-bin" ) {
 	error("Param id was not specified") unless $id;
 	my $pemail = $index->email($id);
 	error("Email with id $id does not exist in archive $indexdir") unless $pemail;
-	print $q->header(-type => "application/octet-stream", -attachment => "$id.bin", -charset => "");
+	print $q->header(-cookie => $cookie, -type => "application/octet-stream", -attachment => "$id.bin", -charset => "");
 	binmode(\*STDOUT, ":raw");
 	PList::Email::Binary::to_fh($pemail, \*STDOUT);
 
@@ -570,7 +612,7 @@ if ( $action eq "get-bin" ) {
 	$mimetype = "application/octet-stream" unless $mimetype;
 	$filename = "File-$part.bin" unless $filename;
 	$q->charset("") unless $mimetype =~ /^text\//;
-	print $q->header(-type => $mimetype, -attachment => $filename, -expires => "+10y", last_modified => $date, -content_length => $size);
+	print $q->header(-cookie => $cookie, -type => $mimetype, -attachment => $filename, -expires => "+10y", last_modified => $date, -content_length => $size);
 	binmode(\*STDOUT, ":raw");
 	$pemail->data($part, \*STDOUT);
 
@@ -597,7 +639,7 @@ if ( $action eq "get-bin" ) {
 	$base_template->param(TITLE => "Archive $indexdir - Tree for email $id");
 	$base_template->param(BODY => $treepage_template->output());
 
-	print $q->header();
+	print $q->header(-cookie => $cookie);
 	print $base_template->output();
 
 } elsif ( $action eq "view" ) {
@@ -625,7 +667,7 @@ if ( $action eq "get-bin" ) {
 		$size = length(${$str});
 	}
 
-	print $q->header(-content_length => $size);
+	print $q->header(-cookie => $cookie, -content_length => $size);
 	print ${$str};
 
 } elsif ( $action eq "browse" ) {
@@ -707,7 +749,7 @@ if ( $action eq "get-bin" ) {
 	$base_template->param(LISTURL => gen_url(indexdir => ""));
 	$base_template->param(BODY => $browsepage_template->output());
 
-	print $q->header();
+	print $q->header(-cookie => $cookie);
 	print $base_template->output();
 
 } elsif ( $action eq "roots" ) {
@@ -777,7 +819,7 @@ if ( $action eq "get-bin" ) {
 	$base_template->param(TITLE => $title);
 	$base_template->param(BODY => $rootspage_template->output());
 
-	print $q->header();
+	print $q->header(-cookie => $cookie);
 	print $base_template->output();
 
 } elsif ( $action eq "trees" ) {
@@ -863,7 +905,7 @@ if ( $action eq "get-bin" ) {
 	$base_template->param(TITLE => $title);
 	$base_template->param(BODY => $treespage_template->output());
 
-	print $q->header();
+	print $q->header(-cookie => $cookie);
 	print $base_template->output();
 
 } elsif ( $action eq "search" or $action eq "emails" ) {
@@ -941,7 +983,7 @@ if ( $action eq "get-bin" ) {
 		$base_template->param(TITLE => "Archive $indexdir - Search");
 		$base_template->param(BODY => $searchpage_template->output());
 
-		print $q->header();
+		print $q->header(-cookie => $cookie);
 		print $base_template->output();
 		exit;
 
@@ -1022,7 +1064,7 @@ if ( $action eq "get-bin" ) {
 	$base_template->param(TITLE => $title);
 	$base_template->param(BODY => $page_template->output());
 
-	print $q->header();
+	print $q->header(-cookie => $cookie);
 	print $base_template->output();
 
 } else {
