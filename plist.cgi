@@ -360,14 +360,22 @@ if ( defined $auth ) {
 				error("Authorization script was not configued");
 			}
 
+			my $previndexdir = $ENV{INDEX_DIR};
 			my $prevuser = $ENV{REMOTE_USER};
 			my $prevpass = $ENV{REMOTE_PASSWORD};
 
+			$ENV{INDEX_DIR} = $indexdir;
 			$ENV{REMOTE_USER} = $authuser if defined $authuser;
 			$ENV{REMOTE_PASSWORD} = $authpass if defined $authpass;
 
 			system($authscript);
 			my $status = $?;
+
+			if ( defined $previndexdir ) {
+				$ENV{INDEX_DIR} = $previndexdir;
+			} else {
+				delete $ENV{INDEX_DIR};
+			}
 
 			if ( defined $prevuser ) {
 				$ENV{REMOTE_USER} = $prevuser;
