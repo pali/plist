@@ -55,6 +55,7 @@ plist.cgi
 
 This software depends on required Perl modules which must be installed. Here is list of these modules:
 
+CGI::Session
 CGI::Simple
 Cwd
 Date::Format
@@ -76,6 +77,7 @@ HTML::Entities
 HTML::FromText
 HTML::Strip
 HTML::Template
+MIME::Base64
 Time::Piece
 
 Additionally Perl module Email::Folder::Mbox needs to be patched otherwise PList will not work. Till now (2014-08-18) patches are not part of last version of Email::Folder::Mbox (0.858) so PList itself contains patched version of Email::Folder::Mbox (marked as version 0.859).
