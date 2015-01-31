@@ -2141,7 +2141,7 @@ sub delete($$) {
 		return 0;
 	};
 
-	if ( $ret and $ret->{$id} ) {
+	if ( $ret and $ret->{$rid} ) {
 		$treeid = $ret->{$rid}->{id};
 		$treecount = $ret->{$rid}->{count};
 	}
