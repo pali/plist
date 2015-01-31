@@ -174,7 +174,6 @@ sub next_messageref {
         }
 
         if ($prev eq $/ && ($line =~ $self->_from_line_re)) {
-            $mail .= $prev;
             $last = $line;
             last;
         }
@@ -189,6 +188,7 @@ sub next_messageref {
         # unescape From_
         $prev =~ s/^>(>*From )/$1/ if $self->{unescape};
     }
+    $mail .= $prev;
     print "$count end of message line $.\n" if debug;
     $self->{from} = $last;
     return unless $mail;

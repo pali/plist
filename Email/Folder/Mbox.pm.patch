@@ -1,5 +1,5 @@
 --- Mbox.pm	2014-01-07 16:54:21.000000000 +0100
-+++ Mbox.pm	2014-07-16 11:38:12.980563899 +0200
++++ Mbox.pm	2015-01-31 23:00:37.921645262 +0100
 @@ -2,7 +2,7 @@ use strict;
  use warnings;
  package Email::Folder::Mbox;
@@ -184,7 +184,6 @@
  
 -        last if $prev eq $/ && ($line =~ $self->_from_line_re);
 +        if ($prev eq $/ && ($line =~ $self->_from_line_re)) {
-+            $mail .= $prev;
 +            $last = $line;
 +            last;
 +        }
@@ -199,6 +198,7 @@
 +        # unescape From_
 +        $prev =~ s/^>(>*From )/$1/ if $self->{unescape};
      }
++    $mail .= $prev;
      print "$count end of message line $.\n" if debug;
 +    $self->{from} = $last;
      return unless $mail;
