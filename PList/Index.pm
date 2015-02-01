@@ -72,65 +72,33 @@ sub new($$) {
 		return undef;
 	}
 
-	my $driver;
-	my $params = "";
-	my $username;
-	my $password;
-
-	my $description;
-	my $listsize;
-	my $nomatchsubject;
-	my $templatedir;
-	my $autopregen;
-	my $auth;
-	my $authscript;
+	my $config = {};
 
 	while (<$fh>) {
 		next if $_ =~ /^\s*#/;
 		next unless $_ =~ /^\s*([^=]+)=(.*)$/;
-		$driver = $2 if $1 eq "driver";
-		$params = $2 if $1 eq "params";
-		$username = $2 if $1 eq "username";
-		$password = $2 if $1 eq "password";
-		$description = $2 if $1 eq "description";
-		$listsize = $2 if $1 eq "listsize";
-		$nomatchsubject = $2 if $1 eq "nomatchsubject";
-		$templatedir = $2 if $1 eq "templatedir";
-		$autopregen = $2 if $1 eq "autopregen";
-		$auth = $2 if $1 eq "auth";
-		$authscript = $2 if $1 eq "authscript";
+		$config->{$1} = $2;
 	}
+
+	$config->{params} = "" unless defined $config->{params};
+	$config->{listsize} = 100 * 1024 * 1024 unless $config->{listsize}; # 100MB
 
 	close($fh);
 
-	if ( not defined $driver ) {
+	if ( not defined $config->{driver} ) {
 		warn "Driver was not specified in config file\n";
 		return undef;
 	}
 
-	my $dbh = db_connect($dir, $driver, $params, $username, $password);
+	my $dbh = db_connect($dir, $config->{driver}, $config->{params}, $config->{username}, $config->{password});
 	if ( not $dbh ) {
 		return undef;
-	}
-
-	if ( not $listsize ) {
-		$listsize = 100 * 1024 * 1024; # 100MB
 	}
 
 	my $priv = {
 		dir => $dir,
 		dbh => $dbh,
-		driver => $driver,
-		params => $params,
-		username => $username,
-		password => $password,
-		description => $description,
-		listsize => $listsize,
-		nonmatchsubject => $nomatchsubject,
-		templatedir => $templatedir,
-		autopregen => $autopregen,
-		auth => $auth,
-		authscript => $authscript,
+		config => $config,
 	};
 
 	bless $priv, $class;
@@ -141,17 +109,9 @@ sub config($$$) {
 
 	my ($priv, $key, $value) = @_;
 
-	$priv->{driver} = $value if $key eq "driver";
-	$priv->{params} = $value if $key eq "params";
-	$priv->{username} = $value if $key eq "username";
-	$priv->{password} = $value if $key eq "password";
-	$priv->{description} = $value if $key eq "description";
-	$priv->{listsize} = $value if $key eq "listsize";
-	$priv->{nomatchsubject} = $value if $key eq "nomatchsubject";
-	$priv->{templatedir} = $value if $key eq "templatedir";
-	$priv->{autopregen} = $value if $key eq "autopregen";
-	$priv->{auth} = $value if $key eq "auth";
-	$priv->{authscript} = $value if $key eq "authscript";
+	my $config = $priv->{config};
+
+	$config->{$key} = $value;
 
 	my $fh;
 	if ( not open($fh, ">", $priv->{dir} . "/config") ) {
@@ -159,22 +119,14 @@ sub config($$$) {
 		return 0;
 	}
 
-	print $fh "driver=" . $priv->{driver} . "\n" if defined $priv->{driver};
-	print $fh "params=" . $priv->{params} . "\n" if defined $priv->{params};
-	print $fh "username=" . $priv->{username} . "\n" if defined $priv->{username};
-	print $fh "password=" . $priv->{password} . "\n" if defined $priv->{password};
-	print $fh "description=" . $priv->{description} . "\n" if defined $priv->{description};
-	print $fh "listsize=" . $priv->{listsize} . "\n" if defined $priv->{listsize};
-	print $fh "nomatchsubject=" . $priv->{nomatchsubject} . "\n" if defined $priv->{nomatchsubject};
-	print $fh "templatedir=" . $priv->{templatedir} . "\n" if defined $priv->{templatedir};
-	print $fh "autopregen=" . $priv->{autopregen} . "\n" if defined $priv->{autopregen};
-	print $fh "auth=" . $priv->{auth} . "\n" if defined $priv->{auth};
-	print $fh "authscript=" . $priv->{authscript} . "\n" if defined $priv->{authscript};
+	foreach ( sort keys %{$config} ) {
+		print $fh $_ . "=" . $config->{$_} . "\n" if defined $config->{$_};
+	}
 	close($fh);
 
 	if ( $key eq "driver" or $key eq "params" or $key eq "username" or $key eq "password" ) {
 		$priv->{dbh}->disconnect();
-		$priv->{dbh} = db_connect($priv->{dir}, $priv->{driver}, $priv->{params}, $priv->{username}, $priv->{password});
+		$priv->{dbh} = db_connect($priv->{dir}, $config->{driver}, $config->{params}, $config->{username}, $config->{password});
 		if ( not $priv->{dbh} ) {
 			warn "Cannot connect to database\n";
 			return 0;
@@ -188,18 +140,6 @@ sub config($$$) {
 sub info($$) {
 
 	my ($priv, $key) = @_;
-
-	return $priv->{driver} if $key eq "driver";
-	return $priv->{params} if $key eq "params";
-	return $priv->{username} if $key eq "username";
-	return $priv->{password} if $key eq "password";
-	return $priv->{description} if $key eq "description";
-	return $priv->{listsize} if $key eq "listsize";
-	return $priv->{nomatchsubject} if $key eq "nomatchsubject";
-	return $priv->{templatedir} if $key eq "templatedir";
-	return $priv->{autopregen} if $key eq "autopregen";
-	return $priv->{auth} if $key eq "auth";
-	return $priv->{authscript} if $key eq "authscript";
 
 	if ( $key eq "emailcount" or $key eq "treecount" ) {
 
@@ -235,7 +175,7 @@ sub info($$) {
 		return $emails->[0];
 	}
 
-	return undef;
+	return $priv->{config}->{$key};
 
 }
 
@@ -533,10 +473,11 @@ sub create($;$$$$) {
 		return 0;
 	}
 
+	# NOTE: keys should be sorted
 	print $fh "driver=$driver\n";
 	print $fh "params=$params\n" if defined $params;
-	print $fh "username=$username\n" if defined $username;
 	print $fh "password=$password\n" if defined $password;
+	print $fh "username=$username\n" if defined $username;
 	close($fh);
 
 	return 1;
@@ -646,7 +587,7 @@ sub add_one_email($$$$) {
 	my ($priv, $pemail, $list, $listfile) = @_;
 
 	my $dbh = $priv->{dbh};
-	my $driver = $priv->{driver};
+	my $driver = $priv->{config}->{driver};
 
 	my $id = $pemail->id();
 	my $rid;
@@ -1034,7 +975,7 @@ sub add_one_email($$$$) {
 		return 0;
 	};
 
-	if ( $priv->{autopregen} ) {
+	if ( $priv->{config}->{autopregen} ) {
 		$priv->pregen_one_email($id, $pemail);
 	}
 
@@ -1046,7 +987,7 @@ sub reopen_listfile($;$$) {
 
 	my ($priv, $list, $listfile) = @_;
 
-	if ( $list and $listfile and ( not -f $priv->{dir} . "/" . $listfile or -s $priv->{dir} . "/" . $listfile < $priv->{listsize} ) ) {
+	if ( $list and $listfile and ( not -f $priv->{dir} . "/" . $listfile or -s $priv->{dir} . "/" . $listfile < $priv->{config}->{listsize} ) ) {
 		return ($list, $listfile);
 	}
 
@@ -1067,7 +1008,7 @@ sub reopen_listfile($;$$) {
 
 	}
 
-	if ( -f $priv->{dir} . "/" . $listfile and -s $priv->{dir} . "/" . $listfile >= $priv->{listsize} ) {
+	if ( -f $priv->{dir} . "/" . $listfile and -s $priv->{dir} . "/" . $listfile >= $priv->{config}->{listsize} ) {
 		$listfile =~ s/\.list$//;
 		$listfile = sprintf("%.5d.list", $listfile+1);
 	}
@@ -1776,7 +1717,7 @@ sub db_replies($$;$) {
 		}
 	}
 
-	if ( ( $up and ( @reply or @references ) ) or $priv->{nomatchsubject} ) {
+	if ( ( $up and ( @reply or @references ) ) or $priv->{config}->{nomatchsubject} ) {
 		return (\@reply, \@references);
 	}
 
