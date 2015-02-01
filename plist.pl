@@ -42,7 +42,7 @@ sub help() {
 
 	print "help:\n";
 	print "index view <dir>\n";
-	print "index create <dir> [<driver>] [<params>] [<username>] [<password>]\n";
+	print "index create <dir> [<driver>] [<params>] [<username>] [<password>] [<key>=<value>] [...]\n";
 	print "index config <dir> <key> <value>\n";
 #	print "index regenerate <dir>\n";
 	print "index add-list <dir> [<list>] [silent]\n";
@@ -518,10 +518,21 @@ if ( not $mod or not $command ) {
 		my $username = shift @ARGV;
 		my $password = shift @ARGV;
 
-		help() if @ARGV;
+		my %config;
+
+		foreach ( @ARGV ) {
+			if ( $_ =~ /^(.+)=(.+)$/ ) {
+				$config{$1} = $2;
+			} else {
+				help();
+			}
+		}
+
+		$username = undef unless $username;
+		$password = undef unless $password;
 
 		print "Creating index dir '$indexdir'...\n";
-		die "Failed\n" unless PList::Index::create($indexdir, $driver, $params, $username, $password);
+		die "Failed\n" unless PList::Index::create($indexdir, $driver, $params, $username, $password, %config);
 		print "Done\n";
 
 		exit 0;
