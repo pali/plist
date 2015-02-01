@@ -298,7 +298,8 @@ if ( defined $auth ) {
 		$url =~ s/^http/https/;
 		$url .= $script . $q->path_info();
 		$url .= "?" . $q->query_string() if $q->query_string();
-		if ( $url =~ /^https/ ) {
+		# NOTE: If we are using non standard port do not redirect, it will not work
+		if ( $url =~ /^https/ and not $url =~ /:[0-9]+$/ ) {
 			print $q->redirect($url);
 			exit;
 		} else {
