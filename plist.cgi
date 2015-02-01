@@ -408,7 +408,7 @@ if ( defined $auth ) {
 			$s->param("indexdir", $indexdir);
 			$s->expire("1h");
 			$s->flush();
-			$cookie = $q->cookie(-name => $s->name(), -value => $s->id(), -expires => "+1h", -path => gen_url(action => "", fullurl => 1), -domain => "." . $q->virtual_host(), -secure => $authkeys{secure});
+			$cookie = $q->cookie(-name => $s->name(), -value => $s->id(), -expires => "+1h", -path => gen_url(action => "", fullurl => 1), -domain => "." . $q->virtual_host(), -secure => $authkeys{secure}, -httponly => 1);
 		}
 	}
 }
