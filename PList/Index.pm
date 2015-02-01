@@ -430,9 +430,9 @@ sub create_tables($$) {
 
 }
 
-sub create($;$$$$) {
+sub create($;$$$$%) {
 
-	my ($dir, $driver, $params, $username, $password) = @_;
+	my ($dir, $driver, $params, $username, $password, %config) = @_;
 
 	if ( not $driver ) {
 		$driver = "SQLite";
@@ -440,6 +440,10 @@ sub create($;$$$$) {
 
 	if ( $driver eq "SQLite" and not $params ) {
 		$params = "sqlite.db";
+	}
+
+	if ( not defined $params ) {
+		$params = "";
 	}
 
 	if ( not make_path($dir) ) {
@@ -473,11 +477,15 @@ sub create($;$$$$) {
 		return 0;
 	}
 
-	# NOTE: keys should be sorted
-	print $fh "driver=$driver\n";
-	print $fh "params=$params\n" if defined $params;
-	print $fh "password=$password\n" if defined $password;
-	print $fh "username=$username\n" if defined $username;
+	$config{driver} = $driver;
+	$config{params} = $params;
+	$config{username} = $username;
+	$config{password} = $password;
+
+	foreach ( sort keys %config ) {
+		print $fh $_ . "=" . $config{$_} . "\n" if defined $config{$_};
+	}
+
 	close($fh);
 
 	return 1;
