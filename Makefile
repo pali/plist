@@ -21,7 +21,7 @@ DESTDIR :=
 TARGET := $(DESTDIR)$(PREFIX)
 
 SCRIPTS := plist.pl plist-import-mboxes.pl
-CGIS := plist.cgi
+EFILES := mailman-auth.py plist.cgi
 FILES := COPYING README .htaccess apache.conf mm_cfg.py
 DIRS := Email PList templates
 
@@ -38,8 +38,8 @@ install:
 		chmod 755 "$(TARGET)/bin/$$script"; \
 		touch -r "$(TARGET)/share/plist/$$script" "$(TARGET)/bin/$$script"; \
 	done
-	for cgi in $(CGIS); do \
-		install -p -m 755 $$cgi "$(TARGET)/share/plist/"; \
+	for file in $(EFILES); do \
+		install -p -m 755 $$file "$(TARGET)/share/plist/"; \
 	done
 	for file in $(FILES); do \
 		install -p -m 644 $$file "$(TARGET)/share/plist/"; \
