@@ -22,7 +22,7 @@ TARGET := $(DESTDIR)$(PREFIX)
 
 SCRIPTS := plist.pl plist-import-mboxes.pl
 CGIS := plist.cgi
-FILES := COPYING README .htaccess
+FILES := COPYING README .htaccess apache.conf mm_cfg.py
 DIRS := Email PList templates
 
 all:
@@ -30,7 +30,7 @@ all:
 clean:
 
 install:
-	mkdir -p "$(TARGET)/share/plist"
+	mkdir -p "$(TARGET)/share/plist/"
 	mkdir -p "$(TARGET)/bin/"
 	for script in $(SCRIPTS); do \
 		install -p -m 755 $$script "$(TARGET)/share/plist/"; \
