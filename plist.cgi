@@ -222,6 +222,7 @@ if ( not $indexdir ) {
 			next if $name =~ /^\./;
 			next unless -d "$ENV{PLIST_INDEXES_DIR}/$name";
 			next unless -f "$ENV{PLIST_INDEXES_DIR}/$name/config";
+			next if -f "$ENV{PLIST_INDEXES_DIR}/$name/hidden";
 			push(@dirs, $name);
 		}
 		closedir($dh);
