@@ -40,6 +40,7 @@ $CGI::Simple::PARAM_UTF8 = 1;
 
 $ENV{PLIST_TEMPLATE_DIR} |= "$Bin/templates";
 $ENV{PLIST_INDEXES_DIR} |= ".";
+$ENV{PLIST_SESSIONS_DIR} |= "/var/tmp";
 
 # global variables
 my $q;
@@ -305,7 +306,7 @@ if ( defined $auth ) {
 		my $sid = $q->cookie(CGI::Session->name());
 		if ( defined $sid and length $sid ) {
 			# NOTE: CGI::Session::load() will automatically clean all expired sessions
-			$s = CGI::Session->load("driver:db_file", $sid, {FileName => "/var/tmp/plist-cgisessions-" . getpwuid($<) . ".db", UMask => 0600});
+			$s = CGI::Session->load("driver:db_file", $sid, {FileName => $ENV{PLIST_SESSIONS_DIR} . "/plist-cgisessions-" . getpwuid($<) . ".db", UMask => 0600});
 			if ( defined $s and $s->is_empty() ) {
 				$s = undef;
 			}
@@ -393,7 +394,7 @@ if ( defined $auth ) {
 
 	if ( $authkeys{session} ) {
 		if ( not defined $s ) {
-			$s = CGI::Session->new("driver:db_file", undef, {FileName => "/var/tmp/plist-cgisessions-" . getpwuid($<) . ".db", UMask => 0600});
+			$s = CGI::Session->new("driver:db_file", undef, {FileName => $ENV{PLIST_SESSIONS_DIR} . "/plist-cgisessions-" . getpwuid($<) . ".db", UMask => 0600});
 			if ( not defined $s ) {
 				error("Cannot create session");
 			}
