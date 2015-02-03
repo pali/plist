@@ -39,6 +39,7 @@ $CGI::Session::NAME = "SID";
 $CGI::Simple::PARAM_UTF8 = 1;
 
 $ENV{PLIST_TEMPLATE_DIR} |= "$Bin/templates";
+$ENV{PLIST_INDEXES_DIR} |= ".";
 
 # global variables
 my $q;
@@ -211,23 +212,19 @@ error("Invalid archive name $indexdir") if $indexdir =~ /[\\\/]/;
 
 if ( not $indexdir ) {
 
-	# List all directories in current directory
+	# List all directories in PLIST_INDEXES_DIR directory
 
 	my @dirs;
 
-	my $dh;
-	if ( not opendir($dh, ".") ) {
-		error("Cannot open directory");
+	if ( opendir(my $dh, $ENV{PLIST_INDEXES_DIR}) ) {
+		while ( defined (my $name = readdir($dh)) ) {
+			next if $name =~ /^\./;
+			next unless -d "$ENV{PLIST_INDEXES_DIR}/$name";
+			next unless -f "$ENV{PLIST_INDEXES_DIR}/$name/config";
+			push(@dirs, $name);
+		}
+		closedir($dh);
 	}
-
-	while ( defined (my $name = readdir($dh)) ) {
-		next if $name =~ /^\./;
-		next unless -d $name;
-		next unless -f "$name/config";
-		push(@dirs, $name);
-	}
-
-	closedir($dh);
 
 	my @list;
 	push(@list, {URL => gen_url(indexdir => $_), DIR => $_}) foreach sort { $a cmp $b } @dirs;
@@ -246,7 +243,7 @@ if ( not $indexdir ) {
 
 }
 
-my $index = PList::Index->new($indexdir);
+my $index = PList::Index->new("$ENV{PLIST_INDEXES_DIR}/$indexdir");
 error("Archive $indexdir does not exist") unless $index;
 
 # Support for mhonarc urls
