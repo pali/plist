@@ -36,7 +36,7 @@ use PList::Index;
 
 binmode STDOUT, ":utf8";
 
-$ENV{HTML_TEMPLATE_ROOT} |= "$Bin/templates";
+$ENV{PLIST_TEMPLATE_DIR} |= "$Bin/templates";
 
 sub help() {
 

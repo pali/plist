@@ -38,7 +38,7 @@ binmode(\*STDOUT, ":utf8");
 $CGI::Session::NAME = "SID";
 $CGI::Simple::PARAM_UTF8 = 1;
 
-$ENV{HTML_TEMPLATE_ROOT} |= "$Bin/templates";
+$ENV{PLIST_TEMPLATE_DIR} |= "$Bin/templates";
 
 # global variables
 my $q;
@@ -248,11 +248,6 @@ if ( not $indexdir ) {
 
 my $index = PList::Index->new($indexdir);
 error("Archive $indexdir does not exist") unless $index;
-
-my $templatedir = $index->info("templatedir");
-if ( $templatedir and -e $templatedir ) {
-	$ENV{HTML_TEMPLATE_ROOT} = $templatedir;
-}
 
 # Support for mhonarc urls
 # /<year>/ => browse

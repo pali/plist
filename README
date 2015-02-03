@@ -92,7 +92,7 @@ This command copies everything into /usr/share/plist/ and creates launchers for 
 
 === Configuration ===
 
-PList uses HTML templates for generating HTML pages. Default templates are stored in template directory. Different templates can be used by changing global environmental variable HTML_TEMPLATE_ROOT. This variable must contain absolute path to templates directory. If variable does not exist or is empty then the applications are configured to use default templates directory.
+PList uses HTML templates for generating HTML pages. Default templates are stored in template directory. Different templates can be used by changing global environmental variable PLIST_TEMPLATE_DIR. This variable must contain absolute path to templates directory. If variable does not exist or is empty then the applications are configured to use default templates directory.
 
 For using web application HTTP web server with CGI scripting support is needed. PList was tested with Apache 2 server. PList CGI script is using PList (index) archives in current working directory, so web server must be correctly configured to access these archives. To configure URL links user can use prepared .htaccess file.
 
@@ -120,7 +120,7 @@ Changes configuration value for key of archive <dir>. Possible keys are:
  * description - Description of archive
  * listsize - Average size of list file (default 104857600 = 100MB)
  * nomatchsubject - Do not group emails with similar subject to one thread (default 1 = is on)
- * templatedir - Absolute path for directory with HTML templates (overwrite HTML_TEMPLATE_ROOT)
+ * templatedir - Absolute path for directory with HTML templates (overwrite PLIST_TEMPLATE_DIR)
  * autopregen - Automatically pregenerates HTML pages for emails (default 0 = is off)
 
 | add-list <dir> [<list>] [silent] |

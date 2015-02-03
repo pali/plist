@@ -95,6 +95,11 @@ sub new($$) {
 		return undef;
 	}
 
+	my $templatedir = $config->{templatedir};
+	if ( $templatedir and -e $templatedir ) {
+		$ENV{PLIST_TEMPLATE_DIR} = $templatedir;
+	}
+
 	my $priv = {
 		dir => $dir,
 		dbh => $dbh,

@@ -35,6 +35,10 @@ sub new($$) {
 		push(@args, filename => $arg);
 	}
 
+	if ( $ENV{PLIST_TEMPLATE_DIR} ) {
+		push(@args, path => [$ENV{PLIST_TEMPLATE_DIR}]);
+	}
+
 	my $template = HTML::Template->new(@args);
 	return bless \$template, $class;
 
