@@ -279,6 +279,36 @@ if ( $action =~ /^[0-9]+$/ ) {
 		}
 	}
 }
+# Support for pipermail urls
+# /<year>-<str_month>/ => trees
+# /<year>-<str_month>/thread.html => trees
+# /<year>-<str_month>/subject.html => roots
+# /<year>-<str_month>/author.html => ??? (sort by from field)
+# /<year>-<str_month>/date.html => emails
+# /<year>-<str_month>/<XXXXXX>.html => ??? (email with number XXXXXX)
+# /<year>-<str_month>.txt.gz => ??? (pseudo mbox file for month)
+elsif ( $action =~ /^([0-9]+)-(January|February|March|April|May|June|July|August|September|October|November|December)$/ ) {
+	my $year = $1;
+	my $month = $2;
+	my %hash = ( January => 1, February => 2, March => 3, April => 4, May => 5, June => 6, July => 7, August => 8, September => 9, October => 10, November => 11, December => 12 );
+	$month = $hash{$month};
+	if ( not $id or $id eq "thread.html" ) {
+		print $q->redirect($q->url(-base=>1) . gen_url(action => "trees", id => $year, path => $month, fullurl => 1));
+		exit;
+	} elsif ( $id eq "subject.html" ) {
+		print $q->redirect($q->url(-base=>1) . gen_url(action => "roots", id => $year, path => $month, fullurl => 1));
+		exit;
+	} elsif ( $id eq "author.html" ) { # TODO: Add support for sort by from field
+		print $q->redirect($q->url(-base=>1) . gen_url(action => "emails", id => $year, path => $month, fullurl => 1));
+		exit;
+	} elsif ( $id eq "date.html" ) {
+		print $q->redirect($q->url(-base=>1) . gen_url(action => "emails", id => $year, path => $month, fullurl => 1));
+		exit;
+	} elsif ( $id =~ /^[0-9]{6}\.html$/ ) { # TODO: Add support for old emails links
+		print $q->redirect($q->url(-base=>1) . gen_url(action => "", fullurl => 1));
+		exit;
+	}
+}
 
 # Check for authorization
 my $auth = $index->info("auth");
