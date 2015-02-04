@@ -320,10 +320,10 @@ if ( defined $auth ) {
 	if ( $authkeys{secure} and $q->protocol() ne "https" ) {
 		my $url = $q->url(-base=>1);
 		$url =~ s/^http/https/;
-		$url .= $script . $q->path_info();
-		$url .= "?" . $q->query_string() if $q->query_string();
 		# NOTE: If we are using non standard port do not redirect, it will not work
 		if ( $url =~ /^https/ and not $url =~ /:[0-9]+$/ ) {
+			$url .= $script . $q->path_info();
+			$url .= "?" . $q->query_string() if $q->query_string();
 			print $q->redirect($url);
 			exit;
 		} else {
