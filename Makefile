@@ -21,7 +21,7 @@ DESTDIR :=
 TARGET := $(DESTDIR)$(PREFIX)
 
 SCRIPTS := plist.pl plist-import-mboxes.pl
-EFILES := mailman-auth.py plist.cgi
+EFILES := mailman-auth.py mailman-auth.pl plist.cgi
 FILES := COPYING README .htaccess apache.conf mm_cfg.py
 DIRS := Email PList templates
 
