@@ -381,8 +381,12 @@ if ( defined $auth ) {
 		if ( $authkeys{script} ) {
 
 			my $authscript = $index->info("authscript");
-			if ( not $authscript or not length $authscript ) {
-				error("Authorization script was not configued");
+			if ( not defined $authscript or not length $authscript ) {
+				if ( exists $ENV{PLIST_AUTH_SCRIPT} and length $ENV{PLIST_AUTH_SCRIPT} ) {
+					$authscript = $ENV{PLIST_AUTH_SCRIPT};
+				} else {
+					error("Authorization script was not configued");
+				}
 			}
 
 			my $status = -1;
