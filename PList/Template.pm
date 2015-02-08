@@ -23,9 +23,9 @@ use warnings;
 use Encode qw(encode_utf8);
 use HTML::Template;
 
-sub new($$) {
+sub new($$;$) {
 
-	my ($class, $arg) = @_;
+	my ($class, $arg, $dir) = @_;
 
 	my @args = (die_on_bad_params => 0, utf8 => 1, loop_context_vars => 1);
 
@@ -33,10 +33,7 @@ sub new($$) {
 		push(@args, scalarref => $arg);
 	} else {
 		push(@args, filename => $arg);
-	}
-
-	if ( $ENV{PLIST_TEMPLATE_DIR} ) {
-		push(@args, path => [$ENV{PLIST_TEMPLATE_DIR}]);
+		push(@args, path => $dir);
 	}
 
 	my $template = HTML::Template->new(@args);
