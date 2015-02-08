@@ -135,7 +135,7 @@ sub addressees_data($$) {
 	if ($ref) {
 		foreach (@{$ref}) {
 			$_ =~ /^(\S*) (.*)$/;
-			my $address_template = PList::Template->new(${$config}{address_template});
+			my $address_template = PList::Template->new(${$config}{address_template}, ${$config}{templatedir});
 			$address_template->param(EMAIL => $1);
 			$address_template->param(EMAILURL => $1);
 			$address_template->param(NAME => $2);
@@ -195,7 +195,7 @@ sub part_to_str($$$$) {
 		} elsif ( $plain_i ) {
 			return part_to_str($pemail, $plain_i, $nodes, $config);
 		} else {
-			my $template = PList::Template->new(${$config}{view_template});
+			my $template = PList::Template->new(${$config}{view_template}, ${$config}{templatedir});
 			$template->param(ID => $id);
 			$template->param(PART => $partid);
 			$template->param(BODY => "Viewing html part is disabled.");
@@ -204,19 +204,19 @@ sub part_to_str($$$$) {
 
 	} else {
 
-		my $template = PList::Template->new(${$config}{view_template});
+		my $template = PList::Template->new(${$config}{view_template}, ${$config}{templatedir});
 		$template->param(ID => $id);
 		$template->param(PART => $partid);
 
 		if ( $type eq "message" or $type eq "multipart" ) {
 
 			my @data = ();
-			my $multipart_template = PList::Template->new(${$config}{multipart_template});
+			my $multipart_template = PList::Template->new(${$config}{multipart_template}, ${$config}{templatedir});
 
 			if ( $type eq "message" ) {
-				my $view_template = PList::Template->new(${$config}{view_template});
-				my $message_template = PList::Template->new(${$config}{message_template});
-				my $subject_template = PList::Template->new(${$config}{subject_template});
+				my $view_template = PList::Template->new(${$config}{view_template}, ${$config}{templatedir});
+				my $message_template = PList::Template->new(${$config}{message_template}, ${$config}{templatedir});
+				my $subject_template = PList::Template->new(${$config}{subject_template}, ${$config}{templatedir});
 				my $header = $pemail->header($partid);
 				my $subject = $header->{subject};
 				$subject = "unknown" unless $subject;
@@ -297,9 +297,9 @@ sub part_to_str($$$$) {
 					}
 					my $plaintext_template;
 					if ( $monospace ) {
-						$plaintext_template = PList::Template->new(${$config}{plaintextmonospace_template});
+						$plaintext_template = PList::Template->new(${$config}{plaintextmonospace_template}, ${$config}{templatedir});
 					} else {
-						$plaintext_template = PList::Template->new(${$config}{plaintext_template});
+						$plaintext_template = PList::Template->new(${$config}{plaintext_template}, ${$config}{templatedir});
 					}
 					$plaintext_template->param(ID => $id);
 					$plaintext_template->param(PART => $partid);
@@ -310,7 +310,7 @@ sub part_to_str($$$$) {
 			}
 
 			if ( $imagepreview ) {
-				my $imagepreview_template = PList::Template->new(${$config}{imagepreview_template});
+				my $imagepreview_template = PList::Template->new(${$config}{imagepreview_template}, ${$config}{templatedir});
 				$imagepreview_template->param(ID => $id);
 				$imagepreview_template->param(PART => $partid);
 				$output = $imagepreview_template->output();
@@ -318,8 +318,8 @@ sub part_to_str($$$$) {
 
 			if ( $type eq "attachment" ) {
 
-				my $attachment_template = PList::Template->new(${$config}{attachment_template});
-				my $download_template = PList::Template->new(${$config}{download_template});
+				my $attachment_template = PList::Template->new(${$config}{attachment_template}, ${$config}{templatedir});
+				my $download_template = PList::Template->new(${$config}{download_template}, ${$config}{templatedir});
 				$download_template->param(ID => $id);
 				$download_template->param(PART => $partid);
 				$attachment_template->param(ID => $id);
@@ -331,11 +331,11 @@ sub part_to_str($$$$) {
 				$attachment_template->param(DOWNLOAD => $download_template->output());
 
 				if ( $preview and $output and length $output ) {
-					my $view1_template = PList::Template->new(${$config}{view_template});
+					my $view1_template = PList::Template->new(${$config}{view_template}, ${$config}{templatedir});
 					$view1_template->param(ID => $id);
 					$view1_template->param(PART => $partid);
 					$view1_template->param(BODY => $attachment_template->output());
-					my $view2_template = PList::Template->new(${$config}{view_template});
+					my $view2_template = PList::Template->new(${$config}{view_template}, ${$config}{templatedir});
 					$view2_template->param(ID => $id);
 					$view2_template->param(PART => $partid);
 					$view2_template->param(BODY => $output);
@@ -369,6 +369,7 @@ sub part_to_str($$$$) {
 # date_format "%a, %d %b %Y %T %z"
 # enabled_mime_types
 # disabled_mime_types application/pgp-signature
+# templatedir
 # cgi_templates
 # base_template
 # style_template
@@ -414,21 +415,24 @@ sub to_str($;%) {
 		$config{attachment_template} = "attachment.tmpl";
 	}
 
+	$config{disabled_mime_types} = \@disabled_mime_types_default unless defined $config{disabled_mime_types};
+
+	$config{templatedir} = undef if defined $config{templatedir} and not -e $config{templatedir};
+
 	# TODO: Set default templates based on $html_output
 	# TODO: Add support for $html_output == 0
-	$config{disabled_mime_types} = \@disabled_mime_types_default unless defined $config{disabled_mime_types};
-	$config{base_template} = \$base_template_default unless defined $config{base_template};
-	$config{style_template} = \$style_template_default unless defined $config{style_template};
-	$config{address_template} = \$address_template_default unless defined $config{address_template};
-	$config{subject_template} = \$subject_template_default unless defined $config{subject_template};
-	$config{download_template} = \$download_template_default unless defined $config{download_template};
-	$config{imagepreview_template} = \$imagepreview_template_default unless defined $config{imagepreview_template};
-	$config{message_template} = \$message_template_default unless defined $config{message_template};
-	$config{view_template} = \$view_template_default unless defined $config{view_template};
-	$config{plaintext_template} = \$plaintext_template_default unless defined $config{plaintext_template};
-	$config{plaintextmonospace_template} = \$plaintextmonospace_template_default unless defined $config{plaintextmonospace_template};
-	$config{multipart_template} = \$multipart_template_default unless defined $config{multipart_template};
-	$config{attachment_template} = \$attachment_template_default unless defined $config{attachment_template};
+	$config{base_template} = \$base_template_default unless defined $config{base_template} and defined $config{templatedir};
+	$config{style_template} = \$style_template_default unless defined $config{style_template} and defined $config{templatedir};
+	$config{address_template} = \$address_template_default unless defined $config{address_template} and defined $config{templatedir};
+	$config{subject_template} = \$subject_template_default unless defined $config{subject_template} and defined $config{templatedir};
+	$config{download_template} = \$download_template_default unless defined $config{download_template} and defined $config{templatedir};
+	$config{imagepreview_template} = \$imagepreview_template_default unless defined $config{imagepreview_template} and defined $config{templatedir};
+	$config{message_template} = \$message_template_default unless defined $config{message_template} and defined $config{templatedir};
+	$config{view_template} = \$view_template_default unless defined $config{view_template} and defined $config{templatedir};
+	$config{plaintext_template} = \$plaintext_template_default unless defined $config{plaintext_template} and defined $config{templatedir};
+	$config{plaintextmonospace_template} = \$plaintextmonospace_template_default unless defined $config{plaintextmonospace_template} and defined $config{templatedir};
+	$config{multipart_template} = \$multipart_template_default unless defined $config{multipart_template} and defined $config{templatedir};
+	$config{attachment_template} = \$attachment_template_default unless defined $config{attachment_template} and defined $config{templatedir};
 
 	my @enabled_mime_types = $config{enabled_mime_types} ? @{$config{enabled_mime_types}} : ();
 	my @disabled_mime_types = $config{disabled_mime_types} ? @{$config{disabled_mime_types}} : ();
@@ -457,13 +461,13 @@ sub to_str($;%) {
 
 	}
 
-	my $style_template = PList::Template->new($config{style_template});
+	my $style_template = PList::Template->new($config{style_template}, $config{templatedir});
 	my $style = $style_template->output();
 
 	my $title = $pemail->header("0")->{subject};
 	my $body = part_to_str($pemail, "0", \%nodes, \%config);
 
-	my $base_template = PList::Template->new($config{base_template});
+	my $base_template = PList::Template->new($config{base_template}, $config{templatedir});
 	$base_template->param(STYLE => $style);
 	$base_template->param(TITLE => $title);
 	$base_template->param(BODY => $body);
