@@ -25,6 +25,8 @@ use PList::Email::View;
 
 use PList::List::Binary;
 
+use PList::Template;
+
 use File::Path qw(make_path);
 use DBI;
 use Cwd;
@@ -181,6 +183,13 @@ sub info($$) {
 	}
 
 	return $priv->{config}->{$key};
+
+}
+
+sub template($$) {
+
+	my ($priv, $file) = @_;
+	return PList::Template->new($file, $priv->{config}->{templatedir});
 
 }
 
@@ -1957,6 +1966,8 @@ sub view($$;%) {
 
 	delete $args{pemail};
 	delete $args{nopregen};
+
+	$args{templatedir} = $priv->{config}->{templatedir};
 
 	return PList::Email::View::to_str($pemail, %args);
 
