@@ -56,8 +56,8 @@ sub error($;$$@) {
 	my ($msg, $title, $code, @args) = @_;
 	$code = 404 unless defined $code;
 	$title = "Error 404" unless defined $title;
-	my $base_template = PList::Template->new("base.tmpl");
-	my $errorpage_template = PList::Template->new("errorpage.tmpl");
+	my $base_template = PList::Template->new("base.tmpl", $ENV{PLIST_TEMPLATE_DIR});
+	my $errorpage_template = PList::Template->new("errorpage.tmpl", $ENV{PLIST_TEMPLATE_DIR});
 	$errorpage_template->param(MSG => $msg);
 	$base_template->param(TITLE => $title);
 	$base_template->param(BODY => $errorpage_template->output());
@@ -231,8 +231,8 @@ if ( not $indexdir ) {
 	my @list;
 	push(@list, {URL => gen_url(indexdir => $_), DIR => $_}) foreach sort { $a cmp $b } @dirs;
 
-	my $base_template = PList::Template->new("base.tmpl");
-	my $listpage_template = PList::Template->new("listpage.tmpl");
+	my $base_template = PList::Template->new("base.tmpl", $ENV{PLIST_TEMPLATE_DIR});
+	my $listpage_template = PList::Template->new("listpage.tmpl", $ENV{PLIST_TEMPLATE_DIR});
 
 	$listpage_template->param(LIST => \@list);
 
@@ -447,8 +447,8 @@ if ( not $action ) {
 
 	# Show info page
 
-	my $base_template = PList::Template->new("base.tmpl");
-	my $infopage_template = PList::Template->new("infopage.tmpl");
+	my $base_template = $index->template("base.tmpl");
+	my $infopage_template = $index->template("infopage.tmpl");
 
 	my @actions;
 	push(@actions, {URL => gen_url(action => "browse"), ACTION => "Browse by year"});
@@ -645,8 +645,8 @@ if ( $action eq "get-bin" ) {
 
 	my @trees = ({TREE => gen_tree($index, $id, $desc, undef, undef, undef)});
 
-	my $base_template = PList::Template->new("base.tmpl");
-	my $treepage_template = PList::Template->new("treepage.tmpl");
+	my $base_template = $index->template("base.tmpl");
+	my $treepage_template = $index->template("treepage.tmpl");
 
 	$treepage_template->param(TREES => \@trees);
 	$treepage_template->param(SORTSWITCH => "<a href=\"" . gen_url(id => $id, desc => $order) . "\">" . ( $order ? "(DESC)" : "(ASC)" ) . "</a>");
@@ -695,8 +695,8 @@ if ( $action eq "get-bin" ) {
 
 	error("Odd param $ign") if $ign;
 
-	my $base_template = PList::Template->new("base.tmpl");
-	my $browsepage_template = PList::Template->new("browsepage.tmpl");
+	my $base_template = $index->template("base.tmpl");
+	my $browsepage_template = $index->template("browsepage.tmpl");
 
 	my @table;
 
@@ -821,8 +821,8 @@ if ( $action eq "get-bin" ) {
 		push(@roots, {SUBJECT => $subject, URL => gen_url(action => "tree", id => $mid), DATE => $date})
 	}
 
-	my $base_template = PList::Template->new("base.tmpl");
-	my $rootspage_template = PList::Template->new("rootspage.tmpl");
+	my $base_template = $index->template("base.tmpl");
+	my $rootspage_template = $index->template("rootspage.tmpl");
 
 	$rootspage_template->param(TREESURL => gen_url(action => "trees", id => $id, path => $path));
 	$rootspage_template->param(EMAILSURL => gen_url(action => "emails", id => $id, path => $path));
@@ -908,8 +908,8 @@ if ( $action eq "get-bin" ) {
 		push(@trees, {TREE => gen_tree($index, $_->{treeid}, $treedesc, 2, undef, undef)});
 	}
 
-	my $base_template = PList::Template->new("base.tmpl");
-	my $treespage_template = PList::Template->new("treespage.tmpl");
+	my $base_template = $index->template("base.tmpl");
+	my $treespage_template = $index->template("treespage.tmpl");
 
 	$treespage_template->param(EMAILSURL => gen_url(action => "emails", id => $id, path => $path));
 	$treespage_template->param(ROOTSURL => gen_url(action => "roots", id => $id, path => $path));
@@ -990,8 +990,8 @@ if ( $action eq "get-bin" ) {
 
 		# Show search form
 
-		my $base_template = PList::Template->new("base.tmpl");
-		my $searchpage_template = PList::Template->new("searchpage.tmpl");
+		my $base_template = $index->template("base.tmpl");
+		my $searchpage_template = $index->template("searchpage.tmpl");
 
 		$searchpage_template->param(SEARCHURL => gen_url());
 
@@ -1039,11 +1039,11 @@ if ( $action eq "get-bin" ) {
 	$title .= " Emails" if $action eq "emails";
 	$title .= " (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")" if $nextoffset > $offset;
 
-	my $base_template = PList::Template->new("base.tmpl");
+	my $base_template = $index->template("base.tmpl");
 	my $page_template;
 
 	if ( $action eq "search") {
-		$page_template = PList::Template->new("searchrespage.tmpl");
+		$page_template = $index->template("searchrespage.tmpl");
 		if ( length $str ) {
 			$page_template->param(STR => $str);
 		} else {
@@ -1055,7 +1055,7 @@ if ( $action eq "get-bin" ) {
 	}
 
 	if ( $action eq "emails" ) {
-		$page_template = PList::Template->new("emailspage.tmpl");
+		$page_template = $index->template("emailspage.tmpl");
 		$page_template->param(TREESURL => gen_url(action => "trees", id => $id, path => $path));
 		$page_template->param(ROOTSURL => gen_url(action => "roots", id => $id, path => $path));
 	}
