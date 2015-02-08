@@ -421,6 +421,7 @@ if ( not $mod or not $command ) {
 
 		my %args;
 		$args{html_output} = 0 if ( $command eq "gen-txt" );
+		$args{templatedir} = $ENV{PLIST_TEMPLATE_DIR};
 
 		my $output = PList::Email::View::to_str($pemail, %args);
 		die "Cannot generate output\n" unless $output;
@@ -494,6 +495,7 @@ if ( not $mod or not $command ) {
 
 		my %args;
 		$args{html_output} = 0 if ( $command eq "gen-txt" );
+		$args{templatedir} = $ENV{PLIST_TEMPLATE_DIR};
 
 		my $str = PList::Email::View::to_str($pemail, %args);
 		die "Cannot generate output\n" unless $str;
@@ -539,7 +541,7 @@ if ( not $mod or not $command ) {
 
 	}
 
-	my $index = PList::Index->new($indexdir);
+	my $index = PList::Index->new($indexdir, $ENV{PLIST_TEMPLATE_DIR});
 	die "Cannot open index dir '$indexdir'\n" unless $index;
 
 	if ( $command eq "view" ) {

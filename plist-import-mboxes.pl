@@ -44,7 +44,7 @@ if ( @ARGV and $ARGV[-1] eq "silent" ) {
 my @mboxes = @ARGV;
 help() unless @mboxes;
 
-my $index = new PList::Index($indexdir);
+my $index = PList::Index->new($indexdir, "$Bin/templates");
 die "Error: Cannot open index dir '$indexdir'\n" unless $index;
 
 $index = undef;

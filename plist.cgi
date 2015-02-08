@@ -245,7 +245,7 @@ if ( not $indexdir ) {
 
 }
 
-my $index = PList::Index->new("$ENV{PLIST_INDEXES_DIR}/$indexdir");
+my $index = PList::Index->new("$ENV{PLIST_INDEXES_DIR}/$indexdir", $ENV{PLIST_TEMPLATE_DIR});
 error("Archive $indexdir does not exist") unless $index;
 
 # Support for mhonarc urls

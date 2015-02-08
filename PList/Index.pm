@@ -64,9 +64,9 @@ require DBD::mysql;
 # id, emailid(emails), addressid(address), type
 # NOTE: type is: 0 - from, 1 - to, 2 - cc
 
-sub new($$) {
+sub new($$$) {
 
-	my ($class, $dir) = @_;
+	my ($class, $dir, $defaulttemplatedir) = @_;
 
 	my $fh;
 	if ( not open($fh, "<", $dir . "/config") ) {
@@ -97,9 +97,8 @@ sub new($$) {
 		return undef;
 	}
 
-	my $templatedir = $config->{templatedir};
-	if ( $templatedir and -e $templatedir ) {
-		$ENV{PLIST_TEMPLATE_DIR} = $templatedir;
+	if ( not defined $config->{templatedir} or not -e $config->{templatedir} ) {
+		$config->{templatedir} = $defaulttemplatedir;
 	}
 
 	my $priv = {
