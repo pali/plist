@@ -1544,6 +1544,8 @@ sub db_tree($$;$$$$) {
 	$output0{$_} = { map { $_ => 1 } @{$graph0{$_}} } foreach keys %graph0;
 	$output1{$_} = { map { $_ => 1 } @{$graph1{$_}} } foreach keys %graph1;
 
+	my @processed;
+
 	# Modified topological sort, but from bottom of graph
 	while ( %output0 or %output1 ) {
 
@@ -1575,6 +1577,8 @@ sub db_tree($$;$$$$) {
 			}
 		}
 
+		push(@processed, $id1);
+
 		# It should be zero, if not loop detected and all edges from this vertex will be cut
 		delete $output0{$id1};
 		delete $output1{$id1};
@@ -1597,6 +1601,30 @@ sub db_tree($$;$$$$) {
 				if ( ( not exists $dates{$id1} ) or ( $desc and $dates{$id1} < $emails{$id2}->{date} ) or ( not $desc and $dates{$id1} > $emails{$id2}->{date} ) ) {
 					$dates{$id1} = $emails{$id2}->{date};
 				}
+			}
+		}
+
+	}
+
+	# Heuristic for problematic emails without In-Reply-To or References headers
+	# If some son of problematic email has In-Reply-To or References header
+	# use it also for that problematic email, but only if email is not older
+	foreach ( @processed ) {
+		my $id1 = $_;
+		next if $emails{$id1}->{implicit};
+		next unless defined $emails{$id1}->{date};
+		foreach ( @{$graph0{$id1}}, @{$graph1{$id1}} ) {
+			foreach ( @{$graphr0{$_}}, @{$graphr1{$_}} ) {
+				my $id2 = $_;
+				next if $id1 == $id2;
+				next if exists $treer{$id2};
+				next if $emails{$id2}->{implicit};
+				next unless defined $emails{$id2}->{date};
+				next if $emails{$id2}->{date} < $emails{$id1}->{date};
+				# TODO: add implicit email between $id1 and $id2
+				next if djs_find(\%djs_parent, \%djs_size, $id1) == djs_find(\%djs_parent, \%djs_size, $id2);
+				djs_merge(\%djs_parent, \%djs_size, $id1, $id2);
+				$treer{$id2} = $id1;
 			}
 		}
 
