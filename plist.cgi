@@ -28,6 +28,7 @@ use PList::Template;
 
 use CGI::Session;
 use CGI::Simple;
+use CGI::Simple::Util;
 use Date::Format;
 use Encode qw(decode_utf8 encode_utf8);
 use MIME::Base64;
@@ -612,6 +613,57 @@ if ( $action eq "get-bin" ) {
 	print $q->header(-cookie => $cookie, -type => "application/octet-stream", -attachment => "$id.bin", -charset => "");
 	binmode(\*STDOUT, ":raw");
 	PList::Email::Binary::to_fh($pemail, \*STDOUT);
+
+} elsif ( $action eq "reply" ) {
+
+	error("Param id was not specified") unless $id;
+
+	my $all = 0;
+	if ( defined $path and length $path ) {
+		if ( $path eq "all" ) {
+			$all = 1;
+		} elsif ( $path eq "to" ) {
+			$all = 0;
+		} else {
+			error("Unknown reply type $path");
+		}
+	}
+
+	my $pemail = $index->email($id);
+	error("Email with id $id does not exist in archive $indexdir") unless $pemail;
+
+	my @to;
+	my @cc;
+
+	push(@to, map { $_ =~ s/ .*//; $_ } @{$pemail->header("0")->{to}});
+
+	if ( $all ) {
+		push(@to, map { $_ =~ s/ .*//; $_ } @{$pemail->header("0")->{from}});
+		push(@cc, map { $_ =~ s/ .*//; $_ } @{$pemail->header("0")->{cc}});
+	}
+
+	my $subject = PList::Index::normalize_subject($pemail->header("0")->{subject});
+	my $reply = $pemail->header("0")->{id};
+
+	my @references;
+	my %seen;
+	foreach ( @{$pemail->header("0")->{reply}}, @{$pemail->header("0")->{references}} ) {
+		next if defined $seen{$_};
+		$seen{$_} = 1;
+		push(@references, $_);
+	}
+
+	my $url = "mailto:";
+
+	$url .= "&To=" . escape($_) foreach sort keys { map { $_ => 1 } @to };
+	$url .= "&Cc=" . escape($_) foreach sort keys { map { $_ => 1 } @cc };
+	$url .= "&Subject=" . CGI::Simple::Util::escape("Re: $subject") if $subject; # NOTE: CGI::Simple::Util::escape does not replace spaces with '+'
+	$url .= "&In-Reply-To=" . escape("<$reply>") if $reply;
+	$url .= "&References=" . escape("<$_>") foreach @references;
+
+	$url =~ s/^mailto:&/mailto:?/;
+
+	print $q->redirect($url);
 
 } elsif ( $action eq "download" ) {
 
