@@ -85,6 +85,8 @@ my $address_template_default = "<a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAILU
 
 my $subject_template_default = "<TMPL_VAR ESCAPE=HTML NAME=SUBJECT>";
 
+my $reply_template_default = "";
+
 my $download_template_default = "";
 
 my $imagepreview_template_default = "";
@@ -155,11 +157,11 @@ sub date($$) {
 
 }
 
-sub part_to_str($$$$);
+sub part_to_str($$$$$);
 
-sub part_to_str($$$$) {
+sub part_to_str($$$$$) {
 
-	my ($pemail, $partid, $nodes, $config) = @_;
+	my ($pemail, $partid, $isroot, $nodes, $config) = @_;
 
 	my $id = $pemail->id();
 	my $part = $pemail->part($partid);
@@ -189,11 +191,11 @@ sub part_to_str($$$$) {
 		}
 
 		if ( ( $html_policy == 4 and $html_i ) or ( $html_policy == 3 and $html_i and not $plain_i ) ) {
-			return part_to_str($pemail, $html_i, $nodes, $config);
+			return part_to_str($pemail, $html_i, 0, $nodes, $config);
 		} elsif ( ( $html_policy == 2 and $plain_h_i ) or ( $html_policy == 1 and $plain_h_i and not $plain_i ) ) {
-			return part_to_str($pemail, $plain_h_i, $nodes,$config);
+			return part_to_str($pemail, $plain_h_i, 0, $nodes, $config);
 		} elsif ( $plain_i ) {
-			return part_to_str($pemail, $plain_i, $nodes, $config);
+			return part_to_str($pemail, $plain_i, 0, $nodes, $config);
 		} else {
 			my $template = PList::Template->new(${$config}{view_template}, ${$config}{templatedir});
 			$template->param(ID => $id);
@@ -230,6 +232,11 @@ sub part_to_str($$$$) {
 				$message_template->param(CC => addressees_data($header->{cc}, $config));
 				$message_template->param(DATE => date($header->{date}, $config));
 				$message_template->param(SUBJECT => $subject_template->output());
+				if ( $isroot ) {
+					my $reply_template = PList::Template->new(${$config}{reply_template}, ${$config}{templatedir});
+					$reply_template->param(ID => $id);
+					$message_template->param(REPLY => $reply_template->output());
+				}
 				$view_template->param(ID => $id);
 				$view_template->param(PART => $partid);
 				$view_template->param(BODY => $message_template->output());
@@ -249,7 +256,7 @@ sub part_to_str($$$$) {
 			}
 
 			foreach (@next_parts) {
-				my %hash = (PART => part_to_str($pemail, $_, $nodes, $config));
+				my %hash = (PART => part_to_str($pemail, $_, 0, $nodes, $config));
 				push(@data, \%hash);
 			}
 
@@ -375,6 +382,7 @@ sub part_to_str($$$$) {
 # style_template
 # address_template
 # subject_template
+# reply_template
 # download_template
 # imagepreview_template
 # message_template
@@ -405,6 +413,7 @@ sub to_str($;%) {
 		$config{style_template} = "style.tmpl";
 		$config{address_template} = "address.tmpl";
 		$config{subject_template} = "subject.tmpl";
+		$config{reply_template} = "reply.tmpl";
 		$config{download_template} = "download.tmpl";
 		$config{imagepreview_template} = "imagepreview.tmpl";
 		$config{message_template} = "message.tmpl";
@@ -425,6 +434,7 @@ sub to_str($;%) {
 	$config{style_template} = \$style_template_default unless defined $config{style_template} and defined $config{templatedir};
 	$config{address_template} = \$address_template_default unless defined $config{address_template} and defined $config{templatedir};
 	$config{subject_template} = \$subject_template_default unless defined $config{subject_template} and defined $config{templatedir};
+	$config{reply_template} = \$reply_template_default unless defined $config{reply_template} and defined $config{templatedir};
 	$config{download_template} = \$download_template_default unless defined $config{download_template} and defined $config{templatedir};
 	$config{imagepreview_template} = \$imagepreview_template_default unless defined $config{imagepreview_template} and defined $config{templatedir};
 	$config{message_template} = \$message_template_default unless defined $config{message_template} and defined $config{templatedir};
@@ -465,7 +475,7 @@ sub to_str($;%) {
 	my $style = $style_template->output();
 
 	my $title = $pemail->header("0")->{subject};
-	my $body = part_to_str($pemail, "0", \%nodes, \%config);
+	my $body = part_to_str($pemail, "0", 1, \%nodes, \%config);
 
 	my $base_template = PList::Template->new($config{base_template}, $config{templatedir});
 	$base_template->param(STYLE => $style);
