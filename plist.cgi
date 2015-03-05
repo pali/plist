@@ -647,7 +647,8 @@ if ( $action eq "get-bin" ) {
 
 	my @references;
 	my %seen;
-	foreach ( @{$pemail->header("0")->{reply}}, @{$pemail->header("0")->{references}} ) {
+	foreach ( $reply, @{$pemail->header("0")->{reply}}, @{$pemail->header("0")->{references}} ) {
+		next unless defined $_ and length $_;
 		next if defined $seen{$_};
 		$seen{$_} = 1;
 		push(@references, $_);
