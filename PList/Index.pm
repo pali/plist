@@ -1552,7 +1552,7 @@ sub db_tree($$;$$$$) {
 		my @keys0;
 		my @keys1;
 
-		foreach ( keys %output0, keys %output1 ) {
+		foreach ( reverse sort keys %output0, reverse sort keys %output1 ) {
 			push(@keys0, $_) unless $emails{$_}->{implicit};
 			push(@keys1, $_) if $emails{$_}->{implicit};
 		}
@@ -1571,10 +1571,10 @@ sub db_tree($$;$$$$) {
 				$c1 = $c2;
 				next;
 			}
-			if ( $c1 > $c2 ) {
-				$id1 = $_;
-				$c1 = $c2;
-			}
+			next if $c1 < $c2;
+			next if $c1 == $c2 and defined $emails{$id1} and defined $emails{$_} and $emails{$_}->{date} < $emails{$id1}->{date};
+			$id1 = $_;
+			$c1 = $c2;
 		}
 
 		push(@processed, $id1);
