@@ -568,6 +568,7 @@ sub read_email($$$;$) {
 	my @from = addresses($email, "From");
 	my @to = addresses($email, "To");
 	my @cc = addresses($email, "Cc");
+	my @replyto = addresses($email, "Reply-To");
 	my @reply = reply($email);
 	my @references = references($email);
 
@@ -576,6 +577,7 @@ sub read_email($$$;$) {
 		from => \@from,
 		to => \@to,
 		cc => \@cc,
+		replyto => \@replyto,
 		reply => \@reply,
 		references => \@references,
 		id => messageid($email),
