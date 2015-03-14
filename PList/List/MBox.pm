@@ -26,9 +26,9 @@ use PList::Email::MIME;
 
 use Email::Folder::Mbox 0.859;
 
-sub new($$) {
+sub new($$;$) {
 
-	my ($class, $arg) = @_;
+	my ($class, $arg, $unescape) = @_;
 
 	my $is_fh = 0;
 	{
@@ -49,8 +49,10 @@ sub new($$) {
 	# NOTE: When jwz_From_ is set to 1 message separator is string "^From "
 	push(@args, jwz_From_ => 1);
 
-	# NOTE: When unescape is set to 1 every "^>+From " line is unescaped
-	push(@args, unescape => 1);
+	if ( $unescape ) {
+		# NOTE: When unescape is set to 1 every "^>+From " line is unescaped
+		push(@args, unescape => 1);
+	}
 
 	my $mbox = Email::Folder::Mbox->new(@args);
 	return undef unless ref $mbox;
