@@ -586,14 +586,14 @@ sub gen_tree($$$$$$) {
 			}
 		}
 
-		my $e = $emails->{$tid};
+		my $e = $tid >= 0 ? $emails->{$tid} : undef;
 
-		my $mid = $e->{messageid};
-		my $subject = $e->{subject};
-		my $name = $e->{name};
-		my $email = $e->{email};
-		my $implicit = $e->{implicit};
-		my $date = format_date($e->{date});
+		my $mid = $e ? $e->{messageid} : undef;
+		my $subject = $e ? $e->{subject} : undef;
+		my $name = $e ? $e->{name} : undef;
+		my $email = $e ? $e->{email} : undef;
+		my $implicit = $e ? $e->{implicit} : 1;
+		my $date = format_date($e ? $e->{date} : undef);
 
 		$subject = "unknown" if not $subject or $implicit;
 
