@@ -159,7 +159,7 @@ sub read_email($) {
 	my $header = {};
 	my $last = "part";
 
-	my %attrs = qw(Part: part From: from To: to Cc: cc Id: id Reply: reply References: references Date: date Subject: subject);
+	my %attrs = qw(Part: part From: from To: to Cc: cc ReplyTo: replyto Id: id Reply: reply References: references Date: date Subject: subject);
 	my %scalars = qw(part 1 id 1 date 1 subject 1);
 
 	while ( $line = <$fh> ) {
@@ -329,6 +329,10 @@ sub to_fh($$) {
 		if ( $header->{cc} and @{$header->{cc}} ) {
 			print $fh "Cc:\n";
 			print $fh " $_\n" foreach (@{$header->{cc}});
+		}
+		if ( $header->{replyto} and @{$header->{replyto}} ) {
+			print $fh "ReplyTo:\n";
+			print $fh " $_\n" foreach (@{$header->{replyto}});
 		}
 		if ( $header->{reply} and @{$header->{reply}} ) {
 			print $fh "Reply:\n";
