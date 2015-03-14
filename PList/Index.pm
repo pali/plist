@@ -1544,6 +1544,8 @@ sub db_tree($$;$$$$) {
 	$output0{$_} = { map { $_ => 1 } @{$graph0{$_}} } foreach keys %graph0;
 	$output1{$_} = { map { $_ => 1 } @{$graph1{$_}} } foreach keys %graph1;
 
+	my $unkid = -1; # Next free negative id for unknown email
+
 	my @processed;
 
 	# Modified topological sort, but from bottom of graph
@@ -1604,6 +1606,10 @@ sub db_tree($$;$$$$) {
 			}
 		}
 
+		# TODO: change algorithm
+		# * always use in-reply-to edge if there is only one (even if is implicit)
+		# * when using references edge adds "unknown" vertex (with $unkid)
+
 	}
 
 	# Heuristic for problematic emails without In-Reply-To or References headers
@@ -1621,10 +1627,11 @@ sub db_tree($$;$$$$) {
 				next if $emails{$id2}->{implicit};
 				next unless defined $emails{$id2}->{date};
 				next if $emails{$id2}->{date} < $emails{$id1}->{date};
-				# TODO: add implicit email between $id1 and $id2
 				next if djs_find(\%djs_parent, \%djs_size, $id1) == djs_find(\%djs_parent, \%djs_size, $id2);
 				djs_merge(\%djs_parent, \%djs_size, $id1, $id2);
-				$treer{$id2} = $id1;
+				$treer{$id2} = $unkid;
+				$treer{$unkid} = $id1;
+				--$unkid;
 			}
 		}
 
@@ -1690,6 +1697,12 @@ sub db_tree($$;$$$$) {
 		push(@{$tree{$id1}}, $id2);
 		$dates{$id2} = $emails{$id2}->{date} if not exists $dates{$id2} and defined $emails{$id2}->{date};
 		$dates{$id2} = 0 unless defined $dates{$id2};
+	}
+	for ( my $id2 = -1; $id2 > $unkid; --$id2 ) {
+		my $id1 = $treer{$id2};
+		$tree{$id1} = [] unless $tree{$id1};
+		push(@{$tree{$id1}}, $id2);
+		$dates{$id2} = 0;
 	}
 
 	foreach ( keys %tree ) {
