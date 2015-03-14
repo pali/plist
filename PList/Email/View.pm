@@ -95,6 +95,7 @@ my $message_template_default = <<END;
 <TMPL_IF NAME=FROM><b>From:</b><TMPL_LOOP NAME=FROM> <TMPL_VAR NAME=BODY><TMPL_UNLESS NAME=__last__>,</TMPL_UNLESS></TMPL_LOOP><br>
 </TMPL_IF><TMPL_IF NAME=TO><b>To:</b><TMPL_LOOP NAME=TO> <TMPL_VAR NAME=BODY><TMPL_UNLESS NAME=__last__>,</TMPL_UNLESS></TMPL_LOOP><br>
 </TMPL_IF><TMPL_IF NAME=CC><b>Cc:</b><TMPL_LOOP NAME=CC> <TMPL_VAR NAME=BODY><TMPL_UNLESS NAME=__last__>,</TMPL_UNLESS></TMPL_LOOP><br>
+</TMPL_IF><TMPL_IF NAME=REPLYTO><b>Reply to:</b><TMPL_LOOP NAME=REPLYTO> <TMPL_VAR NAME=BODY><TMPL_UNLESS NAME=__last__>,</TMPL_UNLESS></TMPL_LOOP><br>
 </TMPL_IF><TMPL_IF NAME=DATE><b>Date:</b> <TMPL_VAR ESCAPE=HTML NAME=DATE><br>
 </TMPL_IF><TMPL_IF NAME=SUBJECT><b>Subject:</b> <TMPL_VAR NAME=SUBJECT><br>
 </TMPL_IF><TMPL_IF NAME=ID><b>Message-Id:</b> <TMPL_VAR ESCAPE=HTML NAME=ID><br>
@@ -230,6 +231,7 @@ sub part_to_str($$$$$) {
 				$message_template->param(FROM => addressees_data($header->{from}, $config));
 				$message_template->param(TO => addressees_data($header->{to}, $config));
 				$message_template->param(CC => addressees_data($header->{cc}, $config));
+				$message_template->param(REPLYTO => addressees_data($header->{replyto}, $config));
 				$message_template->param(DATE => date($header->{date}, $config));
 				$message_template->param(SUBJECT => $subject_template->output());
 				if ( $isroot ) {
