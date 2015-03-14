@@ -46,7 +46,7 @@ sub help() {
 	print "index config <dir> <key> <value>\n";
 #	print "index regenerate <dir>\n";
 	print "index add-list <dir> [<list>] [silent]\n";
-	print "index add-mbox <dir> [<mbox>] [silent]\n";
+	print "index add-mbox <dir> [<mbox>] [silent] [unescape]\n";
 	print "index add-mail <dir> [<mail>]\n";
 	print "index get-bin <dir> <id> [<bin>]\n";
 	print "index get-part <dir> <id> <part> [<file>]\n";
@@ -58,7 +58,7 @@ sub help() {
 	print "index setspam <dir> <id> <true|false>\n";
 	print "index pregen <dir> [<id>]\n";
 	print "list view <list>\n";
-	print "list add-mbox <list> [<mbox>]\n";
+	print "list add-mbox <list> [<mbox>] [unescape]\n";
 	print "list add-bin <list> [<bin>]\n";
 	print "list get-bin <list> <offset> [<bin>]\n";
 	print "list get-part <list> <offset> <part> [<file>]\n";
@@ -73,13 +73,13 @@ sub help() {
 
 }
 
-sub open_mbox($) {
+sub open_mbox($$) {
 
-	my ($filename) = @_;
+	my ($filename, $unescape) = @_;
 	if ( not $filename ) {
 		$filename = \*STDIN;
 	}
-	my $list = PList::List::MBox->new($filename);
+	my $list = PList::List::MBox->new($filename, $unescape);
 	die "Cannot open mbox file $filename\n" unless $list;
 	return $list;
 
@@ -329,10 +329,12 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "add-mbox" ) {
 
 		my $mboxfile = shift @ARGV;
+		my $unescape = shift @ARGV;
 
 		help() if @ARGV;
+		help() if defined $unescape and $unescape ne "unescape";
 
-		my $mbox = open_mbox($mboxfile);
+		my $mbox = open_mbox($mboxfile, $unescape);
 		my $list = open_list($listfile, 1);
 
 		$mboxfile = "STDIN" unless $mboxfile;
@@ -600,9 +602,17 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "add-mbox" ) {
 
 		my $mboxfile = shift @ARGV;
-		my $silent = shift @ARGV;
+		my $arg1 = shift @ARGV || "";
+		my $arg2 = shift @ARGV || "";
+
 		help() if @ARGV;
-		my $mbox = open_mbox($mboxfile);
+		help() if length $arg1 and $arg1 ne "silent" and $arg1 ne "unescape";
+		help() if length $arg2 and $arg2 ne "silent" and $arg2 ne "unescape";
+
+		my $silent = ( $arg1 eq "silent" or $arg2 eq "silent" );
+		my $unescape = ( $arg1 eq "unescape" or $arg2 eq "unespace" );
+
+		my $mbox = open_mbox($mboxfile, $unescape);
 		$mboxfile = "STDIN" unless $mboxfile;
 
 		print "Adding mbox file '$mboxfile' to index dir '$indexdir'...\n";
