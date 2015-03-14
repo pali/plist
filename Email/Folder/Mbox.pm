@@ -23,7 +23,7 @@ sub _open_it {
     unless ($file eq "FH" and $fh) {
         # sanity checking
         croak "$file does not exist" unless (-e $file);
-        croak "$file is not a file"  unless (-f $file);
+        croak "$file is a directory" if (-d $file);
 
         local $/ = $self->{eol};
         $fh = $self->_get_fh($file);

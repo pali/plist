@@ -1,5 +1,5 @@
 --- Mbox.pm	2014-01-07 16:54:21.000000000 +0100
-+++ Mbox.pm	2015-01-31 23:00:37.921645262 +0100
++++ Mbox.pm	2015-03-14 18:45:36.344949568 +0100
 @@ -2,7 +2,7 @@ use strict;
  use warnings;
  package Email::Folder::Mbox;
@@ -21,7 +21,7 @@
 +    unless ($file eq "FH" and $fh) {
 +        # sanity checking
 +        croak "$file does not exist" unless (-e $file);
-+        croak "$file is not a file"  unless (-f $file);
++        croak "$file is a directory" if (-d $file);
  
 -    local $/ = $self->{eol};
 -    my $fh = $self->_get_fh($file);
