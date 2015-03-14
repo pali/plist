@@ -635,10 +635,17 @@ if ( $action eq "get-bin" ) {
 	my @to;
 	my @cc;
 
-	push(@to, map { $_ =~ s/ .*//; $_ } @{$pemail->header("0")->{to}});
+	if ( exists $pemail->header("0")->{replyto} ) {
+		push(@to, map { $_ =~ s/ .*//; $_ } @{$pemail->header("0")->{replyto}});
+	}
+
+	if ( not $all and not @to ) {
+		push(@to, map { $_ =~ s/ .*//; $_ } @{$pemail->header("0")->{from}});
+	}
 
 	if ( $all ) {
 		push(@to, map { $_ =~ s/ .*//; $_ } @{$pemail->header("0")->{from}});
+		push(@to, map { $_ =~ s/ .*//; $_ } @{$pemail->header("0")->{to}});
 		push(@cc, map { $_ =~ s/ .*//; $_ } @{$pemail->header("0")->{cc}});
 	}
 
