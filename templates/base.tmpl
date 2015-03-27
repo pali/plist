@@ -4,7 +4,9 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<TMPL_INCLUDE NAME="style.tmpl"><TMPL_IF NAME=TITLE><title><TMPL_VAR ESCAPE=HTML NAME=TITLE></title>
+<style type="text/css">
+<TMPL_INCLUDE NAME="style.tmpl"></style>
+<TMPL_IF NAME=TITLE><title><TMPL_VAR ESCAPE=HTML NAME=TITLE></title>
 </TMPL_IF></head>
 <body>
 <TMPL_UNLESS NAME=NOHEAD><h2><TMPL_VAR ESCAPE=HTML NAME=TITLE></h2>
