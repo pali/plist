@@ -246,6 +246,13 @@ if ( not $indexdir ) {
 
 }
 
+if ( not $action and $indexdir eq "style" ) {
+	my $style_template = PList::Template->new("style.tmpl", $ENV{PLIST_TEMPLATE_DIR});
+	print $q->header(-cookie => $cookie, -type => "text/css", -expires => "+10y");
+	print $style_template->output();
+	exit;
+}
+
 my $index = PList::Index->new("$ENV{PLIST_INDEXES_DIR}/$indexdir", $ENV{PLIST_TEMPLATE_DIR});
 error("Archive $indexdir does not exist") unless $index;
 
@@ -484,6 +491,13 @@ if ( not $action ) {
 	print $base_template->output();
 	exit;
 
+}
+
+if ( not $id and $action eq "style" ) {
+	my $style_template = $index->template("style.tmpl");
+	print $q->header(-cookie => $cookie, -type => "text/css", -expires => "+10y");
+	print $style_template->output();
+	exit;
 }
 
 sub format_date($) {
