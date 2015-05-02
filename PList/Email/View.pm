@@ -51,7 +51,10 @@ my $base_template_default = <<END;
 <html>
 <head>
 <meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
-<TMPL_IF NAME=STYLE><TMPL_VAR NAME=STYLE></TMPL_IF><TMPL_IF NAME=TITLE><title><TMPL_VAR ESCAPE=HTML NAME=TITLE></title>
+<TMPL_IF NAME=STYLEURL><link rel='stylesheet' type='text/css' href='<TMPL_VAR NAME=STYLEURL>'>
+<TMPL_ELSE><TMPL_IF NAME=STYLE><style type='text/css'>
+<TMPL_VAR NAME=STYLE></style>
+</TMPL_IF></TMPL_IF><TMPL_IF NAME=TITLE><title><TMPL_VAR ESCAPE=HTML NAME=TITLE></title>
 </TMPL_IF></head>
 <body>
 <TMPL_IF NAME=BODY><TMPL_VAR NAME=BODY></TMPL_IF></body>
@@ -59,7 +62,6 @@ my $base_template_default = <<END;
 END
 
 my $style_template_default = <<END;
-<style type='text/css'>
 a {
 	text-decoration: none;
 }
@@ -78,7 +80,6 @@ span.plaintextmonospace {
 	white-space: pre-wrap;
 	font-family: monospace;
 }
-</style>
 END
 
 my $address_template_default = "<a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAILURL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
@@ -376,6 +377,7 @@ sub part_to_str($$$$$) {
 # plain_monospace always(2) detect(1) never(0)
 # time_zone local
 # date_format "%a, %d %b %Y %T %z"
+# style_url
 # enabled_mime_types
 # disabled_mime_types application/pgp-signature
 # templatedir
@@ -473,14 +475,19 @@ sub to_str($;%) {
 
 	}
 
-	my $style_template = PList::Template->new($config{style_template}, $config{templatedir});
-	my $style = $style_template->output();
-
 	my $title = $pemail->header("0")->{subject};
 	my $body = part_to_str($pemail, "0", 1, \%nodes, \%config);
 
 	my $base_template = PList::Template->new($config{base_template}, $config{templatedir});
-	$base_template->param(STYLE => $style);
+
+	if (defined $config{style_url}) {
+		$base_template->param(STYLEURL => $config{style_url});
+	} else {
+		my $style_template = PList::Template->new($config{style_template}, $config{templatedir});
+		my $style = $style_template->output();
+		$base_template->param(STYLE => $style);
+	}
+
 	$base_template->param(TITLE => $title);
 	$base_template->param(BODY => $body);
 	return \$base_template->output();
