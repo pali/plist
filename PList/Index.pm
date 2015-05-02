@@ -1574,7 +1574,7 @@ sub db_tree($$;$$$$) {
 				next;
 			}
 			next if $c1 < $c2;
-			next if $c1 == $c2 and defined $emails{$id1} and defined $emails{$_} and $emails{$_}->{date} < $emails{$id1}->{date};
+			next if $c1 == $c2 and defined $emails{$id1}->{date} and defined $emails{$_}->{date} and $emails{$_}->{date} < $emails{$id1}->{date};
 			$id1 = $_;
 			$c1 = $c2;
 		}
