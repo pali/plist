@@ -633,12 +633,12 @@ sub add_one_email($$$$) {
 		return 0;
 	};
 
-	if ( $ret and $ret->{$id} and not $ret->{$id}->{implicit} ) {
+	if ( $ret and exists $ret->{$id} and not $ret->{$id}->{implicit} ) {
 		$@ = "Email already in database";
 		return 0;
 	}
 
-	if ( $ret and $ret->{$id} ) {
+	if ( $ret and exists $ret->{$id} ) {
 		$rid = $ret->{$id}->{id};
 	}
 
@@ -2126,7 +2126,7 @@ sub delete($$) {
 		return 0;
 	};
 
-	if ( not $ret or not $ret->{$id} ) {
+	if ( not $ret or not exists $ret->{$id} ) {
 		warn "Email with id '$id' is not in database\n";
 		close($fh);
 		return 0;
@@ -2152,7 +2152,7 @@ sub delete($$) {
 		return 0;
 	};
 
-	if ( $ret and $ret->{$rid} ) {
+	if ( $ret and exists $ret->{$rid} ) {
 		$treeid = $ret->{$rid}->{id};
 		$treecount = $ret->{$rid}->{count};
 	}
