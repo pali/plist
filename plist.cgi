@@ -238,6 +238,7 @@ if ( not $indexdir ) {
 	$listpage_template->param(LIST => \@list);
 
 	$base_template->param(TITLE => "List of archives");
+	$base_template->param(STYLEURL => gen_url(indexdir => "style"));
 	$base_template->param(BODY => $listpage_template->output());
 
 	print $q->header(-cookie => $cookie);
@@ -485,6 +486,7 @@ if ( not $action ) {
 
 	$base_template->param(LISTURL => gen_url(indexdir => ""));
 	$base_template->param(TITLE => "Archive $indexdir");
+	$base_template->param(STYLEURL => gen_url(action => "style"));
 	$base_template->param(BODY => $infopage_template->output());
 
 	print $q->header(-cookie => $cookie);
@@ -729,6 +731,7 @@ if ( $action eq "get-bin" ) {
 	$base_template->param(ARCHIVEURL => gen_url(action => ""));
 	$base_template->param(LISTURL => gen_url(indexdir => ""));
 	$base_template->param(TITLE => "Archive $indexdir - Tree for email $id");
+	$base_template->param(STYLEURL => gen_url(action => "style"));
 	$base_template->param(BODY => $treepage_template->output());
 
 	print $q->header(-cookie => $cookie);
@@ -743,7 +746,7 @@ if ( $action eq "get-bin" ) {
 
 	error("Param id was not specified") unless $id;
 
-	my %config = (cgi_templates => 1);
+	my %config = (cgi_templates => 1, style_url => gen_url(action => "style"));
 
 	$config{html_policy} = $policy if defined $policy;
 	$config{plain_monospace} = $monospace if defined $monospace;
@@ -839,6 +842,7 @@ if ( $action eq "get-bin" ) {
 	$base_template->param(ARCHIVE => $indexdir);
 	$base_template->param(ARCHIVEURL => gen_url(action => ""));
 	$base_template->param(LISTURL => gen_url(indexdir => ""));
+	$base_template->param(STYLEURL => gen_url(action => "style"));
 	$base_template->param(BODY => $browsepage_template->output());
 
 	print $q->header(-cookie => $cookie);
@@ -909,6 +913,7 @@ if ( $action eq "get-bin" ) {
 	$base_template->param(ARCHIVEURL => gen_url(action => ""));
 	$base_template->param(LISTURL => gen_url(indexdir => ""));
 	$base_template->param(TITLE => $title);
+	$base_template->param(STYLEURL => gen_url(action => "style"));
 	$base_template->param(BODY => $rootspage_template->output());
 
 	print $q->header(-cookie => $cookie);
@@ -995,6 +1000,7 @@ if ( $action eq "get-bin" ) {
 	$base_template->param(ARCHIVEURL => gen_url(action => ""));
 	$base_template->param(LISTURL => gen_url(indexdir => ""));
 	$base_template->param(TITLE => $title);
+	$base_template->param(STYLEURL => gen_url(action => "style"));
 	$base_template->param(BODY => $treespage_template->output());
 
 	print $q->header(-cookie => $cookie);
@@ -1073,6 +1079,7 @@ if ( $action eq "get-bin" ) {
 		$base_template->param(ARCHIVEURL => gen_url(action => ""));
 		$base_template->param(LISTURL => gen_url(indexdir => ""));
 		$base_template->param(TITLE => "Archive $indexdir - Search");
+		$base_template->param(STYLEURL => gen_url(action => "style"));
 		$base_template->param(BODY => $searchpage_template->output());
 
 		print $q->header(-cookie => $cookie);
@@ -1154,6 +1161,7 @@ if ( $action eq "get-bin" ) {
 	$base_template->param(ARCHIVEURL => gen_url(action => ""));
 	$base_template->param(LISTURL => gen_url(indexdir => ""));
 	$base_template->param(TITLE => $title);
+	$base_template->param(STYLEURL => gen_url(action => "style"));
 	$base_template->param(BODY => $page_template->output());
 
 	print $q->header(-cookie => $cookie);
