@@ -1943,21 +1943,27 @@ sub email($$;$) {
 	$statement = qq(
 		SELECT messageid, list, offset
 			FROM emails
-			WHERE implicit = 0 AND messageid = ?
+			WHERE implicit = 0 AND ( messageid = ? OR id = ? )
 			$withspam
-			LIMIT 1
+			LIMIT 2
 		;
 	);
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($id);
+		$sth->execute($id, $id);
 		$ret = $sth->fetchall_hashref("messageid");
 	} or do {
 		return undef;
 	};
 
-	return undef unless $ret and $ret->{$id};
+	return undef unless $ret;
+
+	if ( not exists $ret->{$id} ) {
+		my @keys = sort keys %{$ret};
+		return undef if scalar @keys == 0;
+		$id = $keys[0];
+	}
 
 	my $listname = $ret->{$id}->{list};
 	my $offset = $ret->{$id}->{offset};
