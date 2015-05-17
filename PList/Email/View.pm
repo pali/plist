@@ -278,7 +278,7 @@ sub part_to_str($$$$$) {
 			# TODO: Make max size of attachment configurable
 			if ( $type eq "attachment" and $part->{size} <= 100000 ) {
 				$preview = 1;
-				if ( $mimetype ne "text/html" and $mimetype =~ /^text\// ) {
+				if ( $mimetype ne "text/html" and ( $mimetype =~ /^text\// or $mimetype =~ /^message\// ) ) {
 					$textpreview = 1;
 				}
 				if ( $mimetype =~ /^image\// ) {
