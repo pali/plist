@@ -76,7 +76,7 @@ sub help() {
 sub open_mbox($$) {
 
 	my ($filename, $unescape) = @_;
-	if ( not $filename ) {
+	if ( not defined $filename or not length $filename ) {
 		$filename = \*STDIN;
 	}
 	my $list = PList::List::MBox->new($filename, $unescape);
@@ -98,7 +98,7 @@ sub open_bin($) {
 
 	my ($filename) = @_;
 	my $pemail;
-	if ( $filename ) {
+	if ( defined $filename and length $filename ) {
 		$pemail = PList::Email::Binary::from_file($filename);
 	} else {
 		$pemail = PList::Email::Binary::from_fh(\*STDIN);
@@ -112,7 +112,7 @@ sub open_input($$) {
 
 	my ($filename, $mode) = @_;
 	my $fh;
-	if ( $filename ) {
+	if ( defined $filename and length $filename ) {
 		if ( not open($fh, "<:mmap" . $mode, $filename) ) {
 			die "Cannot open input file $filename\n";
 		}
@@ -128,7 +128,7 @@ sub open_output($$) {
 
 	my ($filename, $mode) = @_;
 	my $fh;
-	if ( $filename ) {
+	if ( defined $filename and length $filename ) {
 		if ( not open($fh, ">" . $mode, $filename) ) {
 			die "Cannot open output file $filename\n";
 		}
@@ -179,7 +179,7 @@ sub bin_view($) {
 		print "\n";
 	}
 
-	if ( $header->{subject} ) {
+	if ( defined $header->{subject} ) {
 		print "Subject: " . $header->{subject} . "\n";
 	}
 
@@ -233,11 +233,11 @@ sub index_tree_get($$$) {
 		print $fh "Id: $messageid\n";
 		print $fh "From: $from\n";
 
-		if ( $date ) {
+		if ( defined $date ) {
 			print $fh "Date: $date\n";
 		}
 
-		if ( $subject ) {
+		if ( defined $subject ) {
 			print $fh "Subject: $subject\n";
 		}
 
@@ -300,7 +300,7 @@ if ( not $mod or not $command ) {
 } elsif ( $mod eq "list" ) {
 
 	my $listfile = shift @ARGV;
-	help() unless $listfile;
+	help() unless defined $listfile and length $listfile;
 
 	if ( $command eq "view" ) {
 
@@ -372,7 +372,7 @@ if ( not $mod or not $command ) {
 		my $pemail = open_bin($binfile);
 		my $list = open_list($listfile, 1);
 
-		$binfile = "STDIN" unless $binfile;
+		$binfile = "STDIN" unless defined $binfile and length $binfile;
 
 		my $ret = $list->append($pemail);
 		die "Cannot write email from bin file $binfile to list file $listfile\n" unless defined $ret;
@@ -382,7 +382,7 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "get-bin" ) {
 
 		my $offset = shift @ARGV;
-		help() unless defined $offset;
+		help() unless defined $offset and length $offset;
 
 		my $file = shift @ARGV;
 
@@ -394,10 +394,10 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "get-part" ) {
 
 		my $offset = shift @ARGV;
-		help() unless defined $offset;
+		help() unless defined $offset and length $offset;
 
 		my $part = shift @ARGV;
-		help() unless $part;
+		help() unless defined $part and length $part;
 
 		my $file = shift @ARGV;
 
@@ -411,7 +411,7 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "gen-html" or $command eq "gen-txt" ) {
 
 		my $offset = shift @ARGV;
-		help() unless defined $offset;
+		help() unless defined $offset and length $offset;
 
 		my $file = shift @ARGV;
 
@@ -473,7 +473,7 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "get-part" ) {
 
 		my $part = shift @ARGV;
-		help() unless $part;
+		help() unless defined $part and length $part;
 
 		my $binfile = shift @ARGV;
 		my $file = shift @ARGV;
@@ -513,7 +513,7 @@ if ( not $mod or not $command ) {
 } elsif ( $mod eq "index" ) {
 
 	my $indexdir = shift @ARGV;
-	help() unless $indexdir;
+	help() unless defined $indexdir and length $indexdir;
 
 	if ( $command eq "create" ) {
 
@@ -532,8 +532,8 @@ if ( not $mod or not $command ) {
 			}
 		}
 
-		$username = undef unless $username;
-		$password = undef unless $password;
+		$username = undef unless defined $username;
+		$password = undef unless defined $password;
 
 		print "Creating index dir '$indexdir'...\n";
 		die "Failed\n" unless PList::Index::create($indexdir, $driver, $params, $username, $password, %config);
@@ -569,10 +569,10 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "config" ) {
 
 		my $key = shift @ARGV;
-		help() unless $key;
+		help() unless defined $key and length $key;
 
 		my $value = shift @ARGV;
-		help() unless $value;
+		help() unless defined $value and length $value;
 
 		help() if @ARGV;
 
@@ -593,7 +593,7 @@ if ( not $mod or not $command ) {
 		my $silent = shift @ARGV;
 		help() if @ARGV;
 		my $list = open_list($listfile, 0);
-		$listfile = "STDIN" unless $listfile;
+		$listfile = "STDIN" unless defined $listfile and length $listfile;
 
 		print "Adding list file '$listfile' to index dir '$indexdir'...\n";
 		my ($count, $total) = $index->add_list($list, $silent);
@@ -624,7 +624,7 @@ if ( not $mod or not $command ) {
 		my $mailfile = shift @ARGV;
 		help() if @ARGV;
 		my $input = open_input($mailfile, ":raw");
-		$mailfile = "STDIN" unless $mailfile;
+		$mailfile = "STDIN" unless defined $mailfile and length $mailfile;
 
 		my $str;
 
@@ -670,7 +670,7 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "get-bin" or $command eq "get-tree" or $command eq "gen-html" or $command eq "gen-txt" ) {
 
 		my $id = shift @ARGV;
-		help() unless $id;
+		help() unless defined $id and length $id;
 
 		my $mode = ":raw:utf8";
 		my %args;
@@ -698,10 +698,10 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "get-part" ) {
 
 		my $id = shift @ARGV;
-		help() unless $id;
+		help() unless defined $id and length $id;
 
 		my $part = shift @ARGV;
-		help() unless $part;
+		help() unless defined $part and length $id;
 
 		my $file = shift @ARGV;
 		help() if @ARGV;
@@ -713,7 +713,7 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "del" ) {
 
 		my $id = shift @ARGV;
-		help() unless $id;
+		help() unless defined $id and length $id;
 		help() if @ARGV;
 
 		print "Deleting email with $id...\n";
@@ -724,9 +724,10 @@ if ( not $mod or not $command ) {
 	} elsif ( $command eq "setspam" ) {
 
 		my $id = shift @ARGV;
-		help() unless $id;
+		help() unless defined $id and length $id;
+
 		my $val = shift @ARGV;
-		help() unless $val;
+		help() unless defined $val and length $val;
 		help() if @ARGV;
 
 		if ( $val eq "false" ) {
