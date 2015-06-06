@@ -1505,26 +1505,18 @@ sub db_tree($$;$$$$) {
 	my %graph0;
 	my %graphr0;
 
-	$graph0{$_} = [] foreach keys %emails;
-	$graphr0{$_} = [] foreach keys %emails;
-
 	# references
 	my %graph1;
 	my %graphr1;
-
-	$graph1{$_} = [] foreach keys %emails;
-	$graphr1{$_} = [] foreach keys %emails;
 
 	foreach ( @{$graph} ) {
 		my $id1 = $_->{id1};
 		my $id2 = $_->{id2};
 		my $type = $_->{type};
 		if ( $type == 0 ) {
-			return undef unless exists $graph0{$id1} and exists $graphr0{$id2}; # This should not happen, otherwise bug in database
 			push(@{$graph0{$id1}}, $id2);
 			push(@{$graphr0{$id2}}, $id1);
 		} else {
-			return undef unless exists $graph1{$id1} and exists $graphr1{$id2}; # This should not happen, otherwise bug in database
 			push(@{$graph1{$id1}}, $id2);
 			push(@{$graphr1{$id2}}, $id1);
 		}
@@ -1693,14 +1685,12 @@ sub db_tree($$;$$$$) {
 	foreach ( @{$emails} ) {
 		my $id2 = $_->{id};
 		my $id1 = $treer{$id2};
-		$tree{$id1} = [] unless $tree{$id1};
 		push(@{$tree{$id1}}, $id2);
 		$dates{$id2} = $emails{$id2}->{date} if not exists $dates{$id2} and defined $emails{$id2}->{date};
 		$dates{$id2} = 0 unless defined $dates{$id2};
 	}
 	for ( my $id2 = -1; $id2 > $unkid; --$id2 ) {
 		my $id1 = $treer{$id2};
-		$tree{$id1} = [] unless $tree{$id1};
 		push(@{$tree{$id1}}, $id2);
 		$dates{$id2} = 0;
 	}
