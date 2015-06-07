@@ -377,6 +377,9 @@ sub part_to_str($$$$$) {
 # plain_monospace always(2) detect(1) never(0)
 # time_zone local
 # date_format "%a, %d %b %Y %T %z"
+# archive
+# archive_url
+# list_url
 # style_url
 # enabled_mime_types
 # disabled_mime_types application/pgp-signature
@@ -487,6 +490,10 @@ sub to_str($;%) {
 		my $style = $style_template->output();
 		$base_template->param(STYLE => $style);
 	}
+
+	$base_template->param(ARCHIVE => $config{archive}) if defined $config{archive};
+	$base_template->param(ARCHIVEURL => $config{archive_url}) if defined $config{archive_url};
+	$base_template->param(LISTURL => $config{list_url}) if defined $config{list_url};
 
 	$base_template->param(TITLE => $title);
 	$base_template->param(BODY => $body);
