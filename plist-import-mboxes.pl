@@ -27,18 +27,28 @@ use PList::Index;
 sub help() {
 
 	print "help:\n";
-	print "<dir> <mbox1> [<mbox2> ...] [silent]\n";
+	print "<dir> <mbox1> [<mbox2> ...] [silent] [unescape]\n";
 	exit 1;
 
 }
 
 my $indexdir = shift @ARGV;
-help() unless $indexdir;
+help() unless defined $indexdir and length $indexdir;
 
 my $silent;
-if ( @ARGV and $ARGV[-1] eq "silent" ) {
-	$silent = "silent";
-	pop(@ARGV);
+my $unescape;
+
+for (1..2) {
+	last unless @ARGV;
+	if ( $ARGV[-1] eq "silent" ) {
+		$silent = "silent";
+		pop(@ARGV);
+	} elsif ( $ARGV[-1] eq "unescape" ) {
+		$unescape = "unescape";
+		pop(@ARGV);
+	} else {
+		last;
+	}
 }
 
 my @mboxes = @ARGV;
@@ -72,6 +82,7 @@ foreach my $mbox (@mboxes) {
 		my $script = "$Bin/plist.pl";
 		my @args = ("index", "add-mbox", $indexdir, $mbox);
 		push(@args, $silent) if defined $silent;
+		push(@args, $unescape) if defined $unescape;
 		my $ret = system($script, @args);
 		if ( $ret == 0 ) {
 			$timestamps{$mbox} = $time;
