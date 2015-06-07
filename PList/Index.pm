@@ -2177,16 +2177,16 @@ sub delete($$) {
 			$statement = qq(
 				UPDATE trees
 					SET
-						emailid = (SELECT MIN(id) FROM emails WHERE id != ? AND treeid = ? AND date = (SELECT MIN(date) FROM emails WHERE id != ? AND implicit = 0 AND treeid = ?))
+						emailid = (SELECT MIN(id) FROM emails WHERE id != ? AND treeid = ? AND date = (SELECT MIN(date) FROM emails WHERE id != ? AND implicit = 0 AND treeid = ?)),
 						date = (SELECT MIN(date) FROM emails WHERE id != ? AND implicit = 0 AND treeid = ?),
-						count = (SELECT COUNT(*) FROM emails WHERE treeid = ?),
+						count = (SELECT COUNT(*) FROM emails WHERE treeid = ?)
 					WHERE
 						id = ?
 				;
 			);
 			eval {
 				my $sth = $dbh->prepare_cached($statement);
-				$sth->execute($treeid, $treeid, $treeid, $treeid, $treeid);
+				$sth->execute($treeid, $treeid, $treeid, $treeid, $treeid, $treeid, $treeid, $treeid);
 			} or do {
 				eval { $dbh->rollback(); };
 				return 0;
