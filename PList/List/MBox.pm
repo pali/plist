@@ -33,7 +33,7 @@ sub new($$;$) {
 	my $is_fh = 0;
 	{
 		$@ = "";
-		my $fd = eval { fileno $arg };
+		my $fd = eval { fileno $arg; };
 		$is_fh = !$@ && defined $fd;
 	}
 
