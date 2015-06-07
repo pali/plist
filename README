@@ -80,9 +80,9 @@ HTML::Template
 MIME::Base64
 Time::Piece
 
-Additionally Perl module Email::Folder::Mbox needs to be patched otherwise PList will not work. Till now (2014-08-18) patches are not part of last version of Email::Folder::Mbox (0.858) so PList itself contains patched version of Email::Folder::Mbox (marked as version 0.859).
+Additionally Perl module Email::Folder::Mbox needs to be patched otherwise PList will not work. Till now (2015-06-07) not all patches are part of last version of Email::Folder::Mbox (0.858) so PList itself contains patched version of Email::Folder::Mbox (marked as version 0.859).
 
-Optionally if Perl module Number::Bytes::Human is installed PList will report size of all mail attachment in human readable format (instead default bytes).
+Optionally if Perl module Number::Bytes::Human is installed PList will report size of all email attachments in human readable format (instead default bytes).
 
 To make sure that PList terminal and CGI applications will work correctly all internal PList modules must be installed into the same directory as program applications or into global Perl modules directory. Installation process could be invoked by command:
 
@@ -111,8 +111,8 @@ Index mode is used for access to PList (index) archives.
 | view <dir> |
 Shows information about archive in <dir>
 
-| create <dir> [<driver>] [<params>] [<username>] [<password>] |
-Creates new empty archive with directory name <dir>. Uses SQL driver <driver>, parameters <params>, username <username> and password <password>. If <driver> is not specified SQLite will be used and database will be stored in <dir>.
+| create <dir> [<driver>] [<params>] [<username>] [<password>] [<key>=<value>] [...] |
+Creates new empty archive with directory name <dir>. Uses SQL driver <driver>, parameters <params>, username <username> and password <password>. If <driver> is not specified SQLite will be used and database will be stored in <dir>. Additional list of <key>=<value> options are passed to config command (see below).
 
 | config <dir> <key> <value> |
 Changes configuration value for key of archive <dir>. Possible keys are:
@@ -122,15 +122,17 @@ Changes configuration value for key of archive <dir>. Possible keys are:
  * nomatchsubject - Do not group emails with similar subject to one thread (default 1 = is on)
  * templatedir - Absolute path for directory with HTML templates (overwrite PLIST_TEMPLATE_DIR)
  * autopregen - Automatically pregenerates HTML pages for emails (default 0 = is off)
+ * auth - Comma separated cgi authorization keys (secure, session, httpbasic, script)
+ * authscript - Path to script for cgi authorization (only used when "script" is specified in auth)
 
 | add-list <dir> [<list>] [silent] |
 Adds emails from file <list> into archive <dir>. File <list> must be in internal binary format (see list mode). If file is not specified stdin will be used. When <silent> argument is used no warnings about duplicate emails will be reported.
 
-| add-mbox <dir> [<mbox>] [silent] |
-Same as add-list but input file must be in one of these MBox formats: mboxo, mboxrd, mboxcl, mboxcl2.
+| add-mbox <dir> [<mbox>] [silent] [unescape] |
+Same as add-list but input file must be in one of these MBox formats: mboxo, mboxrd, mboxcl, mboxcl2. For mboxrd format is needed <unescape> option.
 
-| add-mail <dir> [<mail>] |
-Adds one email from file <mail> into archive <dir>. If input file is not specified stdin will be used. Input file must be in text document with RFC2822 email structure.
+| add-email <dir> [<email>] |
+Adds one email from file <email> into archive <dir>. If input file is not specified stdin will be used. Input file must be in text document with RFC2822 email structure. It can contains optional mailbox-like "From " line.
 
 | get-bin <dir> <id> [<bin>] |
 Retrieves email with id <id> from archive <dir> and stores it into the file <bin> in internal binary format (see bin mode). If output file is not specified stdout will be used.
@@ -164,8 +166,11 @@ List mode is used for reading and writing email lists in internal binary format.
 | list view <list> |
 Shows some information (including id, offset and parts) about each email in list file <list>.
 
-| list add-mbox <list> [<mbox>] |
-Adds all emails from MBox file <mbox> into the list file <list>. If input file is not specified then stdin will be used.
+| list add-mbox <list> [<mbox>] [<unescape> |
+Adds all emails from MBox file <mbox> into the list file <list>. If input file is not specified then stdin will be used. For mboxrd format is needed <unescape> option.
+
+| list add-email <list> [<email>] |
+Adds one email from file <email> into the list file <list>. If input file is not specified stdin will be used. Input file must be in text document with RFC2822 email structure. It can contains optional mailbox-like "From " line.
 
 | list add-bin <list> [<bin>] |
 Adds one email from file <bin> in internal binary format (see mode bin) into list file <list>. If input file is not specified stdin will be used.
@@ -187,8 +192,8 @@ Bin mode is used for reading and generating emails in internal binary format.
 | bin view [<bin>] |
 Shows email (including parts) from file <bin> which is in internal binary format. If input file is not specified stdin will be used.
 
-| bin from-mail [<mail>] [<bin>] |
-Converts email from file <mail> into binary file <bin>. Input file must be text document with RFC2822 structure. If output file is not specified stdout will be used. If input file is not specified stdin will be used.
+| bin from-email [<email>] [<bin>] |
+Converts email from file <email> into binary file <bin>. Input file must be text document with RFC2822 structure. It can contains optional mailbox-like "From " line. If output file is not specified stdout will be used. If input file is not specified stdin will be used.
 
 | bin get-part <part> [<bin>] [<file>] |
 Retrieves email part <part> from email <bin> and stores it into the file <file>. If output file is not specified stdout will be used.
@@ -199,7 +204,7 @@ Generates HTML page for email <bin> and stores it into the file <html>. If outpu
 
 *** Terminal application plist-import-mboxes.pl ***
 
-$ plist-import-mboxes.pl <dir> <mbox1> [<mbox2> ...] [silent]
+$ plist-import-mboxes.pl <dir> <mbox1> [<mbox2> ...] [silent] [unescape]
 
 This application adds all emails from all specified MBox files <mbox1>, <mbox2>, ... into archive <dir>. It skips all MBox files which were already processed and its modification dates were not changed since last run. If last argument is "silent" than no warnings about duplicate emails will be reported.
 
@@ -220,10 +225,10 @@ Enable auto pregenerating of HTML pages for all new emails which will be added t
 $ plist.pl index config autopregen 1
 
 Add one email from stdin to archive lkml:
-$ plist.pl index add-mail lkml
+$ plist.pl index add-email lkml
 
-Add one email from file mail.rfc822 to archive test:
-$ plist.pl index add-mail test mail.rfc822
+Add one email from file email.rfc822 to archive test:
+$ plist.pl index add-email test email.rfc822
 
 Add all emails from MBox file archive.mbox to archive lkml (in silent mode - without warnings about duplicate emails):
 $ plist.pl index add-mbox lkml archive.mbox silent
@@ -237,8 +242,8 @@ $ plist.pl index get-bin arch id4247@test file.bin
 Retrieve email part 0/0/1 from email with id id4742@test from archive arch and store into the file file.pdf:
 $ plist.pl index get-part arch id4742@test 0/0/1 file.pdf
 
-Generate HTML page from email with id 201406241205@example.org from archive test and store it into the file mail.html:
-$ plist.pl index gen-html test 201406241205@example.org mail.html
+Generate HTML page from email with id 201406241205@example.org from archive test and store it into the file email.html:
+$ plist.pl index gen-html test 201406241205@example.org email.html
 
 Mark email with id spam@example.org in archive arch as spam:
 $ plist.pl index setspam arch spam@example.org true
@@ -256,7 +261,7 @@ $ plist.pl list get-bin file.list 1024 file.bin
 ** Bin mode **
 
 Generate HTML page from MIME email which is on stdin and write it to stdout:
-$ plist.pl bin from-mail | plist.pl bin gen-html
+$ plist.pl bin from-email | plist.pl bin gen-html
 
 
 ** Import more MBox files **
