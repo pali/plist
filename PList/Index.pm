@@ -2097,9 +2097,11 @@ sub delete($$) {
 	my $rid;
 	my $treeid;
 	my $treecount;
+	my $list;
+	my $offset;
 
 	$statement = qq(
-		SELECT id, messageid
+		SELECT id, messageid, list, offset
 			FROM emails
 			WHERE implicit = 0 AND messageid = ?
 			LIMIT 1
@@ -2123,6 +2125,8 @@ sub delete($$) {
 	}
 
 	$rid = $ret->{$id}->{id};
+	$list = $ret->{$id}->{list};
+	$offset = $ret->{$id}->{offset};
 
 	$statement = qq(
 		SELECT id, count, emailid
@@ -2253,9 +2257,9 @@ sub delete($$) {
 		return 0;
 	};
 
-	# Add message id of email to file deleted
+	# Add message id, list and offset of email to file deleted
 	seek($fh, 0, 2);
-	print $fh "$id\n";
+	print $fh "$id $list $offset\n";
 	close($fh);
 
 }
