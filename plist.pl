@@ -47,7 +47,7 @@ sub help() {
 #	print "index regenerate <dir>\n";
 	print "index add-list <dir> [<list>] [silent]\n";
 	print "index add-mbox <dir> [<mbox>] [silent] [unescape]\n";
-	print "index add-mail <dir> [<mail>]\n";
+	print "index add-email <dir> [<email>]\n";
 	print "index get-bin <dir> <id> [<bin>]\n";
 	print "index get-part <dir> <id> <part> [<file>]\n";
 	print "index get-roots <dir> [desc] [date1] [date2] [limit] [offset]\n";
@@ -65,7 +65,7 @@ sub help() {
 	print "list gen-html <list> <offset> [<html>]\n";
 #	print "list gen-txt <list> <offset> [<txt>]\n";
 	print "bin view [<bin>]\n";
-	print "bin from-mail [<mail>] [<bin>]\n";
+	print "bin from-email [<email>] [<bin>]\n";
 	print "bin get-part <part> [<bin>] [<file>]\n";
 	print "bin gen-html [<bin>] [<html>]\n";
 #	print "bin gen-txt [<bin>] [<txt>]\n";
@@ -445,13 +445,13 @@ if ( not $mod or not $command ) {
 		my $pemail = open_bin($binfile);
 		bin_view($pemail);
 
-	} elsif ( $command eq "from-mail" ) {
+	} elsif ( $command eq "from-email" ) {
 
-		my $mailfile = shift @ARGV;
+		my $emailfile = shift @ARGV;
 		my $binfile = shift @ARGV;
 		help() if @ARGV;
 
-		my $input = open_input($mailfile, ":raw");
+		my $input = open_input($emailfile, ":raw");
 		my $output = open_output($binfile, ":raw");
 
 		my $from = <$input>;
@@ -625,12 +625,12 @@ if ( not $mod or not $command ) {
 		my ($count, $total) = $index->add_list($mbox, $silent);
 		print "Done ($count/$total emails)\n";
 
-	} elsif ( $command eq "add-mail" ) {
+	} elsif ( $command eq "add-email" ) {
 
-		my $mailfile = shift @ARGV;
+		my $emailfile = shift @ARGV;
 		help() if @ARGV;
-		my $input = open_input($mailfile, ":raw");
-		$mailfile = "STDIN" unless defined $mailfile and length $mailfile;
+		my $input = open_input($emailfile, ":raw");
+		$emailfile = "STDIN" unless defined $emailfile and length $emailfile;
 
 		my $from = <$input>;
 		my $str;
@@ -645,7 +645,7 @@ if ( not $mod or not $command ) {
 			$from = undef;
 		}
 
-		print "Adding MIME email file '$mailfile' to index dir '$indexdir'...\n";
+		print "Adding MIME email file '$emailfile' to index dir '$indexdir'...\n";
 		my $pemail = PList::Email::MIME::from_str(\$str, $from);
 		die "Failed (Cannot read email)\n" unless $pemail;
 
