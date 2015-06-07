@@ -454,15 +454,21 @@ if ( not $mod or not $command ) {
 		my $input = open_input($mailfile, ":raw");
 		my $output = open_output($binfile, ":raw");
 
+		my $from = <$input>;
 		my $str;
 		my $len;
 
 		{
-			local $/=undef;
+			local $/ = undef;
 			$str = <$input>;
 		}
 
-		my $pemail = PList::Email::MIME::from_str(\$str);
+		if ( not $from =~ /^From / ) {
+			$str = $from . $str;
+			$from = undef;
+		}
+
+		my $pemail = PList::Email::MIME::from_str(\$str, $from);
 		die "Cannot read email\n" unless $pemail;
 
 		($str, $len) = PList::Email::Binary::to_str($pemail);
@@ -626,15 +632,21 @@ if ( not $mod or not $command ) {
 		my $input = open_input($mailfile, ":raw");
 		$mailfile = "STDIN" unless defined $mailfile and length $mailfile;
 
+		my $from = <$input>;
 		my $str;
 
 		{
-			local $/=undef;
+			local $/ = undef;
 			$str = <$input>;
 		}
 
+		if ( not $from =~ /^From / ) {
+			$str = $from . $str;
+			$from = undef;
+		}
+
 		print "Adding MIME email file '$mailfile' to index dir '$indexdir'...\n";
-		my $pemail = PList::Email::MIME::from_str(\$str);
+		my $pemail = PList::Email::MIME::from_str(\$str, $from);
 		die "Failed (Cannot read email)\n" unless $pemail;
 
 		die "Failed (Cannot add email)\n" unless $index->add_email($pemail);
