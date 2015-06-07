@@ -2125,7 +2125,7 @@ sub delete($$) {
 	$rid = $ret->{$id}->{id};
 
 	$statement = qq(
-		SELECT id, count
+		SELECT id, count, emailid
 			FROM trees
 			WHERE emailid = ?
 			LIMIT 1
@@ -2135,7 +2135,7 @@ sub delete($$) {
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
 		$sth->execute($rid);
-		$ret = $sth->fetchall_hashref("id");
+		$ret = $sth->fetchall_hashref("emailid");
 	} or do {
 		eval { $dbh->rollback(); };
 		close($fh);
