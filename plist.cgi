@@ -746,7 +746,7 @@ if ( $action eq "get-bin" ) {
 
 	error("Param id was not specified") unless $id;
 
-	my %config = (cgi_templates => 1, style_url => gen_url(action => "style"));
+	my %config = (cgi_templates => 1, style_url => gen_url(action => "style"), archive => $indexdir, archive_url => gen_url(action => ""), list_url => gen_url(indexdir => ""));
 
 	$config{html_policy} = $policy if defined $policy;
 	$config{plain_monospace} = $monospace if defined $monospace;
