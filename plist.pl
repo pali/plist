@@ -59,6 +59,7 @@ sub help() {
 	print "index pregen <dir> [<id>]\n";
 	print "list view <list>\n";
 	print "list add-mbox <list> [<mbox>] [unescape]\n";
+	print "list add-email <list> [<email>]\n";
 	print "list add-bin <list> [<bin>]\n";
 	print "list get-bin <list> <offset> [<bin>]\n";
 	print "list get-part <list> <offset> <part> [<file>]\n";
@@ -362,6 +363,37 @@ if ( not $mod or not $command ) {
 		}
 
 		print "Written $success (/$count) emails from mbox file $mboxfile to list file $listfile\n";
+
+	} elsif ( $command eq "add-email" ) {
+
+		my $emailfile = shift @ARGV;
+		help() if @ARGV;
+
+		my $input = open_input($emailfile, ":raw");
+		my $list = open_list($listfile, 1);
+
+		$emailfile = "STDIN" unless defined $emailfile and length $emailfile;
+
+		my $from = <$input>;
+		my $str;
+
+		{
+			local $/ = undef;
+			$str = <$input>;
+		}
+
+		if ( not $from =~ /^From / ) {
+			$str = $from . $str;
+			$from = undef;
+		}
+
+		my $pemail = PList::Email::MIME::from_str(\$str, $from);
+		die "Cannot read email from email file $emailfile\n" unless $pemail;
+
+		my $ret = $list->append($pemail);
+		die "Cannot write email from email file $emailfile to list file $listfile\n" unless defined $ret;
+
+		print "Written one email from email file $emailfile to list file $listfile\n";
 
 	} elsif ( $command eq "add-bin" ) {
 
