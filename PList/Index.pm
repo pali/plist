@@ -1982,7 +1982,14 @@ sub view($$;%) {
 		my $subdir = substr($id, 0, 2);
 		my $file;
 
-		if ( open($file, "<", "$dir/pregen/$subdir/$id.html") ) {
+		my $filename = "$dir/pregen/$subdir/$id.";
+		if ( exists $args{html_output} and not $args{html_output} ) {
+			$filename .= ".txt";
+		} else {
+			$filename .= ".html";
+		}
+
+		if ( open($file, "<", $filename) ) {
 
 			my $str;
 
