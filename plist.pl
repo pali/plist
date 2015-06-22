@@ -53,7 +53,7 @@ sub help() {
 	print "index get-roots <dir> [desc] [date1] [date2] [limit] [offset]\n";
 	print "index get-tree <dir> <id> [<file>]\n";
 	print "index gen-html <dir> <id> [<html>]\n";
-#	print "index gen-txt <dir> <id> [<txt>]\n";
+	print "index gen-txt <dir> <id> [<txt>]\n";
 	print "index del <dir> <id>\n";
 	print "index setspam <dir> <id> <true|false>\n";
 	print "index pregen <dir> [<id>]\n";
@@ -64,12 +64,12 @@ sub help() {
 	print "list get-bin <list> <offset> [<bin>]\n";
 	print "list get-part <list> <offset> <part> [<file>]\n";
 	print "list gen-html <list> <offset> [<html>]\n";
-#	print "list gen-txt <list> <offset> [<txt>]\n";
+	print "list gen-txt <list> <offset> [<txt>]\n";
 	print "bin view [<bin>]\n";
 	print "bin from-email [<email>] [<bin>]\n";
 	print "bin get-part <part> [<bin>] [<file>]\n";
 	print "bin gen-html [<bin>] [<html>]\n";
-#	print "bin gen-txt [<bin>] [<txt>]\n";
+	print "bin gen-txt [<bin>] [<txt>]\n";
 	exit 1;
 
 }
