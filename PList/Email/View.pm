@@ -61,6 +61,8 @@ my $base_template_default = <<END;
 </html>
 END
 
+my $base_template_plain_default = "<TMPL_IF NAME=BODY><TMPL_VAR NAME=BODY></TMPL_IF>";
+
 my $style_template_default = <<END;
 a {
 	text-decoration: none;
@@ -84,7 +86,11 @@ END
 
 my $address_template_default = "<a href='mailto:<TMPL_VAR ESCAPE=URL NAME=EMAILURL>'><TMPL_VAR ESCAPE=HTML NAME=NAME> &lt;<TMPL_VAR ESCAPE=HTML NAME=EMAIL>&gt;</a>";
 
+my $address_template_plain_default = "<TMPL_VAR NAME=NAME> <<TMPL_VAR NAME=EMAIL>>";
+
 my $subject_template_default = "<TMPL_VAR ESCAPE=HTML NAME=SUBJECT>";
+
+my $subject_template_plain_default = "<TMPL_VAR NAME=SUBJECT>";
 
 my $reply_template_default = "";
 
@@ -104,10 +110,23 @@ my $message_template_default = <<END;
 END
 chomp($message_template_default);
 
+my $message_template_plain_default = <<END;
+<TMPL_IF NAME=FROM>From:<TMPL_LOOP NAME=FROM> <TMPL_VAR NAME=BODY><TMPL_UNLESS NAME=__last__>,</TMPL_UNLESS></TMPL_LOOP>
+</TMPL_IF><TMPL_IF NAME=TO>To:<TMPL_LOOP NAME=TO> <TMPL_VAR NAME=BODY><TMPL_UNLESS NAME=__last__>,</TMPL_UNLESS></TMPL_LOOP>
+</TMPL_IF><TMPL_IF NAME=CC>Cc:<TMPL_LOOP NAME=CC> <TMPL_VAR NAME=BODY><TMPL_UNLESS NAME=__last__>,</TMPL_UNLESS></TMPL_LOOP>
+</TMPL_IF><TMPL_IF NAME=REPLYTO>Reply to:<TMPL_LOOP NAME=REPLYTO> <TMPL_VAR NAME=BODY><TMPL_UNLESS NAME=__last__>,</TMPL_UNLESS></TMPL_LOOP>
+</TMPL_IF><TMPL_IF NAME=DATE>Date: <TMPL_VAR NAME=DATE>
+</TMPL_IF><TMPL_IF NAME=SUBJECT>Subject: <TMPL_VAR NAME=SUBJECT>
+</TMPL_IF><TMPL_IF NAME=ID>Message-Id: <TMPL_VAR NAME=ID>
+</TMPL_IF>
+END
+
 my $view_template_default = <<END;
 <TMPL_IF NAME=BODY><div class='view'>
 <TMPL_VAR NAME=BODY></div></TMPL_IF>
 END
+
+my $view_template_plain_default = "<TMPL_IF NAME=BODY><TMPL_VAR NAME=BODY></TMPL_IF>";
 
 my $plaintext_template_default = <<END;
 <TMPL_IF NAME=BODY><span class='plaintext'><TMPL_VAR ESCAPE=HTML NAME=BODY></span>
@@ -121,7 +140,11 @@ my $plaintextmonospace_template_default = <<END;
 END
 chomp($plaintextmonospace_template_default);
 
+my $plaintext_template_plain_default = "<TMPL_VAR NAME=BODY>";
+
 my $multipart_template_default = "<TMPL_IF NAME=BODY><TMPL_LOOP NAME=BODY><TMPL_VAR NAME=PART></TMPL_LOOP></TMPL_IF>";
+
+my $multipart_template_plain_default = "<TMPL_IF NAME=BODY><TMPL_LOOP NAME=BODY><TMPL_VAR NAME=PART></TMPL_LOOP></TMPL_IF>";
 
 my $attachment_template_default = <<END;
 <TMPL_IF NAME=FILENAME><b>Filename:</b> <TMPL_VAR ESCAPE=HTML NAME=FILENAME><br>
@@ -131,6 +154,8 @@ my $attachment_template_default = <<END;
 </TMPL_IF><TMPL_VAR NAME=DOWNLOAD>
 END
 chomp($attachment_template_default);
+
+my $attachment_template_plain_default = "Attachment: <TMPL_VAR NAME=FILENAME> <TMPL_IF NAME=DESCRIPTION>(<TMPL_VAR NAME=DESCRIPTION>) </TMPL_IF><TMPL_VAR NAME=MIMETYPE> <TMPL_VAR NAME=SIZE>\n";
 
 sub addressees_data($$) {
 
@@ -374,6 +399,7 @@ sub part_to_str($$$$$) {
 # config:
 # html_output 0 or 1
 # html_policy always(4) allow(3) strip(2) plain(1) never(0)
+# plain_onlybody 0 or 1
 # plain_monospace always(2) detect(1) never(0)
 # time_zone local
 # date_format "%a, %d %b %Y %T %z"
@@ -435,21 +461,38 @@ sub to_str($;%) {
 
 	$config{templatedir} = undef if defined $config{templatedir} and not -e $config{templatedir};
 
-	# TODO: Set default templates based on $html_output
-	# TODO: Add support for $html_output == 0
-	$config{base_template} = \$base_template_default unless defined $config{base_template} and defined $config{templatedir};
-	$config{style_template} = \$style_template_default unless defined $config{style_template} and defined $config{templatedir};
-	$config{address_template} = \$address_template_default unless defined $config{address_template} and defined $config{templatedir};
-	$config{subject_template} = \$subject_template_default unless defined $config{subject_template} and defined $config{templatedir};
-	$config{reply_template} = \$reply_template_default unless defined $config{reply_template} and defined $config{templatedir};
-	$config{download_template} = \$download_template_default unless defined $config{download_template} and defined $config{templatedir};
-	$config{imagepreview_template} = \$imagepreview_template_default unless defined $config{imagepreview_template} and defined $config{templatedir};
-	$config{message_template} = \$message_template_default unless defined $config{message_template} and defined $config{templatedir};
-	$config{view_template} = \$view_template_default unless defined $config{view_template} and defined $config{templatedir};
-	$config{plaintext_template} = \$plaintext_template_default unless defined $config{plaintext_template} and defined $config{templatedir};
-	$config{plaintextmonospace_template} = \$plaintextmonospace_template_default unless defined $config{plaintextmonospace_template} and defined $config{templatedir};
-	$config{multipart_template} = \$multipart_template_default unless defined $config{multipart_template} and defined $config{templatedir};
-	$config{attachment_template} = \$attachment_template_default unless defined $config{attachment_template} and defined $config{templatedir};
+	if ( $config{html_output} ) {
+		$config{base_template} = \$base_template_default unless defined $config{base_template} and defined $config{templatedir};
+		$config{style_template} = \$style_template_default unless defined $config{style_template} and defined $config{templatedir};
+		$config{address_template} = \$address_template_default unless defined $config{address_template} and defined $config{templatedir};
+		$config{subject_template} = \$subject_template_default unless defined $config{subject_template} and defined $config{templatedir};
+		$config{reply_template} = \$reply_template_default unless defined $config{reply_template} and defined $config{templatedir};
+		$config{download_template} = \$download_template_default unless defined $config{download_template} and defined $config{templatedir};
+		$config{imagepreview_template} = \$imagepreview_template_default unless defined $config{imagepreview_template} and defined $config{templatedir};
+		$config{message_template} = \$message_template_default unless defined $config{message_template} and defined $config{templatedir};
+		$config{view_template} = \$view_template_default unless defined $config{view_template} and defined $config{templatedir};
+		$config{plaintext_template} = \$plaintext_template_default unless defined $config{plaintext_template} and defined $config{templatedir};
+		$config{plaintextmonospace_template} = \$plaintextmonospace_template_default unless defined $config{plaintextmonospace_template} and defined $config{templatedir};
+		$config{multipart_template} = \$multipart_template_default unless defined $config{multipart_template} and defined $config{templatedir};
+		$config{attachment_template} = \$attachment_template_default unless defined $config{attachment_template} and defined $config{templatedir};
+	} else {
+		$config{base_template} = \$base_template_plain_default unless defined $config{base_template} and defined $config{templatedir};
+		$config{style_template} = \"";
+		$config{address_template} = \$address_template_plain_default unless defined $config{address_template} and defined $config{templatedir};
+		$config{subject_template} = \$subject_template_plain_default unless defined $config{subject_template} and defined $config{templatedir};
+		$config{reply_template} = \$reply_template_default unless defined $config{reply_template} and defined $config{templatedir};
+		$config{download_template} = \$download_template_default unless defined $config{download_template} and defined $config{templatedir};
+		$config{imagepreview_template} = \$imagepreview_template_default unless defined $config{imagepreview_template} and defined $config{templatedir};
+		$config{message_template} = \$message_template_plain_default unless defined $config{message_template} and defined $config{templatedir};
+		$config{view_template} = \$view_template_plain_default unless defined $config{view_template} and defined $config{templatedir};
+		$config{plaintext_template} = \$plaintext_template_plain_default unless defined $config{plaintext_template} and defined $config{templatedir};
+		$config{plaintextmonospace_template} = \$plaintext_template_plain_default unless defined $config{plaintextmonospace_template} and defined $config{templatedir};
+		$config{multipart_template} = \$multipart_template_plain_default unless defined $config{multipart_template} and defined $config{templatedir};
+		$config{attachment_template} = \$attachment_template_plain_default unless defined $config{attachment_template} and defined $config{templatedir};
+		if ( $config{plain_onlybody} ) {
+			$config{message_template} = \"";
+		}
+	}
 
 	my @enabled_mime_types = $config{enabled_mime_types} ? @{$config{enabled_mime_types}} : ();
 	my @disabled_mime_types = $config{disabled_mime_types} ? @{$config{disabled_mime_types}} : ();
