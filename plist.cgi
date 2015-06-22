@@ -668,6 +668,8 @@ if ( $action eq "get-bin" ) {
 	my $subject = PList::Index::normalize_subject($pemail->header("0")->{subject});
 	my $reply = $pemail->header("0")->{id};
 
+	$subject =~ s/\(Was:[^\)]*\)\s*$//i if defined $subject;
+
 	my @references;
 	my %seen;
 	foreach ( $reply, @{$pemail->header("0")->{reply}}, @{$pemail->header("0")->{references}} ) {
