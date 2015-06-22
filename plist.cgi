@@ -683,8 +683,8 @@ if ( $action eq "get-bin" ) {
 
 	$url .= "&To=" . escape($_) foreach sort keys { map { $_ => 1 } @to };
 	$url .= "&Cc=" . escape($_) foreach sort keys { map { $_ => 1 } @cc };
-	$url .= "&Subject=" . CGI::Simple::Util::escape(encode_utf8("Re: $subject")) if $subject; # NOTE: CGI::Simple::Util::escape does not replace spaces with '+'
-	$url .= "&In-Reply-To=" . escape("<$reply>") if $reply;
+	$url .= "&Subject=" . CGI::Simple::Util::escape(encode_utf8("Re: $subject")) if defined $subject and length $subject; # NOTE: CGI::Simple::Util::escape does not replace spaces with '+'
+	$url .= "&In-Reply-To=" . escape("<$reply>") if defined $reply and length $reply;
 	$url .= "&References=" . escape("<$_>") foreach @references;
 
 	$url =~ s/^mailto:&/mailto:?/;
