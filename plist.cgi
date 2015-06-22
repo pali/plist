@@ -679,6 +679,23 @@ if ( $action eq "get-bin" ) {
 		push(@references, $_);
 	}
 
+	my $body = $index->view($id, pemail => $pemail, html_output => 0, plain_onlybody => 1);
+	if ( defined $body ) {
+		$body = ${$body};
+		if ( defined $body and length $body ) {
+			$body =~ s/^/> /mg;
+			my $from = $pemail->header("0")->{from};
+			if ( defined $from ) {
+				$from = $from->[0];
+				if ( defined $from and length $from ) {
+					$from =~ s/^(\S*) (.*)$/$2 <$1>/;
+					my $date = time2str("%a, %d %b %Y %T %z", $pemail->header("0")->{date});
+					$body = "On $date $from wrote:\n$body";
+				}
+			}
+		}
+	}
+
 	my $url = "mailto:";
 
 	$url .= "&To=" . escape($_) foreach sort keys { map { $_ => 1 } @to };
@@ -686,6 +703,7 @@ if ( $action eq "get-bin" ) {
 	$url .= "&Subject=" . CGI::Simple::Util::escape(encode_utf8("Re: $subject")) if defined $subject and length $subject; # NOTE: CGI::Simple::Util::escape does not replace spaces with '+'
 	$url .= "&In-Reply-To=" . escape("<$reply>") if defined $reply and length $reply;
 	$url .= "&References=" . escape("<$_>") foreach @references;
+	$url .= "&Body=" . CGI::Simple::Util::escape(encode_utf8($body)) if defined $body and length $body;
 
 	$url =~ s/^mailto:&/mailto:?/;
 
