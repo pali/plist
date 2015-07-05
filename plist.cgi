@@ -688,8 +688,8 @@ if ( $action eq "get-bin" ) {
 			if ( defined $from ) {
 				$from = $from->[0];
 				if ( defined $from and length $from ) {
-					$from =~ s/^(\S*) (.*)$/$2 <$1>/;
-					my $date = time2str("%a, %d %b %Y %T %z", $pemail->header("0")->{date});
+					$from =~ s/^(\S*) //;
+					my $date = time2str("%A %d %B %Y %T", $pemail->header("0")->{date});
 					$body = "On $date $from wrote:\n$body";
 				}
 			}
