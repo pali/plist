@@ -300,6 +300,10 @@ sub part_to_str($$$$$) {
 
 			my $mimetype = $part->{mimetype};
 
+			if ( $type eq "view" and not ( $mimetype =~ /^text\// or $mimetype =~ /^message\// ) ) {
+				$type = "attachment";
+			}
+
 			# TODO: Make max size of attachment configurable
 			if ( $type eq "attachment" and $part->{size} <= 100000 ) {
 				$preview = 1;
