@@ -809,7 +809,7 @@ if ( $action eq "get-bin" ) {
 		if ( $min and $max ) {
 			$min = time2str("%Y", $min);
 			$max = time2str("%Y", $max);
-			foreach ($min..$max) {
+			for ( $min..$max ) {
 				push(@table, {URL => gen_url(id => $_), VALUE => $_, COUNT => $index->db_stat(parse_date($_))});
 			}
 		}
@@ -821,7 +821,7 @@ if ( $action eq "get-bin" ) {
 		$browsepage_template->param(URL => gen_url(action => "emails", id => $year));
 		$browsepage_template->param(VALUE => "(everything for $year)");
 
-		for (1..12) {
+		for ( 1..12 ) {
 			push(@table, {URL => gen_url(id => $year, path => $_), VALUE => "$year-$_", COUNT => $index->db_stat(parse_date($year, $_))});
 		}
 
@@ -840,7 +840,7 @@ if ( $action eq "get-bin" ) {
 			$max = 29;
 		}
 
-		for (1..$max) {
+		for ( 1..$max ) {
 			push(@table, {URL => gen_url(action => "emails", id => $year, path => "$month/$_"), VALUE => "$year-$month-$_", COUNT => $index->db_stat(parse_date($year, $month, $_))});
 		}
 

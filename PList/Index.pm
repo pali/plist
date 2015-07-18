@@ -76,7 +76,7 @@ sub new($$$) {
 
 	my $config = {};
 
-	while (<$fh>) {
+	while ( <$fh> ) {
 		next if $_ =~ /^\s*#/;
 		next unless $_ =~ /^\s*([^=]+)=(.*)$/;
 		$config->{$1} = $2;
@@ -767,7 +767,7 @@ sub add_one_email($$$$) {
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute(${$_}[1], $newtreeid) foreach (@replies);
+		$sth->execute(${$_}[1], $newtreeid) foreach @replies;
 		1;
 	} or do {
 		eval { $dbh->rollback(); };
@@ -788,7 +788,7 @@ sub add_one_email($$$$) {
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute(@{$_}) foreach (@replies);
+		$sth->execute(@{$_}) foreach @replies;
 		1;
 	} or do {
 		eval { $dbh->rollback(); };
@@ -834,7 +834,7 @@ sub add_one_email($$$$) {
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute(${$_}[1], ${$_}[2]) foreach (@addressess);
+		$sth->execute(${$_}[1], ${$_}[2]) foreach @addressess;
 		1;
 	} or do {
 		eval { $dbh->rollback(); };
@@ -855,7 +855,7 @@ sub add_one_email($$$$) {
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute(@{$_}) foreach (@addressess);
+		$sth->execute(@{$_}) foreach @addressess;
 		1;
 	} or do {
 		eval { $dbh->rollback(); };
@@ -887,7 +887,7 @@ sub add_one_email($$$$) {
 	my ($down_reply, $down_references) = $priv->db_replies($id, 0); # emails down
 
 	my %mergeids;
-	foreach (@{$up_reply}, @{$up_references}, @{$down_reply}, @{$down_references}) {
+	foreach ( @{$up_reply}, @{$up_references}, @{$down_reply}, @{$down_references} ) {
 		my $treeid = ${$_}[3];
 		next unless defined $treeid;
 		$mergeids{$treeid} = 1;
@@ -926,7 +926,7 @@ sub add_one_email($$$$) {
 
 		eval {
 			my $sth = $dbh->prepare_cached($statement);
-			$sth->execute($treeid, $_) foreach (@mergeids);
+			$sth->execute($treeid, $_) foreach @mergeids;
 			1;
 		} or do {
 			eval { $dbh->rollback(); };
@@ -942,7 +942,7 @@ sub add_one_email($$$$) {
 
 		eval {
 			my $sth = $dbh->prepare_cached($statement);
-			$sth->execute($_) foreach (@mergeids);
+			$sth->execute($_) foreach @mergeids;
 			1;
 		} or do {
 			eval { $dbh->rollback(); };
@@ -2087,12 +2087,12 @@ sub delete($$) {
 	my ($priv, $id) = @_;
 
 	my $fh;
-	if (not open($fh, ">>", $priv->{dir} . "/deleted")) {
+	if ( not open($fh, ">>", $priv->{dir} . "/deleted") ) {
 		warn "Cannot open file deleted\n";
 		return 0;
 	}
 
-	if (not flock($fh, 2)) {
+	if ( not flock($fh, 2) ) {
 		warn "Cannot lock file deleted\n";
 		close($fh);
 		return 0;

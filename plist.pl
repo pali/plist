@@ -155,7 +155,7 @@ sub bin_view($) {
 
 	if ( $header->{from} and @{$header->{from}} ) {
 		print "From:";
-		foreach (@{$header->{from}}) {
+		foreach ( @{$header->{from}} ) {
 			$_ =~ /^(\S*)/;
 			print " " . $1;
 		}
@@ -164,7 +164,7 @@ sub bin_view($) {
 
 	if ( $header->{to} and @{$header->{to}} ) {
 		print "To:";
-		foreach (@{$header->{to}}) {
+		foreach ( @{$header->{to}} ) {
 			$_ =~ /^(\S*)/;
 			print " " . $1;
 		}
@@ -173,7 +173,7 @@ sub bin_view($) {
 
 	if ( $header->{cc} and @{$header->{cc}} ) {
 		print "Cc:";
-		foreach (@{$header->{cc}}) {
+		foreach ( @{$header->{cc}} ) {
 			$_ =~ /^(\S*)/;
 			print " " . $1;
 		}
@@ -259,7 +259,7 @@ sub index_tree_get($$$) {
 
 	print $fh "Tree:\n";
 
-	while (@stack) {
+	while ( @stack ) {
 
 		my $tid = pop(@stack);
 
@@ -314,7 +314,7 @@ if ( not $mod or not $command ) {
 			my $offset = $list->offset();
 			my $pemail = $list->readnext();
 			print "\n" if $count != 0;
-			if (not $pemail) {
+			if ( not $pemail ) {
 				print "Error: Corrupted email\n\n";
 				++$count;
 				next;

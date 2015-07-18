@@ -161,8 +161,8 @@ sub addressees_data($$) {
 
 	my ($ref, $config) = @_;
 	my @data = ();
-	if ($ref) {
-		foreach (@{$ref}) {
+	if ( $ref ) {
+		foreach ( @{$ref} ) {
 			$_ =~ /^(\S*) (.*)$/;
 			my $address_template = PList::Template->new(${$config}{address_template}, ${$config}{templatedir});
 			$address_template->param(EMAIL => $1);
@@ -202,7 +202,7 @@ sub part_to_str($$$$$) {
 		my $plain_i;
 		my $plain_h_i;
 
-		foreach (@{${$nodes}{$partid}}) {
+		foreach ( @{${$nodes}{$partid}} ) {
 
 			my $newpart = $pemail->part($_);
 			my $mimetype = $newpart->{mimetype};
@@ -283,7 +283,7 @@ sub part_to_str($$$$$) {
 				@next_parts = @{${$nodes}{$partid}};
 			}
 
-			foreach (@next_parts) {
+			foreach ( @next_parts ) {
 				my %hash = (PART => part_to_str($pemail, $_, 0, $nodes, $config));
 				push(@data, \%hash);
 			}
@@ -503,12 +503,12 @@ sub to_str($;%) {
 
 	my %nodes;
 
-	foreach (sort keys %{$pemail->parts()}) {
+	foreach ( sort keys %{$pemail->parts()} ) {
 		my @array;
 		$nodes{$_} = \@array;
 	}
 
-	foreach (sort keys %{$pemail->parts()}) {
+	foreach ( sort keys %{$pemail->parts()} ) {
 
 		my $part = ${$pemail->parts()}{$_};
 		my $partid = $part->{part};
@@ -530,7 +530,7 @@ sub to_str($;%) {
 
 	my $base_template = PList::Template->new($config{base_template}, $config{templatedir});
 
-	if (defined $config{style_url}) {
+	if ( defined $config{style_url} ) {
 		$base_template->param(STYLEURL => $config{style_url});
 	} else {
 		my $style_template = PList::Template->new($config{style_template}, $config{templatedir});

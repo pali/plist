@@ -38,7 +38,7 @@ help() unless defined $indexdir and length $indexdir;
 my $silent;
 my $unescape;
 
-for (1..2) {
+for ( 1..2 ) {
 	last unless @ARGV;
 	if ( $ARGV[-1] eq "silent" ) {
 		$silent = "silent";
@@ -62,7 +62,7 @@ $index = undef;
 my %timestamps;
 
 if ( open(my $file, "<", "$indexdir/timestamps") ) {
-	while (<$file>) {
+	while ( <$file> ) {
 		chomp($_);
 		my ($time, $file) = split(" ", $_, 2);
 		next unless $time and $file;

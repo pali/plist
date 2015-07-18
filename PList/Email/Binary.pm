@@ -261,7 +261,7 @@ sub from_file($) {
 sub from_str($) {
 
 	my ($str) = @_;
-	if (ref $str) {
+	if ( ref $str ) {
 		return from_file($str);
 	} else {
 		return from_file(\$str);
@@ -286,7 +286,7 @@ sub to_fh($$) {
 	binmode $fh, ":raw:utf8";
 
 	print $fh "Parts:\n";
-	foreach (@partkeys) {
+	foreach ( @partkeys ) {
 		my $part = $parts{$_};
 		print $fh " ";
 		print $fh $part->{part};
@@ -314,33 +314,33 @@ sub to_fh($$) {
 		$offset += $part->{size};
 	}
 
-	foreach (@headerkeys) {
+	foreach ( @headerkeys ) {
 		my $header = $headers{$_};
 		print $fh "Part:\n";
 		print $fh " $header->{part}\n";
 		if ( $header->{from} and @{$header->{from}} ) {
 			print $fh "From:\n";
-			print $fh " $_\n" foreach (@{$header->{from}});
+			print $fh " $_\n" foreach @{$header->{from}};
 		}
 		if ( $header->{to} and @{$header->{to}} ) {
 			print $fh "To:\n";
-			print $fh " $_\n" foreach (@{$header->{to}});
+			print $fh " $_\n" foreach @{$header->{to}};
 		}
 		if ( $header->{cc} and @{$header->{cc}} ) {
 			print $fh "Cc:\n";
-			print $fh " $_\n" foreach (@{$header->{cc}});
+			print $fh " $_\n" foreach @{$header->{cc}};
 		}
 		if ( $header->{replyto} and @{$header->{replyto}} ) {
 			print $fh "ReplyTo:\n";
-			print $fh " $_\n" foreach (@{$header->{replyto}});
+			print $fh " $_\n" foreach @{$header->{replyto}};
 		}
 		if ( $header->{reply} and @{$header->{reply}} ) {
 			print $fh "Reply:\n";
-			print $fh " $_\n" foreach (@{$header->{reply}});
+			print $fh " $_\n" foreach @{$header->{reply}};
 		}
 		if ( $header->{references} and @{$header->{references}} ) {
 			print $fh "References:\n";
-			print $fh " $_\n" foreach (@{$header->{references}});
+			print $fh " $_\n" foreach @{$header->{references}};
 		}
 		if ( $header->{id} ) {
 			print $fh "Id:\n";
@@ -361,9 +361,9 @@ sub to_fh($$) {
 	# Data are binary raw (no utf8)
 	binmode $fh, ":raw";
 
-	foreach (@partkeys) {
+	foreach ( @partkeys ) {
 		my $part = $parts{$_};
-		if ($part->{size} != 0) {
+		if ( $part->{size} != 0 ) {
 			$pemail->data($part->{part}, $fh);
 		}
 	}
