@@ -1,5 +1,5 @@
 #    PList - software for archiving and formatting emails from mailing lists
-#    Copyright (C) 2014  Pali Rohár <pali.rohar@gmail.com>
+#    Copyright (C) 2014-2015  Pali Rohár <pali.rohar@gmail.com>
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
