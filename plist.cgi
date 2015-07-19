@@ -880,7 +880,7 @@ if ( $action eq "get-bin" ) {
 
 	$date1 = "" unless defined $date1;
 	$date2 = "" unless defined $date2;
-	$desc = "" unless defined $desc;
+	$desc = 1 unless defined $desc;
 	$limit = 100 unless defined $limit and length $limit;
 	$offset = 0 unless defined $offset and length $offset;
 
@@ -954,7 +954,7 @@ if ( $action eq "get-bin" ) {
 	$date2 = "" unless defined $date2;
 	$limit = 100 unless defined $limit and length $limit;
 	$offset = 0 unless defined $offset and length $offset;
-	$desc = "" unless defined $desc;
+	$desc = 1 unless defined $desc;
 	$treedesc = "" unless defined $treedesc;
 
 	$limit = "" if $limit == -1;
@@ -1064,7 +1064,7 @@ if ( $action eq "get-bin" ) {
 	$date2 = "" unless defined $date2;
 	$limit = 100 unless defined $limit and length $limit;
 	$offset = 0 unless defined $offset and length $offset;
-	$desc = "" unless defined $desc;
+	$desc = 1 unless defined $desc;
 
 	$limit = "" if $limit == -1;
 
