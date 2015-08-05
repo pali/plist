@@ -9,12 +9,23 @@ div.view {
 	padding: 5px;
 	border: 1px solid;
 }
-span.plaintext {
-	white-space: pre-wrap;
+pre.plaintext {
+	font-family: inherit;
+	white-space: pre-wrap;			/* css-3 */
+	white-space: -moz-pre-wrap !important;	/* Mozilla, since 1999 */
+	white-space: -pre-wrap;			/* Opera 4-6 */
+	white-space: -o-pre-wrap;		/* Opera 7 */
+	word-wrap: break-word;			/* Internet Explorer 5.5+ */
+	margin: 0px 0px 0px 0px;
 }
-span.plaintextmonospace {
-	white-space: pre-wrap;
+pre.plaintextmonospace {
 	font-family: monospace;
+	white-space: pre-wrap;			/* css-3 */
+	white-space: -moz-pre-wrap !important;	/* Mozilla, since 1999 */
+	white-space: -pre-wrap;			/* Opera 4-6 */
+	white-space: -o-pre-wrap;		/* Opera 7 */
+	word-wrap: break-word;			/* Internet Explorer 5.5+ */
+	margin: 0px 0px 0px 0px;
 }
 table.browse {
 	text-align: left;
