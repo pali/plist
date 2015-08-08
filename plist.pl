@@ -44,7 +44,7 @@ sub help() {
 	print "index view <dir>\n";
 	print "index create <dir> [<driver>] [<params>] [<username>] [<password>] [<key>=<value>] [...]\n";
 	print "index config <dir> <key> <value>\n";
-#	print "index regenerate <dir>\n";
+	print "index regenerate <dir>\n";
 	print "index add-list <dir> [<list>] [silent]\n";
 	print "index add-mbox <dir> [<mbox>] [silent] [unescape]\n";
 	print "index add-email <dir> [<email>]\n";
