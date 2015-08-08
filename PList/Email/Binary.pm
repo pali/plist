@@ -114,17 +114,17 @@ sub read_email($) {
 
 			my $description;
 			my $filename = $6;
-			if ( $filename ) {
+			if ( defined $filename ) {
 				$filename =~ s/^ //;
 				if ( $filename =~ /^(\S*) (.*)$/ ) {
 					$filename = $1;
 					$description = $2;
 				}
 			}
-			if ( not $filename ) {
+			if ( not defined $filename ) {
 				$filename = "";
 			}
-			if ( not $description ) {
+			if ( not defined $description ) {
 				$description = "";
 			}
 
