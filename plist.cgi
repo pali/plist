@@ -874,12 +874,14 @@ if ( $action eq "get-bin" ) {
 	(my $month, my $day, undef) = split("/", $path, 3);
 	(my $date1, my $date2) = parse_date($year, $month, $day);
 
+	my $max = $q->param("max");
 	my $desc = $q->param("desc");
 	my $limit = $q->param("limit");
 	my $offset = $q->param("offset");
 
 	$date1 = "" unless defined $date1;
 	$date2 = "" unless defined $date2;
+	$max = 1 unless defined $max;
 	$desc = 1 unless defined $desc;
 	$limit = 100 unless defined $limit and length $limit;
 	$offset = 0 unless defined $offset and length $offset;
@@ -887,6 +889,7 @@ if ( $action eq "get-bin" ) {
 	$limit = "" if $limit == -1;
 
 	my %args;
+	$args{max} = $max if length $max;
 	$args{date1} = $date1 if length $date1;
 	$args{date2} = $date2 if length $date2;
 	$args{limit} = $limit+1 if length $limit;
@@ -895,9 +898,10 @@ if ( $action eq "get-bin" ) {
 	my $roots = $index->db_roots($desc, %args);
 	error("Database error (db_roots)") unless $roots;
 
-	my $order = "";
-	$order = 1 unless $desc;
-	$order = "<a href=\"" . gen_url(id => $id, path => $path, desc => $order, limit => $limit, offset => 0) . "\">" . ( $order ? "(DESC)" : "(ASC)" ) . "</a>";
+	my $switch = "";
+	$switch .= "<a href=\"" . gen_url(id => $id, path => $path, max => ($max ? 0 : 1), desc => $desc, limit => $limit, offset => 0) . "\">" . ( $max ? "(MIN)" : "(MAX)" ) . "</a>";
+	$switch .= "&nbsp;";
+	$switch .= "<a href=\"" . gen_url(id => $id, path => $path, max => $max, desc => ($desc ? 0 : 1), limit => $limit, offset => 0) . "\">" . ( $desc ? "(ASC)" : "(DESC)" ) . "</a>";
 
 	my $neednext = 0;
 	my $nextoffset = $offset + scalar @{$roots};
@@ -925,7 +929,7 @@ if ( $action eq "get-bin" ) {
 	$rootspage_template->param(TREESURL => gen_url(action => "trees", id => $id, path => $path));
 	$rootspage_template->param(EMAILSURL => gen_url(action => "emails", id => $id, path => $path));
 	$rootspage_template->param(ROOTS => \@roots);
-	$rootspage_template->param(SORTSWITCH => $order);
+	$rootspage_template->param(SORTSWITCH => $switch);
 
 	$base_template->param(NEXTURL => gen_url(id => $id, path => $path, desc => $desc, limit => $limit, offset => ($offset + $limit))) if $neednext;
 	$base_template->param(PREVURL => gen_url(id => $id, path => $path, desc => $desc, limit => $limit, offset => ($offset - $limit))) if length $limit and $offset >= $limit;
@@ -947,6 +951,7 @@ if ( $action eq "get-bin" ) {
 
 	my $limit = $q->param("limit");
 	my $offset = $q->param("offset");
+	my $max = $q->param("max");
 	my $desc = $q->param("desc");
 	my $treedesc = $q->param("treedesc");
 
@@ -954,12 +959,14 @@ if ( $action eq "get-bin" ) {
 	$date2 = "" unless defined $date2;
 	$limit = 100 unless defined $limit and length $limit;
 	$offset = 0 unless defined $offset and length $offset;
+	$max = 1 unless defined $max;
 	$desc = 1 unless defined $desc;
 	$treedesc = "" unless defined $treedesc;
 
 	$limit = "" if $limit == -1;
 
 	my %args;
+	$args{max} = $max if length $max;
 	$args{date1} = $date1 if length $date1;
 	$args{date2} = $date2 if length $date2;
 	$args{limit} = $limit+1 if length $limit;
@@ -989,14 +996,12 @@ if ( $action eq "get-bin" ) {
 	my $title = "Archive $indexdir - Browse trees";
 	$title .= " (" . ($offset + 1) . " \x{2013} " . $nextoffset . ")" if $nextoffset > $offset;
 
-	my $order = "";
-	$order = 1 unless $desc;
-
-	my $treeorder = "";
-	$treeorder = 1 unless $treedesc;
-
-	$order = "<a href=\"" . gen_url(id => $id, path => $path, limit => $limit, offset => 0, desc => $order, treedesc => $treedesc) . "\">" . ( $order ? "(thr DESC)" : "(thr ASC)" ) . "</a>";
-	$treeorder = "<a href=\"" . gen_url(id => $id, path => $path, limit => $limit, offset => $offset, desc => $desc, treedesc => $treeorder) . "\">" . ( $treeorder ? "(msg DESC)" : "(msg ASC)" ) . "</a>";
+	my $switch = "";
+	$switch .= "<a href=\"" . gen_url(id => $id, path => $path, limit => $limit, offset => 0, max => ( $max ? 0 : 1 ), desc => $desc, treedesc => $treedesc) . "\">" . ( $max ? "(MIN)" : "(MAX)" ) . "</a>";
+	$switch .= "&nbsp;";
+	$switch .= "<a href=\"" . gen_url(id => $id, path => $path, limit => $limit, offset => 0, max => $max, desc => ( $desc ? 0 : 1), treedesc => $treedesc) . "\">" . ( $desc ? "(ASC)" : "(DESC)" ) . "</a>";
+	$switch .= "<br>";
+	$switch .= "<a href=\"" . gen_url(id => $id, path => $path, limit => $limit, offset => 0, max => $max, desc => $desc, treedesc => ($treedesc ? 0 : 1)) . "\">" . ( $treedesc ? "(msg ASC)" : "(msg DESC)" ) . "</a>";
 
 	my @trees;
 
@@ -1013,7 +1018,7 @@ if ( $action eq "get-bin" ) {
 	$treespage_template->param(EMAILSURL => gen_url(action => "emails", id => $id, path => $path));
 	$treespage_template->param(ROOTSURL => gen_url(action => "roots", id => $id, path => $path));
 	$treespage_template->param(TREES => \@trees);
-	$treespage_template->param(SORTSWITCH => $order . "<br>" . $treeorder);
+	$treespage_template->param(SORTSWITCH => $switch);
 
 	$base_template->param(NEXTURL => gen_url(id => $id, path => $path, limit => $limit, offset => $nextoffset, desc => $desc, treedesc => $treedesc)) if $neednext;
 	$base_template->param(ARCHIVE => $indexdir);
