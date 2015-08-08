@@ -452,6 +452,28 @@ sub create_tables($$) {
 
 }
 
+sub drop_tables($) {
+
+	my ($dbh) = @_;
+
+	# NOTE: Order is important because of foreign keys
+	my @tables = qw(addressess address replies trees emails subjects);
+
+	foreach ( @tables ) {
+		my $statement = "DROP TABLE $_;";
+		eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	}
+
+	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$dbh->{AutoCommit} = 1; # NOTE: VACUUM cannot be used in transation
+	$dbh->do("VACUUM;");
+	$dbh->{AutoCommit} = 0;
+
+	return 1;
+
+}
+
 sub create($;$$$$%) {
 
 	my ($dir, $driver, $params, $username, $password, %config) = @_;
@@ -589,13 +611,56 @@ sub regenerate($) {
 
 	my ($priv) = @_;
 
-	# TODO
+	drop_tables($priv->{dbh}) or return 0;
+	create_tables($priv->{dbh}, $priv->{config}->{driver}) or return 0;
 
-	# drop tables
-	# create tables
-	# rename listfiles
-	# insert emails (ignore removed)
-	# remove old listfiles
+	my $dh;
+	my @files;
+
+	opendir($dh, $priv->{dir});
+	@files = sort grep(/^[0-9]+\.list$/ && -f "$priv->{dir}/$_", readdir($dh));
+	closedir($dh);
+
+	my $fh;
+	my $deleted;
+
+	if ( open($fh, "<", "$priv->{dir}/deleted") ) {
+		while ( <$fh> ) {
+			next unless $_ =~ /^(\S+) (\S+) (\S+)\s*$/;
+			my ($id, $list, $offset) = ($1, $2, $3);
+			$deleted->{$list}->{$id} = $offset;
+		}
+	}
+
+	# TODO: remove also "deleted" emails from list files
+
+	foreach my $file ( @files ) {
+		my $list = PList::List::Binary->new("$priv->{dir}/$file", 0);
+		if ( not $list ) {
+			warn "Cannot open list file $file\n";
+			next;
+		}
+		my $deletedlist = exists $deleted->{$file} ? $deleted->{$file} : undef;
+		while ( not $list->eof() ) {
+			my $offset = $list->offset();
+			my $pemail = $list->readnext();
+			if ( not $pemail ) {
+				warn "Corrupted email in file $file\n";
+				next;
+			}
+			my $id = $pemail->id();
+			if ( exists $deletedlist->{$id} and $deletedlist->{$id} == $offset ) {
+				warn "Ignoring deleted email from file $file at offset $offset with messageid $id\n";
+				next;
+			}
+			if ( not $priv->add_one_email($pemail, undef, $file, $offset) ) {
+				warn "Cannot add email with messageid $id from file $file: $@\n";
+				next;
+			}
+		}
+	}
+
+	return 1;
 
 }
 
@@ -612,9 +677,9 @@ sub normalize_subject($) {
 
 }
 
-sub add_one_email($$$$) {
+sub add_one_email($$$$;$) {
 
-	my ($priv, $pemail, $list, $listfile) = @_;
+	my ($priv, $pemail, $list, $listfile, $offset) = @_;
 
 	my $dbh = $priv->{dbh};
 	my $driver = $priv->{config}->{driver};
@@ -659,12 +724,14 @@ sub add_one_email($$$$) {
 		return 0;
 	}
 
-	my $offset = $list->append($pemail);
 	if ( not defined $offset ) {
-		eval { $dbh->rollback(); };
-		$@ = "Cannot append email to listfile '$listfile'";
-		return 0;
-	};
+		my $offset = $list->append($pemail);
+		if ( not defined $offset ) {
+			eval { $dbh->rollback(); };
+			$@ = "Cannot append email to listfile '$listfile'";
+			return 0;
+		}
+	}
 
 	my $from = $header->{from};
 	my $to = $header->{to};
