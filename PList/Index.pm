@@ -628,14 +628,15 @@ sub add_one_email($$$$) {
 	$statement = qq(
 		SELECT id, messageid, implicit
 			FROM emails
-			WHERE messageid = ?
+			WHERE messageid = :messageid
 			LIMIT 1
 		;
 	);
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($id);
+		$sth->bind_param(":messageid", $id);
+		$sth->execute();
 		$ret = $sth->fetchall_hashref("messageid");
 	} or do {
 		eval { $dbh->rollback(); };
@@ -680,14 +681,15 @@ sub add_one_email($$$$) {
 
 	$statement = qq(
 		INSERT INTO subjects (subject)
-			VALUES (?)
+			VALUES (:nsubject)
 			$ignoreconflict
 		;
 	);
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($nsubject);
+		$sth->bind_param(":nsubject", $nsubject);
+		$sth->execute();
 	} or do {
 		eval { $dbh->rollback(); };
 		return 0;
@@ -701,30 +703,30 @@ sub add_one_email($$$$) {
 		$statement = qq(
 			UPDATE emails
 				SET
-					date = ?,
-					subjectid = (SELECT id FROM subjects WHERE subject = ?),
-					subject = ?,
-					list = ?,
-					offset = ?,
+					date = :date,
+					subjectid = (SELECT id FROM subjects WHERE subject = :nsubject),
+					subject = :subject,
+					list = :list,
+					offset = :offset,
 					implicit = 0,
 					spam = 0,
-					hasreply = ?
-				WHERE messageid = ?
+					hasreply = :hasreply
+				WHERE messageid = :messageid
 			;
 		);
 	} else {
 		$statement = qq(
 			INSERT INTO emails (date, subjectid, subject, list, offset, implicit, spam, hasreply, messageid)
 				VALUES (
-					?,
-					(SELECT id FROM subjects WHERE subject = ?),
-					?,
-					?,
-					?,
+					:date,
+					(SELECT id FROM subjects WHERE subject = :nsubject),
+					:subject,
+					:list,
+					:offset,
 					0,
 					0,
-					?,
-					?
+					:hasreply,
+					:messageid
 				)
 			;
 		);
@@ -732,7 +734,14 @@ sub add_one_email($$$$) {
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($date, $nsubject, $subject, $listfile, $offset, $hasreply, $id);
+		$sth->bind_param(":date", $date);
+		$sth->bind_param(":nsubject", $nsubject);
+		$sth->bind_param(":subject", $subject);
+		$sth->bind_param(":list", $listfile);
+		$sth->bind_param(":offset", $offset);
+		$sth->bind_param(":hasreply", $hasreply);
+		$sth->bind_param(":messageid", $id);
+		$sth->execute();
 	} or do {
 		eval { $dbh->rollback(); };
 		return 0;
@@ -875,7 +884,7 @@ sub add_one_email($$$$) {
 		$statement = qq(
 			INSERT INTO addressess (emailid, addressid, type)
 				VALUES (
-					(SELECT id FROM emails WHERE messageid = ?),
+					(SELECT id FROM emails WHERE messageid = :messageid),
 					1,
 					0
 				)
@@ -885,7 +894,8 @@ sub add_one_email($$$$) {
 
 		eval {
 			my $sth = $dbh->prepare_cached($statement);
-			$sth->execute($id);
+			$sth->bind_param(":messageid", $id);
+			$sth->execute();
 		} or do {
 			eval { $dbh->rollback(); };
 			return 0;
@@ -912,14 +922,16 @@ sub add_one_email($$$$) {
 
 	$statement = qq(
 		UPDATE emails
-			SET treeid = ?
-			WHERE messageid = ?
+			SET treeid = :treeid
+			WHERE messageid = :messageid
 		;
 	);
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($treeid, $id);
+		$sth->bind_param(":treeid", $treeid);
+		$sth->bind_param(":messageid", $id);
+		$sth->execute();
 	} or do {
 		eval { $dbh->rollback(); };
 		return 0;
@@ -963,16 +975,17 @@ sub add_one_email($$$$) {
 		$statement = qq(
 			UPDATE trees
 				SET
-					emailid = (SELECT MIN(id) FROM emails WHERE treeid = ? AND date = (SELECT MIN(date) FROM emails WHERE implicit = 0 AND treeid = ?)),
-					date = (SELECT MIN(date) FROM emails WHERE implicit = 0 AND treeid = ?),
-					count = (SELECT COUNT(*) FROM emails WHERE treeid = ?)
+					emailid = (SELECT MIN(id) FROM emails WHERE treeid = :treeid AND date = (SELECT MIN(date) FROM emails WHERE implicit = 0 AND treeid = :treeid)),
+					date = (SELECT MIN(date) FROM emails WHERE implicit = 0 AND treeid = :treeid),
+					count = (SELECT COUNT(*) FROM emails WHERE treeid = :treeid)
 				WHERE
-					id = ?
+					id = :treeid
 			;
 		);
 		eval {
 			my $sth = $dbh->prepare_cached($statement);
-			$sth->execute($treeid, $treeid, $treeid, $treeid, $treeid);
+			$sth->bind_param(":treeid", $treeid);
+			$sth->execute();
 		} or do {
 			eval { $dbh->rollback(); };
 			return 0;
@@ -981,9 +994,9 @@ sub add_one_email($$$$) {
 		$statement = qq(
 			INSERT INTO trees (id, emailid, date, count)
 				VALUES (
-					?,
-					(SELECT id FROM emails WHERE messageid = ?),
-					?,
+					:treeid,
+					(SELECT id FROM emails WHERE messageid = :messageid),
+					:date,
 					1
 				)
 				$ignoreconflict
@@ -991,7 +1004,10 @@ sub add_one_email($$$$) {
 		);
 		eval {
 			my $sth = $dbh->prepare_cached($statement);
-			$sth->execute($treeid, $id, $date);
+			$sth->bind_param(":treeid", $treeid);
+			$sth->bind_param(":messageid", $id);
+			$sth->bind_param(":date", $date);
+			$sth->execute();
 		} or do {
 			eval { $dbh->rollback(); };
 			return 0;
@@ -1151,15 +1167,17 @@ sub db_stat($;$$) {
 				FROM emails
 				WHERE
 					date IS NOT NULL AND
-					date >= ? AND
-					date < ? AND
+					date >= :date1 AND
+					date < :date2 AND
 					implicit = 0 AND
 					spam = 0
 		);
 
 		eval {
 			my $sth = $dbh->prepare_cached($statement);
-			$sth->execute($date1, $date2);
+			$sth->bind_param(":date1", $date1);
+			$sth->bind_param(":date2", $date2);
+			$sth->execute();
 			$ret = $sth->fetchall_arrayref();
 		} or do {
 			return undef;
@@ -1391,13 +1409,14 @@ sub db_treeid($$$) {
 	$statement = qq(
 		SELECT treeid
 			FROM emails
-			WHERE $where = ?
+			WHERE $where = :id
 		;
 	);
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($id);
+		$sth->bind_param(":id", $id);
+		$sth->execute();
 		$ret = $sth->fetchall_arrayref();
 	} or do {
 		return undef;
@@ -1427,14 +1446,15 @@ sub db_graph($$;$) {
 		SELECT r.emailid2 AS id1, r.emailid1 AS id2, r.type AS type
 			FROM emails AS e1
 			JOIN replies AS r ON r.emailid2 = e1.id
-			WHERE e1.treeid = ?
+			WHERE e1.treeid = :treeid
 			$withspam
 		;
 	);
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($treeid);
+		$sth->bind_param(":treeid", $treeid);
+		$sth->execute();
 		$ret = $sth->fetchall_arrayref({});
 	} or do {
 		return undef;
@@ -1749,13 +1769,14 @@ sub db_replies($$;$) {
 			FROM emails AS e1
 			JOIN replies AS r ON r.emailid$id1 = e1.id
 			JOIN emails AS e2 ON e2.id = r.emailid$id2
-			WHERE e1.messageid = ?
+			WHERE e1.messageid = :messageid
 		;
 	);
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($id);
+		$sth->bind_param(":messageid", $id);
+		$sth->execute();
 		$ret = $sth->fetchall_arrayref();
 	} or do {
 		return undef;
@@ -1804,13 +1825,14 @@ sub db_replies($$;$) {
 				subjectid != 1 AND
 				subjectid != 2 AND
 				date IS NOT NULL AND
-				messageid = ?
+				messageid = :messageid
 		;
 	);
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($id);
+		$sth->bind_param(":messageid", $id);
+		$sth->execute();
 		$ret = $sth->fetchall_arrayref({});
 	} or do {
 		return (\@reply, \@references);
@@ -1828,9 +1850,9 @@ sub db_replies($$;$) {
 				implicit = 0 AND
 				date IS NOT NULL AND
 				$hasreply2
-				id != ? AND
-				subjectid = ? AND
-				date <= ?
+				id != :emailid AND
+				subjectid = :subjectid AND
+				date <= :date
 			ORDER BY date
 			$limit
 		;
@@ -1838,7 +1860,10 @@ sub db_replies($$;$) {
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($email->{id}, $email->{subjectid}, $email->{date});
+		$sth->bind_param(":emailid", $email->{id});
+		$sth->bind_param(":subjectid", $email->{subjectid});
+		$sth->bind_param(":date", $email->{date});
+		$sth->execute();
 		$ret = $sth->fetchall_arrayref();
 	} or do {
 		return (\@reply, \@references);
@@ -1942,7 +1967,7 @@ sub email($$;$) {
 	$statement = qq(
 		SELECT messageid, list, offset
 			FROM emails
-			WHERE implicit = 0 AND ( messageid = ? OR id = ? )
+			WHERE implicit = 0 AND ( messageid = :id OR id = :id )
 			$withspam
 			LIMIT 2
 		;
@@ -1950,7 +1975,8 @@ sub email($$;$) {
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($id, $id);
+		$sth->bind_param(":id", $id);
+		$sth->execute();
 		$ret = $sth->fetchall_hashref("messageid");
 	} or do {
 		return undef;
@@ -2047,13 +2073,14 @@ sub setspam($$$) {
 	$statement = qq(
 		SELECT id
 			FROM emails
-			WHERE messageid = ?
+			WHERE messageid = :messageid
 		;
 	);
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($id);
+		$sth->bind_param(":messageid", $id);
+		$sth->execute();
 		$ret = $sth->fetchall_arrayref();
 	} or do {
 		eval { $dbh->rollback(); };
@@ -2067,14 +2094,16 @@ sub setspam($$$) {
 
 	$statement = qq(
 		UPDATE emails
-			SET spam = ?
-			WHERE messageid = ?
+			SET spam = :spam
+			WHERE messageid = :messageid
 		;
 	);
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($val, $id);
+		$sth->bind_param(":spam", $val);
+		$sth->bind_param(":messageid", $id);
+		$sth->execute();
 	} or do {
 		eval { $dbh->rollback(); };
 		return 0;
@@ -2119,14 +2148,15 @@ sub delete($$) {
 	$statement = qq(
 		SELECT id, messageid, list, offset
 			FROM emails
-			WHERE implicit = 0 AND messageid = ?
+			WHERE implicit = 0 AND messageid = :messageid
 			LIMIT 1
 		;
 	);
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($id);
+		$sth->bind_param(":messageid", $id);
+		$sth->execute();
 		$ret = $sth->fetchall_hashref("messageid");
 	} or do {
 		eval { $dbh->rollback(); };
@@ -2147,14 +2177,15 @@ sub delete($$) {
 	$statement = qq(
 		SELECT id, count, emailid
 			FROM trees
-			WHERE emailid = ?
+			WHERE emailid = :emailid
 			LIMIT 1
 		;
 	);
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($rid);
+		$sth->bind_param(":emailid", $rid);
+		$sth->execute();
 		$ret = $sth->fetchall_hashref("emailid");
 	} or do {
 		eval { $dbh->rollback(); };
@@ -2170,13 +2201,14 @@ sub delete($$) {
 	$statement = qq(
 		SELECT COUNT(*)
 			FROM replies
-			WHERE emailid2 = ?
+			WHERE emailid2 = :emailid
 		;
 	);
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($rid);
+		$sth->bind_param(":emailid", $rid);
+		$sth->execute();
 		$ret = $sth->fetchall_arrayref();
 	} or do {
 		eval { $dbh->rollback(); };
@@ -2197,40 +2229,33 @@ sub delete($$) {
 			$statement = qq(
 				UPDATE trees
 					SET
-						emailid = (SELECT MIN(id) FROM emails WHERE id != ? AND treeid = ? AND date = (SELECT MIN(date) FROM emails WHERE id != ? AND implicit = 0 AND treeid = ?)),
-						date = (SELECT MIN(date) FROM emails WHERE id != ? AND implicit = 0 AND treeid = ?),
-						count = (SELECT COUNT(*) FROM emails WHERE treeid = ?)
+						emailid = (SELECT MIN(id) FROM emails WHERE id != :treeid AND treeid = :treeid AND date = (SELECT MIN(date) FROM emails WHERE id != :treeid AND implicit = 0 AND treeid = :treeid)),
+						date = (SELECT MIN(date) FROM emails WHERE id != :treeid AND implicit = 0 AND treeid = :treeid),
+						count = (SELECT COUNT(*) FROM emails WHERE treeid = :treeid)
 					WHERE
-						id = ?
+						id = :treeid
 				;
 			);
-			eval {
-				my $sth = $dbh->prepare_cached($statement);
-				$sth->execute($treeid, $treeid, $treeid, $treeid, $treeid, $treeid, $treeid, $treeid);
-			} or do {
-				eval { $dbh->rollback(); };
-				return 0;
-			};
 		} else {
 			$statement = qq(
 				DELETE
 					FROM trees
-					WHERE id = ?
+					WHERE id = :treeid
 				;
 			);
-			eval {
-				my $sth = $dbh->prepare_cached($statement);
-				$sth->execute($treeid);
-			} or do {
-				eval { $dbh->rollback(); };
-				return 0;
-			};
 		}
+		eval {
+			my $sth = $dbh->prepare_cached($statement);
+			$sth->bind_param(":treeid", $treeid);
+			$sth->execute();
+		} or do {
+			eval { $dbh->rollback(); };
+			return 0;
+		};
 	}
 
 	# Remove email from database or mark it as implicit (if some other email reference it)
 	if ( $count > 0 ) {
-
 		$statement = qq(
 			UPDATE emails
 				SET
@@ -2241,24 +2266,22 @@ sub delete($$) {
 					offset = NULL,
 					implicit = 1,
 					hasreply = NULL
-				WHERE messageid = ?
+				WHERE messageid = :messageid
 			;
 		);
-
 	} else {
-
 		$statement = qq(
 			DELETE
 				FROM emails
-				WHERE messageid = ?
+				WHERE messageid = :messageid
 			;
 		);
-
 	}
 
 	eval {
 		my $sth = $dbh->prepare_cached($statement);
-		$sth->execute($id);
+		$sth->bind_param(":messageid", $id);
+		$sth->execute();
 	} or do {
 		eval { $dbh->rollback(); };
 		close($fh);
