@@ -736,16 +736,13 @@ if ( $action eq "get-bin" ) {
 
 	error("Param id was not specified") unless $id;
 
-	my $order = "";
-	$order = 1 unless $desc;
-
 	my @trees = ({TREE => gen_tree($index, $id, $desc, undef, undef, undef)});
 
 	my $base_template = $index->template("base.tmpl");
 	my $treepage_template = $index->template("treepage.tmpl");
 
 	$treepage_template->param(TREES => \@trees);
-	$treepage_template->param(SORTSWITCH => "<a href=\"" . gen_url(id => $id, desc => $order) . "\">" . ( $order ? "(DESC)" : "(ASC)" ) . "</a>");
+	$treepage_template->param(SORTSWITCH => "<a href=\"" . gen_url(id => $id, desc => ($desc ? 0 : 1)) . "\">" . ( $desc ? "(ASC)" : "(DESC)" ) . "</a>");
 
 	$base_template->param(ARCHIVE => $indexdir);
 	$base_template->param(ARCHIVEURL => gen_url(action => ""));
@@ -1128,9 +1125,7 @@ if ( $action eq "get-bin" ) {
 
 	error("Database error (db_emails)") unless $emails;
 
-	my $order = "";
-	$order = 1 unless $desc;
-	$order = "<a href=\"" . gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => $order) . "\">" . ( $order ? "(DESC)" : "(ASC)" ) . "</a>";
+	my $switch = "<a href=\"" . gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => 0, desc => ($desc ? 0 : 1)) . "\">" . ( $desc ? "(ASC)" : "(DESC)" ) . "</a>";
 
 	my $neednext = 0;
 	my $nextoffset = $offset + scalar @{$emails};
@@ -1177,7 +1172,7 @@ if ( $action eq "get-bin" ) {
 		push(@emails, {SUBJECT => $subject, URL => gen_url(action => "view", id => $mid), NAME => $name, SEARCHNAMEURL => gen_url(action => "search", type => "from", name => $name), EMAIL => $email, SEARCHEMAILURL => gen_url(action => "search", type => "from", email => $email), DATE => $date});
 	}
 
-	$page_template->param(SORTSWITCH => $order);
+	$page_template->param(SORTSWITCH => $switch);
 	$page_template->param(EMAILS => \@emails);
 
 	$base_template->param(NEXTURL => gen_url(id => $id, path => $path, str => $str, messageid => $messageid, treeid => $treeid, subject => $subject, email => $email, name => $name, type => $type, date1 => $date1, date2 => $date2, limit => $limit, offset => ($offset + $limit), desc => $desc)) if $neednext;
