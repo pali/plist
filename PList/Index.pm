@@ -1110,7 +1110,7 @@ sub reopen_listfile($;$$) {
 		my @files;
 
 		opendir($dh, $priv->{dir});
-		@files = sort grep(/^[0-9]+\.list$/ && -f $_, readdir($dh));
+		@files = sort grep(/^[0-9]+\.list$/ && -f "$priv->{dir}/$_", readdir($dh));
 		closedir($dh);
 
 		if ( not @files ) {
