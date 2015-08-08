@@ -239,6 +239,15 @@ sub db_connect($$$$$) {
 
 }
 
+sub clean($) {
+	my ($str) = @_;
+	$str =~ s/\s+/ /g;
+	$str =~ s/\s*,\s*/,/g;
+	$str =~ s/\s*\(\s*/(/g;
+	$str =~ s/\s*\)\s*/)/g;
+	return $str;
+}
+
 sub create_tables($$) {
 
 	my ($dbh, $driver) = @_;
@@ -275,7 +284,7 @@ sub create_tables($$) {
 			UNIQUE (subject $uniquesize) $ignoreconflict
 		);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE TABLE emails (
@@ -293,57 +302,57 @@ sub create_tables($$) {
 			UNIQUE (messageid $uniquesize) $ignoreconflict
 		);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE INDEX emailsdate ON emails(date);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE INDEX emailssubjectid ON emails(subjectid);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE INDEX emailstreeid ON emails(treeid);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE INDEX emailsimplicitdate ON emails(implicit, date);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE INDEX emailsimplicitspamdate ON emails(implicit, spam, date);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE INDEX emailsimplicittreeid ON emails(implicit, treeid);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE INDEX emailsimplicitsubjectiddate ON emails(implicit, subjectid, date);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE INDEX emailsimplicitsubjectdate ON emails(implicit, subject, date);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE INDEX emailstreeiddate ON emails(treeid, date);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE INDEX emailshasreply ON emails(hasreply);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE TABLE trees (
@@ -354,12 +363,12 @@ sub create_tables($$) {
 			UNIQUE (emailid) $ignoreconflict
 		);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE INDEX treesdate ON trees(date);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE TABLE replies (
@@ -370,17 +379,17 @@ sub create_tables($$) {
 			UNIQUE (emailid1, emailid2, type) $ignoreconflict
 		);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE INDEX repliesemailid1 ON replies(emailid1);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE INDEX repliesemailid2 ON replies(emailid2);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE TABLE address (
@@ -390,7 +399,7 @@ sub create_tables($$) {
 			UNIQUE (email $uniquehalfsize, name $uniquehalfsize) $ignoreconflict
 		);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE TABLE addressess (
@@ -401,17 +410,17 @@ sub create_tables($$) {
 			UNIQUE (emailid, addressid, type) $ignoreconflict
 		);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE INDEX addressessemailid ON addressess(emailid);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
 		CREATE INDEX addressessaddressid ON addressess(addressid);
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	# NULL subject for implicit emails
 	$statement = qq(
@@ -419,7 +428,7 @@ sub create_tables($$) {
 			VALUES (1, NULL)
 		;
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	# empty subject for emails without subject
 	$statement = qq(
@@ -427,7 +436,7 @@ sub create_tables($$) {
 			VALUES (2, "")
 		;
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	# NULL address for emails without from header
 	$statement = qq(
@@ -435,7 +444,7 @@ sub create_tables($$) {
 			VALUES (1, NULL, NULL)
 		;
 	);
-	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	eval { $dbh->commit(); } or do { eval { $dbh->rollback(); }; return 0; };
 
