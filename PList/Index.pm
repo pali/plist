@@ -46,8 +46,8 @@ require DBD::mysql;
 # id, messageid, date, subjectid(subjects), subject, treeid, list, offset, implicit, hasreply, spam
 #
 # trees:
-# id, emailid(emails), date, count
-# NOTE: emailid is root of tree, date is smallest non zero and non NULL date from emails for tree, count is number of emails in tree
+# id, emailid(emails), mindate, maxdate, count
+# NOTE: emailid email with smallest date, mindate/maxdate is smallest/biggest non zero and non NULL date from emails for tree, count is number of emails in tree
 #
 # replies:
 # id, emailid1(emails), emailid2(emails), type
@@ -358,7 +358,8 @@ sub create_tables($$) {
 		CREATE TABLE trees (
 			id		INTEGER PRIMARY KEY NOT NULL $autoincrement,
 			emailid		INTEGER NOT NULL REFERENCES emails(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-			date		INTEGER,
+			mindate		INTEGER,
+			maxdate		INTEGER,
 			count		INTEGER,
 			UNIQUE (emailid) $ignoreconflict
 		);
@@ -366,7 +367,12 @@ sub create_tables($$) {
 	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
 	$statement = qq(
-		CREATE INDEX treesdate ON trees(date);
+		CREATE INDEX treesmindate ON trees(mindate);
+	);
+	eval { $dbh->do($statement); } or do { eval { $dbh->rollback(); }; return 0; };
+
+	$statement = qq(
+		CREATE INDEX treesmaxdate ON trees(maxdate);
 	);
 	eval { $dbh->do(clean($statement)); } or do { eval { $dbh->rollback(); }; return 0; };
 
@@ -1043,7 +1049,8 @@ sub add_one_email($$$$;$) {
 			UPDATE trees
 				SET
 					emailid = (SELECT MIN(id) FROM emails WHERE treeid = :treeid AND date = (SELECT MIN(date) FROM emails WHERE implicit = 0 AND treeid = :treeid)),
-					date = (SELECT MIN(date) FROM emails WHERE implicit = 0 AND treeid = :treeid),
+					mindate = (SELECT MIN(date) FROM emails WHERE implicit = 0 AND treeid = :treeid),
+					maxdate = (SELECT MAX(date) FROM emails WHERE implicit = 0 AND treeid = :treeid),
 					count = (SELECT COUNT(*) FROM emails WHERE treeid = :treeid)
 				WHERE
 					id = :treeid
@@ -1059,10 +1066,11 @@ sub add_one_email($$$$;$) {
 		};
 	} else {
 		$statement = qq(
-			INSERT INTO trees (id, emailid, date, count)
+			INSERT INTO trees (id, emailid, mindate, maxdate, count)
 				VALUES (
 					:treeid,
 					(SELECT id FROM emails WHERE messageid = :messageid),
+					:date,
 					:date,
 					1
 				)
@@ -1963,13 +1971,15 @@ sub db_roots($$;%) {
 	my $where = "";
 	my $limit = "";
 
+	my $date = $args{max} ? "maxdate" : "mindate";
+
 	if ( exists $args{date1} ) {
-		$where .= " t.date >= ? AND";
+		$where .= " t.$date >= ? AND";
 		push(@args, $args{date1});
 	}
 
 	if ( exists $args{date2} ) {
-		$where .= " t.date < ? AND";
+		$where .= " t.$date < ? AND";
 		push(@args, $args{date2});
 	}
 
@@ -1994,12 +2004,12 @@ sub db_roots($$;%) {
 	}
 
 	$statement = qq(
-		SELECT t.emailid AS id, e.messageid AS messageid, t.date AS date, s.subject AS subject, t.id AS treeid, t.count AS count
+		SELECT t.emailid AS id, e.messageid AS messageid, t.$date AS date, s.subject AS subject, t.id AS treeid, t.count AS count
 			FROM trees AS t
 			JOIN emails AS e ON e.id = t.emailid
 			JOIN subjects AS s ON s.id = e.subjectid
 			$where
-			ORDER BY t.date $desc
+			ORDER BY t.$date $desc
 			$limit
 		;
 	);
@@ -2297,7 +2307,8 @@ sub delete($$) {
 				UPDATE trees
 					SET
 						emailid = (SELECT MIN(id) FROM emails WHERE id != :treeid AND treeid = :treeid AND date = (SELECT MIN(date) FROM emails WHERE id != :treeid AND implicit = 0 AND treeid = :treeid)),
-						date = (SELECT MIN(date) FROM emails WHERE id != :treeid AND implicit = 0 AND treeid = :treeid),
+						mindate = (SELECT MIN(date) FROM emails WHERE id != :treeid AND implicit = 0 AND treeid = :treeid),
+						maxdate = (SELECT MAX(date) FROM emails WHERE id != :treeid AND implicit = 0 AND treeid = :treeid),
 						count = (SELECT COUNT(*) FROM emails WHERE treeid = :treeid)
 					WHERE
 						id = :treeid
