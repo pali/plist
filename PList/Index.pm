@@ -731,7 +731,7 @@ sub add_one_email($$$$;$) {
 	}
 
 	if ( not defined $offset ) {
-		my $offset = $list->append($pemail);
+		$offset = $list->append($pemail);
 		if ( not defined $offset ) {
 			eval { $dbh->rollback(); };
 			$@ = "Cannot append email to listfile '$listfile'";
