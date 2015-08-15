@@ -279,9 +279,9 @@ sub html_strip($) {
 
 }
 
-sub subpart_get_body($$$$) {
+sub subpart_get_body($$$$$) {
 
-	my ($subpart, $discrete, $composite, $charset) = @_;
+	my ($subpart, $discrete, $composite, $charset, $flowed) = @_;
 	my $body;
 
 	eval {
@@ -305,6 +305,46 @@ sub subpart_get_body($$$$) {
 		eval { my $newbody = decode($charset, $body); $body = $newbody; };
 		$body =~ s/\r\n/\n/g;
 		$body = encode_utf8($body);
+	}
+
+	# RFC3676: Convert flowed text into paragraphs (one per line)
+	if ( $flowed ) {
+		my @lines = split("\n", $body);
+		$body = "";
+		my $prevdepth = -2;
+		my $prevflowed = 0;
+		foreach ( @lines ) {
+			my $line = $_;
+			my $depth;
+			my $quote;
+			if ( $line eq "-- " ) {
+				$depth = -1;
+			} elsif ( $line =~ /^ (.*)$/ ) {
+				$line = $1;
+				$depth = 0;
+			} elsif ( $line =~ /^(> |>)+(.*)$/ ) {
+				$line = $2;
+				$quote = $1;
+				$depth = ($1 =~ tr/>//);
+			} else {
+				$depth = 0;
+			}
+			if ( $prevdepth != $depth or not $prevflowed ) {
+				$body .= "\n" if $prevdepth != -2;
+				$body .= $quote if $depth > 0;
+			}
+			if ( $line =~ / $/ and $depth != -1 ) {
+				$prevflowed = 1;
+				if ( $flowed eq "delsp" ) {
+					chop($line);
+				}
+			} else {
+				$prevflowed = 0;
+			}
+			$body .= $line;
+			$prevdepth = $depth;
+		}
+		$body .= "\n";
 	}
 
 	return $body;
@@ -336,6 +376,7 @@ sub read_part($$$$$) {
 	my $discrete;
 	my $composite;
 	my $charset;
+	my $flowed;
 
 	{
 		local $Email::MIME::ContentType::STRICT_PARAMS = 0;
@@ -346,6 +387,17 @@ sub read_part($$$$$) {
 			my $attributes = $content_type->{attributes};
 			if ( $attributes ) {
 				$charset = $attributes->{charset};
+				if ( $discrete eq "text" and $composite eq "plain" ) {
+					my $format = $attributes->{format};
+					if ( defined $format and lc($format) eq "flowed" ) {
+						my $delsp = $attributes->{delsp};
+						if ( defined $delsp and lc($delsp) eq "yes" ) {
+							$flowed = "delsp";
+						} else {
+							$flowed = 1;
+						}
+					}
+				}
 			}
 		}
 	}
@@ -371,7 +423,7 @@ sub read_part($$$$$) {
 	my $partstr = "$prefix/${$partid}";
 	my $filename = $subpart->filename();
 	my $description = $subpart->header("Content-Description");
-	my $body = subpart_get_body($subpart, $discrete, $composite, $charset);
+	my $body = subpart_get_body($subpart, $discrete, $composite, $charset, $flowed);
 	my $size = 0;
 
 	# Detect and overwrite mimetype for parts which have unknown/generic mimetype
