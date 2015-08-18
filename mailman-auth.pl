@@ -19,11 +19,12 @@
 use strict;
 use warnings;
 
+use Encode qw(encode_utf8);
 use CGI::Simple::Util qw(escape);
 
-my $indexdir = escape($ENV{INDEX_DIR});
-my $authuser = escape($ENV{REMOTE_USER});
-my $authpass = escape($ENV{REMOTE_PASSWORD});
+my $indexdir = escape(encode_utf8($ENV{INDEX_DIR}));
+my $authuser = escape(encode_utf8($ENV{REMOTE_USER}));
+my $authpass = escape(encode_utf8($ENV{REMOTE_PASSWORD}));
 
 if ( not defined $indexdir or not length $indexdir ) {
 	warn "Variable INDEX_DIR is empty\n";
