@@ -69,12 +69,12 @@ sub error($;$$@) {
 
 sub escape($) {
 	my ($str) = @_;
-	return $q->url_encode(encode_utf8($str));
+	return CGI::Simple::Util::escape(encode_utf8($str));
 }
 
 sub unescape($) {
 	my ($str) = @_;
-	return decode_utf8($q->url_decode($str));
+	return decode_utf8(CGI::Simple::Util::unescape($str));
 }
 
 sub gen_url {
