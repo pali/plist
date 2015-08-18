@@ -31,6 +31,7 @@ use CGI::Simple;
 use CGI::Simple::Util;
 use Date::Format;
 use Encode qw(decode_utf8 encode_utf8);
+use List::MoreUtils qw(uniq);
 use MIME::Base64;
 use Time::Piece;
 
@@ -651,19 +652,10 @@ if ( $action eq "get-bin" ) {
 	my @to;
 	my @cc;
 
-	if ( exists $pemail->header("0")->{replyto} ) {
-		push(@to, map { my $tmp = $_; $tmp =~ s/ .*//; $tmp } @{$pemail->header("0")->{replyto}});
-	}
-
-	if ( not $all and not @to ) {
-		push(@to, map { my $tmp = $_; $tmp =~ s/ .*//; $tmp } @{$pemail->header("0")->{from}});
-	}
-
-	if ( $all ) {
-		push(@to, map { my $tmp = $_; $tmp =~ s/ .*//; $tmp } @{$pemail->header("0")->{from}});
-		push(@to, map { my $tmp = $_; $tmp =~ s/ .*//; $tmp } @{$pemail->header("0")->{to}});
-		push(@cc, map { my $tmp = $_; $tmp =~ s/ .*//; $tmp } @{$pemail->header("0")->{cc}});
-	}
+	push(@to, @{$pemail->header("0")->{replyto}}) if exists $pemail->header("0")->{replyto};
+	push(@to, @{$pemail->header("0")->{from}}) if not $all and not @to;
+	push(@to, @{$pemail->header("0")->{from}}, @{$pemail->header("0")->{to}}) if $all;
+	push(@cc, @{$pemail->header("0")->{cc}}) if $all;
 
 	my $subject = PList::Index::normalize_subject($pemail->header("0")->{subject});
 	my $reply = $pemail->header("0")->{id};
@@ -671,13 +663,10 @@ if ( $action eq "get-bin" ) {
 	$subject =~ s/\(Was:[^\)]*\)\s*$//i if defined $subject;
 
 	my @references;
-	my %seen;
-	foreach ( $reply, @{$pemail->header("0")->{reply}}, @{$pemail->header("0")->{references}} ) {
-		next unless defined $_ and length $_;
-		next if defined $seen{$_};
-		$seen{$_} = 1;
-		push(@references, $_);
-	}
+
+	push(@references, $reply) if defined $reply and length $reply;
+	push(@references, @{$pemail->header("0")->{reply}}) if exists $pemail->header("0")->{reply};
+	push(@references, @{$pemail->header("0")->{references}}) if exists $pemail->header("0")->{references};
 
 	my $body = $index->view($id, pemail => $pemail, html_output => 0, plain_onlybody => 1);
 	if ( defined $body ) {
@@ -698,12 +687,15 @@ if ( $action eq "get-bin" ) {
 
 	my $url = "mailto:";
 
-	$url .= "&To=" . escape($_) foreach sort keys { map { $_ => 1 } @to };
-	$url .= "&Cc=" . escape($_) foreach sort keys { map { $_ => 1 } @cc };
-	$url .= "&Subject=" . CGI::Simple::Util::escape(encode_utf8("Re: $subject")) if defined $subject and length $subject; # NOTE: CGI::Simple::Util::escape does not replace spaces with '+'
+	@to = map { $_ =~ /^(\S*) (.*)$/ ? (escape("$2 <$1>")) : () } uniq(@to);
+	@cc = map { $_ =~ /^(\S*) (.*)$/ ? (escape("$2 <$1>")) : () } uniq(@cc);
+
+	$url .= "&To=" . join(",", @to) if @to;
+	$url .= "&Cc=" . join(",", @cc) if @cc;
+	$url .= "&Subject=" . escape("Re: $subject") if defined $subject and length $subject;
 	$url .= "&In-Reply-To=" . escape("<$reply>") if defined $reply and length $reply;
-	$url .= "&References=" . escape("<$_>") foreach @references;
-	$url .= "&Body=" . CGI::Simple::Util::escape(encode_utf8($body)) if defined $body and length $body;
+	$url .= "&References=" . escape("<$_>") foreach uniq(@references);
+	$url .= "&Body=" . escape($body) if defined $body and length $body;
 
 	$url =~ s/^mailto:&/mailto:?/;
 
