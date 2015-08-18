@@ -699,7 +699,13 @@ if ( $action eq "get-bin" ) {
 
 	$url =~ s/^mailto:&/mailto:?/;
 
-	print $q->redirect($url);
+	# NOTE: Maximal header line for apache is 8192 bytes
+	if ( length($url) > 8179 ) {
+		print $q->header(-cookie => $cookie);
+		print '<html><head><meta http-equiv="refresh" content="0; url=' . $url. '"></head><body><a href="' . $url . '">Continue</a></body>';
+	} else {
+		print $q->redirect($url);
+	}
 
 } elsif ( $action eq "download" ) {
 
