@@ -248,9 +248,11 @@ sub clean($) {
 	return $str;
 }
 
-sub create_tables($$) {
+sub create_tables($) {
 
-	my ($dbh, $driver) = @_;
+	my ($dbh) = @_;
+
+	my $driver = $dbh->{Driver}->{Name};
 
 	my $statement;
 
@@ -516,7 +518,7 @@ sub create($;$$$$%) {
 		return 0;
 	}
 
-	my $ret = create_tables($dbh, $driver);
+	my $ret = create_tables($dbh);
 
 	$dbh->disconnect();
 
@@ -618,7 +620,7 @@ sub regenerate($) {
 	my ($priv) = @_;
 
 	drop_tables($priv->{dbh}) or return 0;
-	create_tables($priv->{dbh}, $priv->{config}->{driver}) or return 0;
+	create_tables($priv->{dbh}) or return 0;
 
 	my $dh;
 	my @files;
@@ -688,7 +690,7 @@ sub add_one_email($$$$;$) {
 	my ($priv, $pemail, $list, $listfile, $offset) = @_;
 
 	my $dbh = $priv->{dbh};
-	my $driver = $priv->{config}->{driver};
+	my $driver = $dbh->{Driver}->{Name};
 
 	my $id = $pemail->id();
 	my $rid;
