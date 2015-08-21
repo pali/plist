@@ -160,7 +160,7 @@ sub info($$) {
 		}
 
 		eval {
-			my $sth = $dbh->prepare_cached($statement);
+			my $sth = prepare($dbh, $statement);
 			$sth->execute();
 			$ret = $sth->fetchall_arrayref();
 		} or do {
@@ -237,6 +237,60 @@ sub db_connect($$$$$) {
 
 	return $dbh;
 
+}
+
+my $mysql_prepare;
+
+sub prepare($$) {
+	my ($dbh, $statement) = @_;
+
+	my $driver = $dbh->{Driver}->{Name};
+
+	return $dbh->prepare_cached($statement) if $driver eq "SQLite";
+
+	return $mysql_prepare->($dbh, $statement) if defined $mysql_prepare;
+
+	# Support for named bind variables for mysql driver
+	$mysql_prepare = eval {
+		package PList::Index::MySQL::Prepare;
+		use vars qw($AUTOLOAD);
+
+		sub new {
+			my ($class, $dbh, $statement) = @_;
+			my $params = {};
+			my $num = 0;
+			push(@{$params->{$1}}, ++$num) while $statement =~ s/(:\w+)/?/;
+			my $sth = $dbh->prepare_cached($statement);
+			return bless { sth => $sth, params => $params }, $class;
+		}
+
+		sub bind_param {
+			my ($self, $param, $value) = @_;
+			if ( not exists $self->{params}->{$param} ) {
+				$self->{sth}->set_err($DBI::stderr, "Illegal parameter '$param'", undef, 'bind_param');
+				return '0E0';
+			}
+			$self->{sth}->bind_param($_, $value) foreach @{$self->{params}->{$param}};
+			return 1;
+		}
+
+		sub AUTOLOAD {
+			my ($self, @args) = @_;
+			my $func = $AUTOLOAD;
+			$func =~ s/.*:://;
+			return $self->{sth}->$func(@args);
+		}
+
+		return sub {
+			my ($dbh, $statement) = @_;
+			return __PACKAGE__->new($dbh, $statement);
+		};
+	} or do {
+		$dbh->set_err($DBI::stderr, $@, undef, 'prepare_cached');
+		return '0E0';
+	};
+
+	return $mysql_prepare->($dbh, $statement);
 }
 
 sub clean($) {
@@ -592,7 +646,7 @@ sub pregen_all_emails($) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->execute();
 		$ret = $sth->fetchall_arrayref();
 	} or do {
@@ -707,7 +761,7 @@ sub add_one_email($$$$;$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":messageid", $id);
 		$sth->execute();
 		$ret = $sth->fetchall_hashref("messageid");
@@ -762,7 +816,7 @@ sub add_one_email($$$$;$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":nsubject", $nsubject);
 		$sth->execute();
 	} or do {
@@ -808,7 +862,7 @@ sub add_one_email($$$$;$) {
 	}
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":date", $date);
 		$sth->bind_param(":nsubject", $nsubject);
 		$sth->bind_param(":subject", $subject);
@@ -825,7 +879,7 @@ sub add_one_email($$$$;$) {
 	$statement = "SELECT (SELECT MAX(treeid) FROM emails) + 1;";
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->execute();
 		$ret = $sth->fetchall_arrayref();
 	} or do {
@@ -859,7 +913,7 @@ sub add_one_email($$$$;$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->execute(${$_}[1], $newtreeid) foreach @replies;
 		1;
 	} or do {
@@ -880,7 +934,7 @@ sub add_one_email($$$$;$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->execute(@{$_}) foreach @replies;
 		1;
 	} or do {
@@ -926,7 +980,7 @@ sub add_one_email($$$$;$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->execute(${$_}[1], ${$_}[2]) foreach @addressess;
 		1;
 	} or do {
@@ -947,7 +1001,7 @@ sub add_one_email($$$$;$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->execute(@{$_}) foreach @addressess;
 		1;
 	} or do {
@@ -968,7 +1022,7 @@ sub add_one_email($$$$;$) {
 		);
 
 		eval {
-			my $sth = $dbh->prepare_cached($statement);
+			my $sth = prepare($dbh, $statement);
 			$sth->bind_param(":messageid", $id);
 			$sth->execute();
 		} or do {
@@ -1003,7 +1057,7 @@ sub add_one_email($$$$;$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":treeid", $treeid);
 		$sth->bind_param(":messageid", $id);
 		$sth->execute();
@@ -1021,7 +1075,7 @@ sub add_one_email($$$$;$) {
 		);
 
 		eval {
-			my $sth = $dbh->prepare_cached($statement);
+			my $sth = prepare($dbh, $statement);
 			$sth->execute($treeid, $_) foreach @mergeids;
 			1;
 		} or do {
@@ -1037,7 +1091,7 @@ sub add_one_email($$$$;$) {
 		);
 
 		eval {
-			my $sth = $dbh->prepare_cached($statement);
+			my $sth = prepare($dbh, $statement);
 			$sth->execute($_) foreach @mergeids;
 			1;
 		} or do {
@@ -1059,7 +1113,7 @@ sub add_one_email($$$$;$) {
 			;
 		);
 		eval {
-			my $sth = $dbh->prepare_cached($statement);
+			my $sth = prepare($dbh, $statement);
 			$sth->bind_param(":treeid", $treeid);
 			$sth->execute();
 		} or do {
@@ -1080,7 +1134,7 @@ sub add_one_email($$$$;$) {
 			;
 		);
 		eval {
-			my $sth = $dbh->prepare_cached($statement);
+			my $sth = prepare($dbh, $statement);
 			$sth->bind_param(":treeid", $treeid);
 			$sth->bind_param(":messageid", $id);
 			$sth->bind_param(":date", $date);
@@ -1227,7 +1281,7 @@ sub db_stat($;$$) {
 		);
 
 		eval {
-			my $sth = $dbh->prepare_cached($statement);
+			my $sth = prepare($dbh, $statement);
 			$sth->execute();
 			$ret = $sth->fetchall_arrayref();
 		} or do {
@@ -1251,7 +1305,7 @@ sub db_stat($;$$) {
 		);
 
 		eval {
-			my $sth = $dbh->prepare_cached($statement);
+			my $sth = prepare($dbh, $statement);
 			$sth->bind_param(":date1", $date1);
 			$sth->bind_param(":date2", $date2);
 			$sth->execute();
@@ -1387,7 +1441,7 @@ sub db_emails($;%) {
 	}
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->execute(@args);
 		$ret = $sth->fetchall_arrayref({});
 	} or do {
@@ -1460,7 +1514,7 @@ sub db_emails_str($$;%) {
 	}
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->execute(@args);
 		$ret = $sth->fetchall_arrayref({});
 	} or do {
@@ -1491,7 +1545,7 @@ sub db_treeid($$$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":id", $id);
 		$sth->execute();
 		$ret = $sth->fetchall_arrayref();
@@ -1529,7 +1583,7 @@ sub db_graph($$;$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":treeid", $treeid);
 		$sth->execute();
 		$ret = $sth->fetchall_arrayref({});
@@ -1851,7 +1905,7 @@ sub db_replies($$;$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":messageid", $id);
 		$sth->execute();
 		$ret = $sth->fetchall_arrayref();
@@ -1907,7 +1961,7 @@ sub db_replies($$;$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":messageid", $id);
 		$sth->execute();
 		$ret = $sth->fetchall_arrayref({});
@@ -1936,7 +1990,7 @@ sub db_replies($$;$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":emailid", $email->{id});
 		$sth->bind_param(":subjectid", $email->{subjectid});
 		$sth->bind_param(":date", $email->{date});
@@ -2017,7 +2071,7 @@ sub db_roots($$;%) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->execute(@args);
 		$ret = $sth->fetchall_arrayref({});
 	} or do {
@@ -2053,7 +2107,7 @@ sub email($$;$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":id", $id);
 		$sth->execute();
 		$ret = $sth->fetchall_hashref("messageid");
@@ -2157,7 +2211,7 @@ sub setspam($$$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":messageid", $id);
 		$sth->execute();
 		$ret = $sth->fetchall_arrayref();
@@ -2179,7 +2233,7 @@ sub setspam($$$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":spam", $val);
 		$sth->bind_param(":messageid", $id);
 		$sth->execute();
@@ -2233,7 +2287,7 @@ sub delete($$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":messageid", $id);
 		$sth->execute();
 		$ret = $sth->fetchall_hashref("messageid");
@@ -2262,7 +2316,7 @@ sub delete($$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":emailid", $rid);
 		$sth->execute();
 		$ret = $sth->fetchall_hashref("emailid");
@@ -2285,7 +2339,7 @@ sub delete($$) {
 	);
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":emailid", $rid);
 		$sth->execute();
 		$ret = $sth->fetchall_arrayref();
@@ -2325,7 +2379,7 @@ sub delete($$) {
 			);
 		}
 		eval {
-			my $sth = $dbh->prepare_cached($statement);
+			my $sth = prepare($dbh, $statement);
 			$sth->bind_param(":treeid", $treeid);
 			$sth->execute();
 		} or do {
@@ -2359,7 +2413,7 @@ sub delete($$) {
 	}
 
 	eval {
-		my $sth = $dbh->prepare_cached($statement);
+		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":messageid", $id);
 		$sth->execute();
 	} or do {
