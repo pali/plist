@@ -75,11 +75,18 @@ div.view {
 	padding: 5px;
 	border: 1px solid;
 }
-span.plaintext {
-	white-space: pre-wrap;
+pre.plaintext, pre.plaintextmonospace {
+	white-space: pre-wrap;			/* css-3 */
+	white-space: -moz-pre-wrap !important;	/* Mozilla, since 1999 */
+	white-space: -pre-wrap;			/* Opera 4-6 */
+	white-space: -o-pre-wrap;		/* Opera 7 */
+	word-wrap: break-word;			/* Internet Explorer 5.5+ */
+	margin: 0px 0px 0px 0px;
 }
-span.plaintextmonospace {
-	white-space: pre-wrap;
+pre.plaintext {
+	font-family: inherit;
+}
+pre.plaintextmonospace {
 	font-family: monospace;
 }
 END
@@ -129,14 +136,12 @@ END
 my $view_template_plain_default = "<TMPL_IF NAME=BODY><TMPL_VAR NAME=BODY></TMPL_IF>";
 
 my $plaintext_template_default = <<END;
-<TMPL_IF NAME=BODY><span class='plaintext'><TMPL_VAR ESCAPE=HTML NAME=BODY></span>
-</TMPL_IF>
+<TMPL_IF NAME=BODY><pre class='plaintext'><TMPL_VAR ESCAPE=HTML NAME=BODY></pre></TMPL_IF>
 END
 chomp($plaintext_template_default);
 
 my $plaintextmonospace_template_default = <<END;
-<TMPL_IF NAME=BODY><span class='plaintextmonospace'><TMPL_VAR ESCAPE=HTML NAME=BODY></span>
-</TMPL_IF>
+<TMPL_IF NAME=BODY><pre class='plaintextmonospace'><TMPL_VAR ESCAPE=HTML NAME=BODY></pre></TMPL_IF>
 END
 chomp($plaintextmonospace_template_default);
 
