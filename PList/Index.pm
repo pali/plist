@@ -1942,13 +1942,13 @@ sub db_replies($$;$) {
 	my $hasreply1 = "";
 	my $hasreply2 = "";
 	if ( $up ) {
-		$hasreply2 = "hasreply = 0 AND";
-	} else {
 		$hasreply1 = "hasreply = 0 AND";
+	} else {
+		$hasreply2 = "hasreply = 0 AND";
 	}
 
 	$statement = qq(
-		SELECT id, subjectid, date
+		SELECT id, subject, subjectid, date
 			FROM emails
 			WHERE
 				implicit = 0 AND
@@ -1973,9 +1973,17 @@ sub db_replies($$;$) {
 
 	my $email = ${$ret}[0];
 
+	# If this email is not reply (subject with Re:) and we want up emails then returns
+	return (\@reply, \@references) if ( $up and not $email->{subject} =~ /^\s*(?:\[[^\]]+\])\s*Re:/i );
+
+	my $subject = "";
+	if ( not $up ) {
+		$subject = ", subject";
+	}
+
 	# Select all emails which has same (non empty) subject as specified email, do not have in-reply-to header and are send before specified email
 	$statement = qq(
-		SELECT id, messageid, implicit, treeid
+		SELECT id, messageid, implicit, treeid $subject
 			FROM emails
 			WHERE
 				implicit = 0 AND
@@ -1983,7 +1991,8 @@ sub db_replies($$;$) {
 				$hasreply2
 				id != :emailid AND
 				subjectid = :subjectid AND
-				date <= :date
+				date <= :maxdate AND
+				date >= :mindate
 			ORDER BY date
 			$limit
 		;
@@ -1993,7 +2002,13 @@ sub db_replies($$;$) {
 		my $sth = prepare($dbh, $statement);
 		$sth->bind_param(":emailid", $email->{id});
 		$sth->bind_param(":subjectid", $email->{subjectid});
-		$sth->bind_param(":date", $email->{date});
+		if ( $up ) {
+			$sth->bind_param(":mindate", $email->{date} - 60*60*24*5); # 5 days
+			$sth->bind_param(":maxdate", $email->{date});
+		} else {
+			$sth->bind_param(":mindate", $email->{date});
+			$sth->bind_param(":maxdate", $email->{date} + 60*60*24*5); # 5 days
+		}
 		$sth->execute();
 		$ret = $sth->fetchall_arrayref();
 	} or do {
@@ -2002,7 +2017,15 @@ sub db_replies($$;$) {
 
 	return (\@reply, \@references) unless ( $ret and @{$ret} );
 
-	push(@reply, @{$ret});
+	if ( $up ) {
+		push(@reply, @{$ret});
+	} else {
+		foreach ( @{$ret} ) {
+			my $last = pop(@{$_});
+			push(@reply, $_) if $last =~ /^\s*(?:\[[^\]]+\])\s*Re:/i;
+		}
+	}
+
 	return (\@reply, \@references);
 
 }
