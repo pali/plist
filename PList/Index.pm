@@ -317,6 +317,10 @@ sub create_tables($) {
 	my $halftext = "TEXT";
 	$halftext = "VARCHAR(4096) CHARACTER SET utf8" if $driver eq "mysql";
 
+	# NOTE: Use 64 bit integer for date timestamp
+	my $date = "INTEGER";
+	$date = "BIGINT" if $driver eq "mysql";
+
 	my $uniquesize = "";
 	$uniquesize = "(255)" if $driver eq "mysql";
 
@@ -346,7 +350,7 @@ sub create_tables($) {
 		CREATE TABLE emails (
 			id		INTEGER PRIMARY KEY NOT NULL $autoincrement,
 			messageid	$text NOT NULL,
-			date		INTEGER,
+			date		$date,
 			subjectid	INTEGER NOT NULL REFERENCES subjects(id) ON UPDATE CASCADE ON DELETE RESTRICT,
 			subject		$text,
 			treeid		INTEGER,
@@ -414,8 +418,8 @@ sub create_tables($) {
 		CREATE TABLE trees (
 			id		INTEGER PRIMARY KEY NOT NULL $autoincrement,
 			emailid		INTEGER NOT NULL REFERENCES emails(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-			mindate		INTEGER,
-			maxdate		INTEGER,
+			mindate		$date,
+			maxdate		$date,
 			count		INTEGER,
 			UNIQUE (emailid) $ignoreconflict
 		);
