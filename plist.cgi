@@ -664,9 +664,10 @@ if ( $action eq "get-bin" ) {
 
 	my @references;
 
-	push(@references, $reply) if defined $reply and length $reply;
-	push(@references, @{$pemail->header("0")->{reply}}) if exists $pemail->header("0")->{reply};
+	# NOTE: Order is important: Parent References must be followed by parent Message-Id (=reply)
 	push(@references, @{$pemail->header("0")->{references}}) if exists $pemail->header("0")->{references};
+	push(@references, @{$pemail->header("0")->{reply}}) if exists $pemail->header("0")->{reply};
+	push(@references, $reply) if defined $reply and length $reply;
 
 	my $body = $index->view($id, pemail => $pemail, html_output => 0, plain_onlybody => 1);
 	if ( defined $body ) {
@@ -689,12 +690,13 @@ if ( $action eq "get-bin" ) {
 
 	@to = map { $_ =~ /^(\S*) (.*)$/ ? (escape("$2 <$1>")) : () } uniq(@to);
 	@cc = map { $_ =~ /^(\S*) (.*)$/ ? (escape("$2 <$1>")) : () } uniq(@cc);
+	@references = map { "<$_>" } uniq(@references);
 
 	$url .= "&To=" . join(",", @to) if @to;
 	$url .= "&Cc=" . join(",", @cc) if @cc;
 	$url .= "&Subject=" . escape("Re: $subject") if defined $subject and length $subject;
 	$url .= "&In-Reply-To=" . escape("<$reply>") if defined $reply and length $reply;
-	$url .= "&References=" . escape("<$_>") foreach uniq(@references);
+	$url .= "&References=" . escape(join(" ", @references)) if @references;
 	$url .= "&Body=" . escape($body) if defined $body and length $body;
 
 	$url =~ s/^mailto:&/mailto:?/;
