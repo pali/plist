@@ -649,24 +649,36 @@ if ( $action eq "get-bin" ) {
 	my $pemail = $index->email($id);
 	error("Email with id $id does not exist in archive $indexdir") unless $pemail;
 
+	my $header = $pemail->header("0");
+
+	my @header_replyto;
+	my @header_from;
+	my @header_to;
+	my @header_cc;
+
+	@header_replyto = @{$header->{replyto}} if exists $header->{replyto};
+	@header_from = @{$header->{from}} if exists $header->{from};
+	@header_to = @{$header->{to}} if exists $header->{to};
+	@header_cc = @{$header->{cc}} if exists $header->{cc};
+
 	my @to;
 	my @cc;
 
-	push(@to, @{$pemail->header("0")->{replyto}}) if exists $pemail->header("0")->{replyto};
-	push(@to, @{$pemail->header("0")->{from}}) if not $all and not @to;
-	push(@to, @{$pemail->header("0")->{from}}, @{$pemail->header("0")->{to}}) if $all;
-	push(@cc, @{$pemail->header("0")->{cc}}) if $all;
+	push(@to, @header_replyto);
+	push(@to, @header_from) if not $all and not @to;
+	push(@to, @header_from, @header_to) if $all;
+	push(@cc, @header_cc) if $all;
 
-	my $subject = PList::Index::normalize_subject($pemail->header("0")->{subject});
-	my $reply = $pemail->header("0")->{id};
+	my $subject = PList::Index::normalize_subject($header->{subject});
+	my $reply = $header->{id};
 
 	$subject =~ s/\(Was:[^\)]*\)\s*$//i if defined $subject;
 
 	my @references;
 
 	# NOTE: Order is important: Parent References must be followed by parent Message-Id (=reply)
-	push(@references, @{$pemail->header("0")->{references}}) if exists $pemail->header("0")->{references};
-	push(@references, @{$pemail->header("0")->{reply}}) if exists $pemail->header("0")->{reply};
+	push(@references, @{$header->{references}}) if exists $header->{references};
+	push(@references, @{$header->{reply}}) if exists $header->{reply};
 	push(@references, $reply) if defined $reply and length $reply;
 
 	my $body = $index->view($id, pemail => $pemail, html_output => 0, plain_onlybody => 1);
@@ -674,12 +686,11 @@ if ( $action eq "get-bin" ) {
 		$body = ${$body};
 		if ( defined $body and length $body ) {
 			$body =~ s/^/> /mg;
-			my $from = $pemail->header("0")->{from};
-			if ( defined $from ) {
-				$from = $from->[0];
+			if ( scalar @header_from ) {
+				my $from = $header_from[0];
 				if ( defined $from and length $from ) {
 					$from =~ s/^(\S*) //;
-					my $date = time2str("%A %d %B %Y %T", $pemail->header("0")->{date});
+					my $date = time2str("%A %d %B %Y %T", $header->{date});
 					$body = "On $date $from wrote:\n$body";
 				}
 			}
