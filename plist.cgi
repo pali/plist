@@ -33,7 +33,7 @@ use Date::Format;
 use Encode qw(decode_utf8 encode_utf8);
 use List::MoreUtils qw(uniq);
 use MIME::Base64;
-use Time::Piece;
+use Time::Local;
 
 binmode(\*STDOUT, ":utf8");
 
@@ -519,27 +519,17 @@ sub parse_date($;$$) {
 	my $date2;
 
 	if ( defined $year and length $year and defined $month and length $month and defined $day and length $day ) {
-		my $date;
-		eval { $date = Time::Piece->strptime("$year $month $day", "%Y %m %d"); } or do { $date = undef; };
-		if ( $date ) {
-			$date1 = $date->epoch();
-			$date2 = ($date + 24*60*60)->epoch();
-		}
+		$date1 = eval { timegm(0, 0, 0, $day, $month-1, $year) };
+		$date2 = $date1 + 24*60*60 if defined $date1;
 	} elsif ( defined $year and length $year and defined $month and length $month ) {
-		my $date;
-		eval { $date = Time::Piece->strptime("$year $month", "%Y %m"); } or do { $date = undef; };
-		if ( $date ) {
-			$date1 = $date->epoch();
-			$date2 = $date->add_months(1)->epoch();
-		}
+		$date1 = eval { timegm(0, 0, 0, 1, $month-1, $year) };
+		$date2 = eval { timegm(0, 0, 0, 1, ($month < 12 ? ($month, $year) : (0, $year+1))) };
 	} elsif ( defined $year and length $year ) {
-		my $date;
-		eval { $date = Time::Piece->strptime("$year", "%Y"); } or do { $date = undef; };
-		if ( $date ) {
-			$date1 = $date->epoch();
-			$date2 = $date->add_years(1)->epoch();
-		}
+		$date1 = eval { timegm(0, 0, 0, 1, 0, $year) };
+		$date2 = eval { timegm(0, 0, 0, 1, 0, $year+1) };
 	}
+
+	return (undef, undef) unless defined $date1 and defined $date2;
 
 	return ($date1, $date2);
 
