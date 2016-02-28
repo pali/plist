@@ -1752,8 +1752,10 @@ sub db_tree($$;$$$$) {
 		foreach ( @{$graph0{$id1}}, @{$graph1{$id1}} ) {
 			my $id2 = $_;
 			next if exists $treer{$id2};
-			next if djs_find(\%djs_parent, \%djs_size, $id1) == djs_find(\%djs_parent, \%djs_size, $id2);
-			djs_merge(\%djs_parent, \%djs_size, $id1, $id2);
+			my $pid1 = djs_find(\%djs_parent, \%djs_size, $id1);
+			my $pid2 = djs_find(\%djs_parent, \%djs_size, $id2);
+			next if $pid1 == $pid2;
+			djs_merge(\%djs_parent, \%djs_size, $pid1, $pid2);
 			$treer{$id2} = $id1;
 			if ( $emails{$id1}->{implicit} and defined $emails{$id2}->{date} ) {
 				if ( ( not exists $dates{$id1} ) or ( $desc and $dates{$id1} < $emails{$id2}->{date} ) or ( not $desc and $dates{$id1} > $emails{$id2}->{date} ) ) {
@@ -1783,14 +1785,15 @@ sub db_tree($$;$$$$) {
 				next if $emails{$id2}->{implicit};
 				next unless defined $emails{$id2}->{date};
 				next if $emails{$id2}->{date} < $emails{$id1}->{date};
-				next if djs_find(\%djs_parent, \%djs_size, $id1) == djs_find(\%djs_parent, \%djs_size, $id2);
-				djs_merge(\%djs_parent, \%djs_size, $id1, $id2);
+				my $pid1 = djs_find(\%djs_parent, \%djs_size, $id1);
+				my $pid2 = djs_find(\%djs_parent, \%djs_size, $id2);
+				next if $pid1 == $pid2;
+				djs_merge(\%djs_parent, \%djs_size, $pid1, $pid2);
 				$treer{$id2} = $unkid;
 				$treer{$unkid} = $id1;
 				--$unkid;
 			}
 		}
-
 	}
 
 	my $root;
@@ -1804,7 +1807,7 @@ sub db_tree($$;$$$$) {
 		next if $processed{$id};
 		$processed{$id} = 1;
 		my $next = 0;
-		while ( $treer{$id} ) {
+		while ( exists $treer{$id} ) {
 			$id = $treer{$id};
 			$next = 1 if $processed{$id};
 			last if $next;
