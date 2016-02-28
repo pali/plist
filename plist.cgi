@@ -184,11 +184,11 @@ my $slash;
 $script = get_script_url();
 ($slash, $indexdir, $action, $id, $path) = split(/(?<=\/)/, $q->path_info(), 5);
 
-$slash = "" unless $slash;
-$indexdir = "" unless $indexdir;
-$action = "" unless $action and $indexdir;
-$id = "" unless $id and $action;
-$path = "" unless $path and $id;
+$slash = "" unless defined $slash;
+$indexdir = "" unless defined $indexdir;
+$action = "" unless defined $action and defined $indexdir;
+$id = "" unless defined $id and defined $action;
+$path = "" unless defined $path and defined $id;
 
 # Check if each variable from uri ends with slash
 if ( ( $slash ne "/" ) or ( length $indexdir and not $indexdir =~ /\/$/ ) or ( length $action and not $action =~ /\/$/ ) or ( length $id and not $id =~ /\/$/ ) ) {
@@ -196,7 +196,7 @@ if ( ( $slash ne "/" ) or ( length $indexdir and not $indexdir =~ /\/$/ ) or ( l
 	# NOTE: when .htaccess rewrite is in use and uri contains char '+' CGI.pm module not working correctly
 	# Possible fix is to use path to script from get_script_url() function and compose original url from base and path_info
 	my $url = $q->url(-base=>1) . $script . $q->path_info();
-	if ( $url and not $url =~ /\/$/ ) {
+	if ( length $url and not $url =~ /\/$/ ) {
 		$url .= "/";
 		$url .= "?" . $q->query_string() if $q->query_string();
 		print $q->redirect($url);
@@ -248,7 +248,7 @@ if ( not $indexdir ) {
 
 }
 
-if ( not $action and $indexdir eq "style" ) {
+if ( not length $action and $indexdir eq "style" ) {
 	my $style_template = PList::Template->new("style.tmpl", $ENV{PLIST_TEMPLATE_DIR});
 	print $q->header(-cookie => $cookie, -type => "text/css", -expires => "+10y");
 	print $style_template->output();
@@ -453,7 +453,7 @@ if ( defined $auth ) {
 
 sub format_date($);
 
-if ( not $action ) {
+if ( not length $action ) {
 
 	# Show info page
 
@@ -496,7 +496,7 @@ if ( not $action ) {
 
 }
 
-if ( not $id and $action eq "style" ) {
+if ( not length $id and $action eq "style" ) {
 	my $style_template = $index->template("style.tmpl");
 	print $q->header(-cookie => $cookie, -type => "text/css", -expires => "+10y");
 	print $style_template->output();
@@ -623,7 +623,7 @@ if ( $action eq "get-bin" ) {
 
 } elsif ( $action eq "reply" ) {
 
-	error("Param id was not specified") unless $id;
+	error("Param id was not specified") unless length $id;
 
 	my $all = 0;
 	if ( defined $path and length $path ) {
@@ -712,8 +712,8 @@ if ( $action eq "get-bin" ) {
 
 } elsif ( $action eq "download" ) {
 
-	error("Param id was not specified") unless $id;
-	error("Param path was not specified") unless $path;
+	error("Param id was not specified") unless length $id;
+	error("Param path was not specified") unless length $path;
 
 	my $part = unescape($path);
 	my $pemail = $index->email($id);
@@ -735,7 +735,7 @@ if ( $action eq "get-bin" ) {
 
 	my $desc = $q->param("desc");
 
-	error("Param id was not specified") unless $id;
+	error("Param id was not specified") unless length $id;
 
 	my @trees = ({TREE => gen_tree($index, $id, $desc, undef, undef, undef)});
 
@@ -762,7 +762,7 @@ if ( $action eq "get-bin" ) {
 	my $timezone = $q->param("timezone");
 	my $dateformat = $q->param("dateformat");
 
-	error("Param id was not specified") unless $id;
+	error("Param id was not specified") unless length $id;
 
 	my %config = (cgi_templates => 1, style_url => gen_url(action => "style"), archive => $indexdir, archive_url => gen_url(action => ""), list_url => gen_url(indexdir => ""));
 
@@ -789,7 +789,7 @@ if ( $action eq "get-bin" ) {
 	(my $month, my $ign, undef) = split("/", $path, 3);
 	$month = "" unless defined $month;
 
-	error("Odd param $ign") if $ign;
+	error("Odd param $ign") if defined $ign;
 	error("Incorrect year $year") if length $year and $year < 1000;
 
 	my $base_template = $index->template("base.tmpl");
