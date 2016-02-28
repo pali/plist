@@ -279,6 +279,11 @@ sub html_strip($) {
 	}
 	$html = decode_entities($html);
 
+	# Remove leading and trailing newlines
+	$html =~ s/^\n+//sg;
+	$html =~ s/\n+$//sg;
+	$html .= "\n";
+
 	return $html;
 
 }
