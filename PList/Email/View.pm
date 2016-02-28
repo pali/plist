@@ -298,69 +298,67 @@ sub part_to_str($$$$$) {
 
 		} else {
 
+			my $show_download;
+			my $show_plaintext;
+			my $show_htmltext;
+			my $show_image;
+
+			my $mimetype = $part->{mimetype};
+			my $html_policy = ${$config}{html_policy};
+
+			if ( $type eq "attachment" or length $part->{filename} ) {
+				$show_download = 1;
+			}
+
+			# TODO: Make max size configurable
+			if ( $part->{size} <= 100000 ) {
+				if ( $mimetype =~ /^image\// ) {
+					$show_image = 1;
+				} elsif ( $mimetype eq "text/html" ) {
+					$show_htmltext = 1 if $html_policy == 4 or $html_policy == 3;
+				} elsif ( $mimetype =~ /^text\// or $mimetype =~ /^message\// ) {
+					$show_plaintext = 1;
+				}
+			}
+
 			my $output;
 			my $preview;
 			my $textpreview;
 			my $imagepreview;
 
-			my $mimetype = $part->{mimetype};
-
-			if ( $type eq "view" and not ( $mimetype =~ /^text\// or $mimetype =~ /^message\// ) ) {
-				$type = "attachment";
-			}
-
-			# TODO: Make max size of attachment configurable
-			if ( $type eq "attachment" and $part->{size} <= 100000 ) {
-				$preview = 1;
-				if ( $mimetype ne "text/html" and ( $mimetype =~ /^text\// or $mimetype =~ /^message\// ) ) {
-					$textpreview = 1;
-				}
-				if ( $mimetype =~ /^image\// ) {
-					$imagepreview = 1;
-				}
-			}
-
-			if ( $preview or $type eq "view" ) {
-
-				my $html_policy = ${$config}{html_policy};
-
-				if ( $mimetype eq "text/html" and ( $html_policy == 4 or $html_policy == 3 ) ) {
-					my $data = $pemail->data($partid);
-					$output = decode_utf8(${$data});
-				} elsif ( $mimetype eq "text/plain" or $mimetype eq "text/plain-from-html" or $textpreview ) {
-					my $data = $pemail->data($partid);
-					$data = decode_utf8(${$data});
-					my $monospace = ${$config}{plain_monospace};
-					if ( $monospace == 1 ) {
-						if ( $mimetype eq "text/plain-from-html" ) {
-							$monospace = 0;
-						} else {
-							# TODO: Add support for patch/diff detection
-							$monospace = 2;
-						}
-					}
-					my $plaintext_template;
-					if ( $monospace ) {
-						$plaintext_template = PList::Template->new(${$config}{plaintextmonospace_template}, ${$config}{templatedir});
+			if ( $show_htmltext ) {
+				my $data = $pemail->data($partid);
+				$output = decode_utf8(${$data});
+			} elsif ( $show_plaintext ) {
+				my $data = $pemail->data($partid);
+				$data = decode_utf8(${$data});
+				my $monospace = ${$config}{plain_monospace};
+				if ( $monospace == 1 ) {
+					if ( $mimetype eq "text/plain-from-html" ) {
+						$monospace = 0;
 					} else {
-						$plaintext_template = PList::Template->new(${$config}{plaintext_template}, ${$config}{templatedir});
+						# TODO: Add support for patch/diff detection
+						$monospace = 2;
 					}
-					$plaintext_template->param(ID => $id);
-					$plaintext_template->param(PART => $partid);
-					$plaintext_template->param(BODY => $data);
-					$output = $plaintext_template->output();
 				}
-
-			}
-
-			if ( $imagepreview ) {
+				my $plaintext_template;
+				if ( $monospace ) {
+					$plaintext_template = PList::Template->new(${$config}{plaintextmonospace_template}, ${$config}{templatedir});
+				} else {
+					$plaintext_template = PList::Template->new(${$config}{plaintext_template}, ${$config}{templatedir});
+				}
+				$plaintext_template->param(ID => $id);
+				$plaintext_template->param(PART => $partid);
+				$plaintext_template->param(BODY => $data);
+				$output = $plaintext_template->output();
+			} elsif ( $show_image ) {
 				my $imagepreview_template = PList::Template->new(${$config}{imagepreview_template}, ${$config}{templatedir});
 				$imagepreview_template->param(ID => $id);
 				$imagepreview_template->param(PART => $partid);
 				$output = $imagepreview_template->output();
 			}
 
-			if ( $type eq "attachment" ) {
+			if ( $show_download or not $output or not length $output ) {
 
 				my $attachment_template = PList::Template->new(${$config}{attachment_template}, ${$config}{templatedir});
 				my $download_template = PList::Template->new(${$config}{download_template}, ${$config}{templatedir});
@@ -374,7 +372,7 @@ sub part_to_str($$$$$) {
 				$attachment_template->param(DESCRIPTION => $part->{description});
 				$attachment_template->param(DOWNLOAD => $download_template->output());
 
-				if ( $preview and $output and length $output ) {
+				if ( $output and length $output ) {
 					my $view1_template = PList::Template->new(${$config}{view_template}, ${$config}{templatedir});
 					$view1_template->param(ID => $id);
 					$view1_template->param(PART => $partid);
