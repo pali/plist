@@ -269,10 +269,14 @@ sub html_strip($) {
 	$html =~ s/(?<=[^\n])(?=<br[^>]*>[^\n])/\n/g;
 	$html =~ s/(?=<div[^>]*>)/\n/g;
 
-	# NOTE: HTML::Strip does not support utf8 strings correctly, workaround is to decode html entities after decoding utf8 string
-	# See: https://rt.cpan.org/Public/Bug/Display.html?id=42834#txn-705624
+	# NOTE: HTML::Strip does not support utf8 strings prior version 2.00
+	# Workaround is to fix utf8 flag on output string before decoding entities
+	# See: https://rt.cpan.org/Public/Bug/Display.html?id=42834
+	my $is_utf8 = Encode::is_utf8($html);
 	$html = HTML::Strip->new(decode_entities => 0)->parse($html);
-	$html = decode_utf8($html);
+	if ( $HTML::Strip::VERSION < 2.00 and $is_utf8 ) {
+		Encode::_utf8_on($html);
+	}
 	$html = decode_entities($html);
 
 	return $html;
