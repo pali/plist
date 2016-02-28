@@ -105,6 +105,8 @@ sub date($$) {
 		next unless $_;
 		my $datetime = str2time($_);
 		next unless $datetime;
+		# Skip if datetime is smaller then minimal signed 32 bit integer
+		next if $datetime <= -2147483648;
 		return $datetime unless $date;
 		# Skip if datetime is in future or difference is more than 5 days
 		next if $datetime > $date or $date - $datetime > 60*60*24*5;
