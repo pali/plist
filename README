@@ -73,12 +73,13 @@ Encode::Detect
 File::MimeInfo::Magic
 File::Path
 FindBin
+List::MoreUtils
 HTML::Entities
 HTML::FromText
 HTML::Strip
 HTML::Template
 MIME::Base64
-Time::Piece
+Time::Local
 
 Additionally Perl module Email::Folder::Mbox needs to be patched otherwise PList will not work. Till now (2015-06-07) not all patches are part of last version of Email::Folder::Mbox (0.858) so PList itself contains patched version of Email::Folder::Mbox (marked as version 0.859).
 
