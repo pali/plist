@@ -787,15 +787,17 @@ if ( $action eq "get-bin" ) {
 
 	my $year = $id;
 	(my $month, my $ign, undef) = split("/", $path, 3);
+	$month = "" unless defined $month;
 
 	error("Odd param $ign") if $ign;
+	error("Incorrect year $year") if length $year and $year < 1000;
 
 	my $base_template = $index->template("base.tmpl");
 	my $browsepage_template = $index->template("browsepage.tmpl");
 
 	my @table;
 
-	if ( not $year ) {
+	if ( not length $year ) {
 
 		$base_template->param(TITLE => "Archive $indexdir - Browse emails");
 		$browsepage_template->param(HEADER => "Years:");
@@ -812,7 +814,7 @@ if ( $action eq "get-bin" ) {
 			}
 		}
 
-	} elsif ( not $month ) {
+	} elsif ( not length $month ) {
 
 		$base_template->param(TITLE => "Archive $indexdir - Browse emails for $year");
 		$browsepage_template->param(HEADER => "Months:");
@@ -824,6 +826,8 @@ if ( $action eq "get-bin" ) {
 		}
 
 	} else {
+
+		error("Incorrect param month $month") if $month < 1 or $month > 12;
 
 		$base_template->param(TITLE => "Archive $indexdir - Browse emails for $year-$month");
 		$browsepage_template->param(HEADER => "Days:");
@@ -871,6 +875,9 @@ if ( $action eq "get-bin" ) {
 	my $year = $id;
 	(my $month, my $day, undef) = split("/", $path, 3);
 	(my $date1, my $date2) = parse_date($year, $month, $day);
+
+	error("Incorrect year $year") if length $year and $year < 1000;
+	error("Incorrect date") if length $year and not (defined $date1 and defined $date2);
 
 	my $max = $q->param("max");
 	my $desc = $q->param("desc");
@@ -946,6 +953,9 @@ if ( $action eq "get-bin" ) {
 	my $year = $id;
 	(my $month, my $day, undef) = split("/", $path, 3);
 	(my $date1, my $date2) = parse_date($year, $month, $day);
+
+	error("Incorrect year $year") if length $year and $year < 1000;
+	error("Incorrect date") if length $year and not (defined $date1 and defined $date2);
 
 	my $limit = $q->param("limit");
 	my $offset = $q->param("offset");
@@ -1034,6 +1044,9 @@ if ( $action eq "get-bin" ) {
 	my $year = $id;
 	(my $month, my $day, undef) = split("/", $path, 3);
 	(my $date1, my $date2) = parse_date($year, $month, $day);
+
+	error("Incorrect year $year") if length $year and $year < 1000;
+	error("Incorrect date") if length $year and not (defined $date1 and defined $date2);
 
 	my $str = $q->param("str");
 	my $rid = $q->param("id");
