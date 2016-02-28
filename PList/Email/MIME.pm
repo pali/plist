@@ -485,12 +485,6 @@ sub read_part($$$$$) {
 		}
 	}
 
-	# Filename and description are used only for attachments
-	if ( $type ne "attachment" ) {
-		$filename = undef;
-		$description = undef;
-	}
-
 	# Invent some name if type is attachment
 	if ( $type eq "attachment" and not $filename ) {
 		my $ext = extensions("$discrete/$composite");
