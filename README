@@ -65,7 +65,7 @@ DBD::SQLite
 DBI
 Digest::SHA
 Email::Address
-Email::Folder::Mbox
+Email::Folder::Mbox (>= 0.860)
 Email::MIME
 Email::MIME::ContentType
 Encode
@@ -80,8 +80,6 @@ HTML::Strip
 HTML::Template
 MIME::Base64
 Time::Local
-
-Additionally Perl module Email::Folder::Mbox needs to be patched otherwise PList will not work. Till now (2015-06-07) not all patches are part of last version of Email::Folder::Mbox (0.858) so PList itself contains patched version of Email::Folder::Mbox (marked as version 0.859).
 
 Optionally if Perl module Number::Bytes::Human is installed PList will report size of all email attachments in human readable format (instead default bytes).
 
