@@ -311,7 +311,7 @@ sub part_to_str($$$$$) {
 			}
 
 			# TODO: Make max size configurable
-			if ( $part->{size} <= 100000 ) {
+			if ( $part->{size} <= 1024*1024*2 ) {
 				if ( $mimetype =~ /^image\// ) {
 					$show_image = 1;
 				} elsif ( $mimetype eq "text/html" ) {
