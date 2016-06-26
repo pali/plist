@@ -24,7 +24,7 @@ use base "PList::List";
 
 use PList::Email::MIME;
 
-use Email::Folder::Mbox 0.859;
+use Email::Folder::Mbox 0.860;
 
 sub new($$;$) {
 
