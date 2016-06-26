@@ -557,7 +557,7 @@ sub create($;$$$$%) {
 	}
 
 	if ( not make_path($dir) ) {
-		warn "Cannot create dir $dir\n";
+		warn "Cannot create dir '$dir'\n";
 		return 0;
 	}
 
@@ -703,7 +703,7 @@ sub regenerate($) {
 	foreach my $file ( @files ) {
 		my $list = PList::List::Binary->new("$priv->{dir}/$file", 0);
 		if ( not $list ) {
-			warn "Cannot open list file $file\n";
+			warn "Cannot open list file '$file'\n";
 			next;
 		}
 		my $deletedlist = exists $deleted->{$file} ? $deleted->{$file} : undef;
@@ -711,16 +711,16 @@ sub regenerate($) {
 			my $offset = $list->offset();
 			my $pemail = $list->readnext();
 			if ( not $pemail ) {
-				warn "Corrupted email in file $file\n";
+				warn "Corrupted email in file '$file'\n";
 				next;
 			}
 			my $id = $pemail->id();
 			if ( exists $deletedlist->{$id} and $deletedlist->{$id} == $offset ) {
-				warn "Ignoring deleted email from file $file at offset $offset with messageid $id\n";
+				warn "Ignoring deleted email from file '$file' at offset $offset with id '$id'\n";
 				next;
 			}
 			if ( not $priv->add_one_email($pemail, undef, $file, $offset) ) {
-				warn "Cannot add email with messageid $id from file $file: $@\n";
+				warn "Cannot add email with id '$id' from file '$file': $@\n";
 				next;
 			}
 		}
@@ -1211,14 +1211,14 @@ sub add_email($$;$) {
 	my ($list, $listfile) = $priv->reopen_listfile();
 	if ( not $list or not $listfile ) {
 		my $err = $@;
-		warn "Cannot add email: $err\n" unless $ignorewarn;
+		warn "Cannot add email with id '" . $pemail->id() . "': $err\n" unless $ignorewarn;
 		return 0;
 	}
 
 	my $ret = $priv->add_one_email($pemail, $list, $listfile);
 	if ( not $ret ) {
 		my $err = $@;
-		warn "Cannot add email: $err\n" unless $ignorewarn;
+		warn "Cannot add email with id '" . $pemail->id() . "': $err\n" unless $ignorewarn;
 		return 0;
 	}
 
