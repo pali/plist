@@ -232,6 +232,7 @@ sub db_connect($$$$$) {
 		$dbh->{AutoCommit} = 0;
 	} elsif ( $driver eq "mysql" ) {
 		$dbh->{mysql_enable_utf8} = 1; # by default utf8 is turned off
+		$dbh->{mysql_enable_utf8mb4} = 1; # allow 4-byte UTF-8 characters
 		$dbh->do("SET storage_engine = INNODB;"); # Use InnoDB engine which support transactions
 	}
 
