@@ -232,7 +232,12 @@ sub db_connect($$$$$) {
 		$dbh->{AutoCommit} = 0;
 	} elsif ( $driver eq "mysql" ) {
 		$dbh->{mysql_enable_utf8} = 1; # by default utf8 is turned off
-		$dbh->{mysql_enable_utf8mb4} = 1; # allow 4-byte UTF-8 characters
+		if ( $dbh->{mysql_serverversion} >= 50503 and $dbh->{mysql_clientversion} >= 50503 ) {
+			$dbh->{mysql_enable_utf8mb4} = 1; # tell DBD to allow 4-byte UTF-8 characters
+			$dbh->do("SET NAMES utf8mb4;"); # and use it by default if mysql client and server supports
+		} else {
+			$dbh->do("SET NAMES utf8;"); # use by default only 3-byte UTF-8 characters
+		}
 		$dbh->do("SET storage_engine = INNODB;"); # Use InnoDB engine which support transactions
 	}
 
@@ -311,19 +316,22 @@ sub create_tables($) {
 
 	my $statement;
 
+	my $mysql_utf8_charset = "utf8";
+	$mysql_utf8_charset = "utf8mb4" if $driver eq "mysql" and $dbh->{mysql_serverversion} >= 50503 and $dbh->{mysql_clientversion} >= 50503;
+
 	# NOTE: Higher values are not possible for MySQL INNODB engine
 	my $text = "TEXT";
-	$text = "VARCHAR(8192) CHARACTER SET utf8" if $driver eq "mysql";
+	$text = "VARCHAR(7168) CHARACTER SET $mysql_utf8_charset" if $driver eq "mysql";
 
 	my $halftext = "TEXT";
-	$halftext = "VARCHAR(4096) CHARACTER SET utf8" if $driver eq "mysql";
+	$halftext = "VARCHAR(2037) CHARACTER SET $mysql_utf8_charset" if $driver eq "mysql";
 
 	# NOTE: Use 64 bit integer for date timestamp
 	my $date = "INTEGER";
 	$date = "BIGINT" if $driver eq "mysql";
 
 	my $uniquesize = "";
-	$uniquesize = "(255)" if $driver eq "mysql";
+	$uniquesize = "(191)" if $driver eq "mysql";
 
 	my $uniquehalfsize = "";
 	$uniquehalfsize = "(127)" if $driver eq "mysql";
