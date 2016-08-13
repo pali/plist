@@ -231,6 +231,7 @@ sub db_connect($$$$$) {
 		$dbh->do("PRAGMA foreign_keys = ON;"); # By default foreign keys constraints are turned off
 		$dbh->{AutoCommit} = 0;
 	} elsif ( $driver eq "mysql" ) {
+		$dbh->{mysql_server_prepare} = 1; # use server side prepare
 		$dbh->{mysql_enable_utf8} = 1; # by default utf8 is turned off
 		if ( $dbh->{mysql_serverversion} >= 50503 and $dbh->{mysql_clientversion} >= 50503 ) {
 			$dbh->{mysql_enable_utf8mb4} = 1; # tell DBD to allow 4-byte UTF-8 characters
