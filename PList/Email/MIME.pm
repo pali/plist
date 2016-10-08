@@ -131,7 +131,7 @@ sub reply($) {
 
 	my ($email) = @_;
 
-	return ids($email->header("In-Reply-To"))
+	return ids($email->header_obj->header_raw("In-Reply-To"))
 
 }
 
@@ -139,7 +139,7 @@ sub references($) {
 
 	my ($email) = @_;
 
-	return ids($email->header("References"));
+	return ids($email->header_obj->header_raw("References"));
 
 }
 
@@ -147,7 +147,7 @@ sub messageid($) {
 
 	my ($email) = @_;
 
-	my @arr = $email->header("Message-Id");
+	my @arr = $email->header_obj->header_raw("Message-Id");
 	my @ids = ids(@arr);
 	return $ids[0] if @ids;
 
@@ -182,6 +182,7 @@ sub address($) {
 	}
 
 	my $name = $email_address->name;
+	$name = eval { decode("MIME-Header", $name) } || $name;
 
 	if ( $name ) {
 		$name =~ s/\s/ /g;
@@ -218,7 +219,7 @@ sub piper_address($) {
 	if ( $email_address =~ /^(\S+) at (\S+) \((.*)\)$/ ) {
 		$user = $1;
 		$host = $2;
-		$name = $3;
+		$name = eval { decode("MIME-Header", $3) } || $3;
 		$user =~ s/\s//g;
 		$host =~ s/\s//g;
 		$name =~ s/\s/ /g;
@@ -253,7 +254,7 @@ sub piper_address($) {
 sub addresses($$) {
 
 	my ($email, $header) = @_;
-	my @addresses = $email->header($header);
+	my @addresses = $email->header_obj->header_raw($header);
 	return piper_address($addresses[0]) if ( scalar @addresses == 1 and $addresses[0] =~ /^.+ at .+ \(.*\)$/ );
 	return map { address($_) } Email::Address->parse($_) foreach(@addresses);
 
@@ -759,9 +760,6 @@ sub from_str($;$$) {
 	}
 
 	if ( $messageid ) {
-		my $new_messageid;
-		eval { $new_messageid = decode("MIME-Header", $messageid); };
-		$messageid = $new_messageid if $new_messageid;
 		my @ids = ids($messageid);
 		$id = $ids[0] if @ids;
 	}
