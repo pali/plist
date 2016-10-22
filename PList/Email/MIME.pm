@@ -122,7 +122,7 @@ sub ids(@) {
 
 	my @ret;
 	push(@ret, m/<\s*([^<>]+)\s*>/g) foreach @_;
-	return map { $_ =~ s/[\s\\\/]//g; length($_) > 4 ? $_ : () } @ret;
+	return map { $_ =~ s/[\s\\\/%]//g; length($_) > 4 ? $_ : () } @ret;
 	# NOTE: Too short ids cannot be used as unique identifier
 
 }
